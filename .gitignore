@@ -33,3 +33,6 @@ yarn-error.log*
 # OS
 Thumbs.db
 .DS_Store
+
+# reference design locale (non versionnee)
+WhatsApp Image*.jpeg

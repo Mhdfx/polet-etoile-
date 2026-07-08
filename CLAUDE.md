@@ -35,7 +35,7 @@ totaux stockés à part et non vérifiables.
 |---|---|---|
 | Framework | **Next.js 15** (App Router, Server Actions) | Full-stack, mutations serveur typées |
 | Langage | **TypeScript strict** | `strict: true` non négociable |
-| BDD | **PostgreSQL** | Séquences natives (numérotation BL), Decimal propre |
+| BDD | **MySQL 8** | Compatible Laragon/Coolify ; compteur BL transactionnel verrouillé |
 | ORM | **Prisma** | Schéma = source de vérité du modèle de données |
 | Argent | **Prisma `Decimal` + `decimal.js`** | JAMAIS le type `number` sur un montant |
 | Validation | **Zod** | Un schéma → validation serveur + types + form |
@@ -68,9 +68,10 @@ Ces règles priment sur toute interprétation. Une violation = bug bloquant à l
 4. **HT, pas de TVA.** Le poulet est exonéré → HT = TTC. Taux TVA paramétrable en base
    (pour l'avenir) mais **non appliqué** en V1.
 5. **Toutes les quantités sont en KG.** Pas de mélange d'unités en V1.
-6. **Numérotation BL : séquence PostgreSQL.** Numéro séquentiel, sans trou, préfixé
-   selon le paramétrage. **JAMAIS** un `max(numero)+1` applicatif (condition de course).
-   Deux commandes simultanées → deux numéros distincts.
+6. **Numérotation BL : compteur MySQL verrouillé en transaction.** Numéro séquentiel,
+   sans trou, préfixé selon le paramétrage. **JAMAIS** un `max(numero)+1` applicatif
+   (condition de course), ni un `AUTO_INCREMENT` pour le BL (trous possibles après
+   rollback). Deux commandes simultanées → deux numéros distincts.
 7. **Recalcul serveur systématique.** Le serveur ne fait jamais confiance aux totaux
    envoyés par le client. Il recalcule tout à partir des lignes reçues avant d'écrire,
    et rejette si incohérence.
@@ -162,7 +163,7 @@ du CDC. Pas optionnels.
 1. **Socle** — Docker, schéma Prisma complet + migrations, seeders (catalogue avicole
    section 14 du CDC + liste villes), auth + rôles, paramétrage système.
 2. **CRUD admin** — produits/prix + historique, utilisateurs, clients.
-3. **⭐ Commande + paiement** — calculs, transaction, séquence BL, table paiements,
+3. **⭐ Commande + paiement** — calculs, transaction, compteur BL, table paiements,
    statut calculé. (Module le plus critique — revue croisée par l'autre agent.)
 4. **Listes** — voir commandes + externes + pagination serveur, retours, PDF BL, Excel.
 5. **KPI + pilotage** — KPI commercial puis consolidé admin, graphes, tops, objectifs,
@@ -174,7 +175,7 @@ du CDC. Pas optionnels.
 ## 7. Interdits (ne jamais faire, même si ça « marche »)
 
 - Utiliser `number` pour un montant. → `Decimal` / `decimal.js`.
-- Calculer un numéro de BL en JS (`max+1`). → séquence Postgres.
+- Calculer un numéro de BL en JS (`max+1`) ou via `AUTO_INCREMENT`. → compteur MySQL verrouillé dans la transaction.
 - Faire confiance à un total envoyé par le client. → recalcul serveur.
 - Vérifier une permission seulement côté UI. → toujours côté serveur.
 - Supprimer physiquement une ligne. → soft delete.

@@ -1,225 +1,190 @@
-# HANDOFF — Application de gestion commerciale (Poulet Étoilé / Naomedia)
+# HANDOFF - Application de gestion commerciale (Poulet Etoile / Naomedia)
 
-> Document de reprise canonique. **À lire en premier** par tout agent ou développeur
-> qui reprend le projet. Il explique ce qu'est l'app, comment elle est construite, où
-> vit chaque donnée, ce qui reste à faire. **À tenir à jour à chaque session.**
->
-> Les **règles** de développement sont dans `CLAUDE.md` / `AGENTS.md` — ce fichier
-> décrit **l'état et les intentions**, pas les règles.
+Document de reprise canonique. A lire avant toute nouvelle session avec
+`CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Dernière mise à jour : 08/07/2026 · Statut : **socle non démarré — schéma à figer**.
+Derniere mise a jour : 08/07/2026.  
+Statut : **socle Next/MySQL + auth Better Auth operationnels - schema initial a valider par Mehdi**.
 
-> **Plan d'exécution détaillé** (phases, micro-étapes, GATEs, répartition
-> Claude Code / Codex) : voir `PLAN.md`. La to-do du §9 ci-dessous en est le
-> résumé ; `PLAN.md` fait foi pour l'ordre et les cases à cocher.
+`PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
+l'etat courant, les decisions et les endroits ou modifier chaque sujet.
 
----
+## 1. Projet
 
-## 1. Ce qu'est le projet
-
-Application web de **gestion commerciale** pour une entreprise de **distribution
-avicole** (poulet et dérivés) vendant à des commerces (bouchers, restaurateurs,
-traiteurs, distributeurs). Mission **freelance pour l'agence Naomedia** (Casablanca) ;
-client final réf. « Poulet Étoilé ». Interface 100 % en français.
+Application web de gestion commerciale pour une entreprise de distribution avicole
+(Poulet Etoile), livree pour Naomedia. Interface 100 % en francais.
 
 Deux espaces :
 
-- **Commercial** (mobile-first, usage terrain sur smartphone) : passer une commande,
-  voir ses commandes, ses clients, ses KPI, saisir des retours magasin.
-- **Administrateur** : pilotage consolidé — produits/prix, utilisateurs, paramétrage,
-  toutes les commandes, **paiements**, KPI globaux, journal d'audit, sessions actives.
+- Commercial : commandes terrain, clients, KPI, retours magasin.
+- Administrateur : produits/prix, utilisateurs, clients, toutes les commandes,
+  paiements, KPI consolides, audit, sessions actives.
 
-**Idée centrale** : la **commande** est la source de vérité unique. L'admin fixe les
-prix, le commercial vend à ces prix (sans remise), l'admin encaisse les paiements (en
-plusieurs fois possible). Tout le reste (KPI, PDF, exports) est une projection des
-commandes.
-
-Origine : `CDC_Freelance_Technique_Gestion_Commerciale.pdf` (cahier des charges v1.1,
-en français). **Ce fichier prime sur le CDC pour l'état courant** ; le CDC reste la
-référence pour la substance fonctionnelle.
-
----
+La commande est la source de verite unique. Les KPI, PDF et exports sont des
+projections des commandes.
 
 ## 2. Stack
 
-Dérogation à la stack imposée par le CDC (Laravel/Vue/MySQL), **acceptée par Naomedia**.
-
 | Couche | Choix |
 |---|---|
-| Framework | Next.js 15 (App Router, Server Actions) |
+| Framework | Next.js 15 App Router |
 | Langage | TypeScript strict |
-| BDD | PostgreSQL |
-| ORM | Prisma (`Decimal` pour l'argent) + `decimal.js` pour les calculs |
+| BDD | MySQL 8 |
+| ORM | Prisma 7 + adapter MariaDB/MySQL |
+| Argent | Prisma Decimal + decimal.js |
 | Validation | Zod |
-| Auth / sessions | Better Auth (sessions en base) |
-| UI | shadcn/ui + Tailwind |
-| Tables | TanStack Table (pagination serveur) |
-| Graphes | Tremor (ou Recharts) |
+| Auth | Better Auth, sessions en base |
+| UI | Tailwind, futur shadcn/ui |
+| Tables | TanStack Table |
+| Graphes | Recharts ou Tremor |
 | PDF | @react-pdf/renderer |
 | Excel | exceljs |
-| Dates | Luxon (fuseau Africa/Casablanca, stockage UTC) |
+| Dates | Luxon, fuseau Africa/Casablanca |
 | Tests | Vitest |
-| Déploiement | VPS + Docker + Coolify |
 
----
+MySQL Docker ecoute sur le port hote `3307` pour eviter le conflit avec Laragon sur
+`3306`.
 
-## 3. LA règle la plus importante : source de vérité unique
+## 3. Modele de donnees courant
 
-Le **modèle de données** (`prisma/schema.prisma`) est la source de vérité. Il est **figé
-en premier**, avant tout écran. Aucun agent ne le modifie seul — toute évolution passe
-par Mehdi. Le paramétrage société (raison sociale, ICE, RC, logo, préfixe BL, fuseau,
-taux TVA) vit en base dans la table `parametres_systeme` — **jamais codé en dur** dans
-un template PDF ou un composant.
+Source de verite : `prisma/schema.prisma`.
 
----
+Tables metier :
 
-## 4. Modèle de données (résumé — voir le schéma Prisma pour le détail)
+- `users` : email technique, nom_utilisateur, nom_complet, role, actif,
+  derniere_connexion_at, soft delete. Le login utilisateur se fait avec
+  `nom_utilisateur` + mot de passe ; l'email reste un champ Better Auth requis mais
+  n'est pas utilise par l'interface de connexion.
+- `sessions`, `accounts`, `verifications` : tables Better Auth. Les mots de passe
+  credential sont dans `accounts.password`.
+- `objectifs` : objectif mensuel par commercial.
+- `produits` et `historique_prix` : catalogue, prix de reference et historique.
+- `clients`, `clients_externes` : clients commerciaux et clients externes admin.
+- `commandes`, `lignes_commande` : BL, lignes, prix figes, Decimal.
+- `paiements` : paiements multi-modes par commande.
+- `retours` : retours magasin non modifiables.
+- `parametres_systeme` : raison sociale, prefixe BL, fuseau, TVA, villes.
+- `audit_log` : actions sensibles, conservation indefinie.
+- `compteurs_bl` : compteur transactionnel pour numerotation BL.
 
-Tables (noms en français) :
+Decisions importantes :
 
-- `users` — id, nom_utilisateur (unique), mot_de_passe (hashé), role (admin|commercial),
-  actif, derniere_connexion_at, soft delete.
-- `objectifs` — utilisateur_id, mois (AAAA-MM), montant_objectif, created_by.
-- `produits` — nom, categorie, unite (**kg** en V1), prix_reference (Decimal 10,2),
-  actif, ordre_affichage, soft delete.
-- `historique_prix` — produit_id, ancien_prix, nouveau_prix, utilisateur_id, date.
-- `clients` — nom, region_ville (liste prédéfinie), telephone, commercial_id, soft delete.
-- `clients_externes` — même modèle que clients (clients gérés par l'admin, non affichés
-  côté commercial).
-- `commandes` — numero_bl (**séquence Postgres**, unique, sans trou), client_id,
-  client_externe_id (nullable), utilisateur_id, date_commande, type_commande
-  (standard|externe), + statut de paiement **calculé** (voir §5).
-- `lignes_commande` — commande_id, produit_id, quantite (Decimal 10,3), prix_unitaire
-  (**figé** à la saisie), prix_net (= quantite × prix_unitaire ; **pas de remise**).
-- `paiements` — commande_id, montant (Decimal 10,2), mode_paiement
-  (espèces|chèque|traite|autre), date_paiement, reference (nullable),
-  encaisse_par (admin), created_at. **(voir §5)**
-- `retours` — produit_id, quantite_kg (Decimal 10,3), commentaire, utilisateur_id,
-  created_at. Non modifiable après saisie.
-- `parametres_systeme` — cle (unique), valeur, updated_by, updated_at.
-- `audit_log` — utilisateur_id, action, entite, entite_id, donnees_avant (JSON),
-  donnees_apres (JSON), ip_address, created_at. Lecture seule, conservé indéfiniment.
+- MySQL, pas PostgreSQL.
+- Pas de remise / majoration.
+- Tous les montants en Decimal, jamais `number`.
+- Numero BL via `compteurs_bl` verrouille en transaction, jamais `max+1`.
+- Paiement actuellement modelise par commande, avec `reference` optionnelle.
+- Schema initial non encore valide/freeze officiellement par Mehdi.
 
-Différences volontaires vs le CDC (à documenter dans le README) :
-- **Pas de colonne remise** dans `lignes_commande` (remise supprimée à la demande client).
-- **Table `paiements`** ajoutée (le CDC prévoyait un statut binaire ; le client veut le
-  règlement partiel multi-modes).
-- `statut_paiement` n'est plus une colonne enum figée mais un **statut calculé**.
+## 4. Auth
 
----
+Implementation actuelle :
 
-## 5. Comportements clés à connaître avant de modifier quoi que ce soit
+- `lib/auth.ts` configure Better Auth avec Prisma adapter MySQL et le plugin username.
+- Sign-up public desactive.
+- Sign-in email desactive : l'authentification voulue est username/password.
+- Sessions stockees en base.
+- Hook de creation de session : met a jour `users.derniere_connexion_at`.
+- `lib/session.ts` fournit :
+  - `requireSession()`
+  - `requireAdmin()`
+  - `requireCommercial()`
+  - `requireOwnerOrAdmin()`
+  - `cheminAccueilPourRole()`
+- Route Better Auth : `app/api/auth/[...all]/route.ts`.
+- Pages minimales : `/connexion`, `/admin`, `/commercial`, `/403`, 404 et 500.
 
-- **Prix figé** : `prix_unitaire` est copié depuis `produits.prix_reference` au moment de
-  la saisie. Changer un prix produit plus tard n'affecte pas les commandes passées.
-- **Pas de remise/majoration** : retiré à la demande du client. `prix_net = quantité ×
-  prix_unitaire`. Total à payer = Σ prix_net.
-- **HT sans TVA** : poulet exonéré, HT = TTC. Taux TVA en base mais non appliqué en V1.
-- **Numérotation BL** : séquence PostgreSQL, préfixée (paramétrage). Jamais `max+1`.
-- **Recalcul serveur** : à l'enregistrement, le serveur recalcule tous les totaux depuis
-  les lignes reçues et rejette toute incohérence. Transaction atomique (commande + lignes).
-- **Paiements** : gérés par l'admin. Une commande peut recevoir plusieurs paiements
-  (modes : espèces / chèque / traite / autre). Le **statut est calculé** :
-  - `reste_dû = total_commande − Σ paiements`
-  - `payé` si `reste_dû = 0`, sinon `en attente` (que rien ne soit payé ou une partie).
-  - Le montant payé et le reste à payer sont affichés.
-  - KPI « Non réglé » = **somme des restes dus**, pas un filtre de statut binaire.
-- **Commande figée** après création : pas d'édition ; seul l'admin supprime (soft delete,
-  audité).
-- **Admin peut commander au nom d'un commercial** : le formulaire admin a un sélecteur
-  de commercial ; l'action est tracée dans l'audit.
-- **Retours magasin** : horodatés + liés au compte automatiquement, non modifiables.
-- **Permissions serveur** : un commercial ne voit que ses données ; accès à une ressource
-  d'autrui → 403.
+Comptes seed :
 
----
+- Admin : `admin` / `password`
+- Commercial Nord : `commercial.nord` / `commercial123`
+- Commercial Sud : `commercial.sud` / `commercial123`
 
-## 6. Réponses client (tranchées)
+Front actuel volontairement basique. Le user a autorise un front minimal temporaire,
+mais la logique/structure doit rester propre.
+Direction visuelle demandee ensuite : dashboard type image WhatsApp fournie
+(sidebar bleue, workspace gris clair, topbar compacte, panels blancs arrondis,
+cartes KPI rouges/bleues). Premier passage implemente dans `components/app-shell.tsx`
+et les pages `/admin`, `/commercial`.
+Dernier correctif layout : suppression du cadre exterieur gris/vert, suppression de
+la hauteur forcee du shell, suppression du `flex-1` sur le wrapper contenu, et grille
+admin en deux colonnes des `md` pour eviter le grand empilement vers 931px.
 
-| Question | Réponse |
-|---|---|
-| Migration des anciennes données | **Non — base vierge** |
-| Remise / majoration | **Supprimée** |
-| Prix HT ou TTC | **HT**, poulet exonéré (HT = TTC), pas de TVA |
-| Règlement partiel | **Oui** — paiements multiples, gérés par l'admin, statut calculé |
-| Modes de paiement | Espèces, chèque, traite, autre |
-| Qui encaisse / marque payé | **Admin uniquement** |
-| Région client | **Liste de villes prédéfinies** (liste standard Maroc au seed) |
-| Admin commande pour un commercial | **Oui** (sélecteur + audit) |
-| Retours modifiables | **Non** |
-| Objectif mensuel | En **DH**, jauge visible côté commercial |
-| Journal d'audit | Conservé **indéfiniment** |
-| Mode hors connexion | **Non** (V1) |
-| Fuseau horaire | **Africa/Casablanca** |
-| Commande modifiable après création | **Non — figée** |
-| Suppression de commande | **Admin uniquement**, soft delete |
+## 5. Etat fait
 
----
+- Projet Next.js initialise avec TypeScript strict, Tailwind 4 et ESLint.
+- Dependances socle installees : Prisma 7, Better Auth, decimal.js, Zod, TanStack
+  Table, Recharts, PDF/Excel, Luxon, Vitest.
+- Docker MySQL ajoute et lance sur `localhost:3307`.
+- `.env.example` et `.env` alignes sur MySQL local.
+- Schema Prisma initial ajoute.
+- Migration initiale MySQL appliquee : `20260708163200_init_mysql`.
+- Migration auth appliquee : `20260708173024_better_auth_schema`.
+- Seed execute et verifie : 3 users, 8 produits, 3 commandes, 2 paiements,
+  compteur BL `numero_bl = 3`.
+- Helpers `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` testes.
+- Helper BL `lib/bl.ts` avec `SELECT ... FOR UPDATE`.
+- Better Auth operationnel avec comptes seed username/password.
+- Shell dashboard reference ajoute pour les espaces admin/commercial, avec navigation
+  bleue, topbar, panneaux KPI et placeholders visuels.
+- Espace vide du shell corrige dans `components/app-shell.tsx` sans toucher au contenu
+  dashboard de `app/admin/page.tsx`, sauf le breakpoint de grille `md`.
+- Smoke auth verifie sur `http://localhost:3107` :
+  - `admin` / `password` -> `/admin` 200.
+  - commercial connecte -> `/commercial` 200.
+  - mauvais role -> redirection `/403`.
+  - endpoint email `/api/auth/sign-in/email` -> 404.
+- Verifications passees apres auth :
+  - `npm run prisma:validate`
+  - `npm run prisma:generate`
+  - `npx tsc --noEmit`
+  - `npm run test`
+  - `npm run lint`
+  - `npm run build`
 
-## 7. Questions encore ouvertes (non bloquantes pour le socle)
+## 6. A faire ensuite
 
-À confirmer avec le client **avant le module paiement / KPI** :
+Ordre recommande :
 
-1. Pour un **chèque** ou une **traite** : faut-il enregistrer le **numéro** et surtout la
-   **date d'échéance** ? (Hypothèse actuelle : champ `reference` optionnel ; ajouter
-   `date_echeance` si oui.)
-2. Un paiement s'applique-t-il **à une commande** précise, ou peut-il couvrir un **solde
-   global** sur plusieurs commandes d'un même client ? (Hypothèse : **par commande**.)
-3. La ligne catalogue **« RELIQUAT PAYEMENT »** : compte-t-elle dans les KPI (CA, top
-   produits) ou est-elle exclue ? Et est-elle encore utile maintenant que le règlement
-   partiel existe ? (Hypothèse : produit normal inclus, à confirmer.)
+1. Valider/freeze le schema avec Mehdi, notamment les questions paiement/KPI.
+2. Ajouter les tests automatises de permissions auth (anonyme, admin, commercial).
+3. Poser le vrai AppLayout + composants UI de reference.
+4. CRUD admin produits/prix/utilisateurs/clients.
+5. Module commande + paiement, critique.
+6. Listes, retours, PDF BL, Excel.
+7. KPI, audit, sessions actives.
+8. Durcissement et recette.
 
-Rappel non technique : **sign-off Naomedia sur la suppression de la remise** — le client
-a confirmé ; à valider aussi côté Naomedia par écrit (leur CDC l'imposait).
+Questions ouvertes a confirmer avant paiement/KPI :
 
----
+- Cheque/traite : faut-il `date_echeance` en plus de `reference` ?
+- Paiement par commande ou solde global client ?
+- `RELIQUAT PAYEMENT` compte-t-il dans les KPI ?
 
-## 8. Livrables attendus (CDC section 15)
-
-- Code source sur le dépôt Git Naomedia, historique de commits clair.
-- `README.md` : installation locale, variables d'environnement, commande de seed.
-- Schéma + migrations Prisma pour tout le modèle.
-- Seeders : catalogue avicole (section 14 du CDC) + villes + clients/commandes fictifs
-  couvrant des cas limites (client sans commande, produit désactivé, commande
-  totalement payée, commande partiellement payée).
-- Suite de tests (Vitest) sur les calculs et les cas limites de la recette 16.2.
-- Application déployée sur l'environnement de recette.
-- Doc courte des choix techniques non couverts par le CDC.
-
----
-
-## 9. État & to-do
-
-**Fait :**
-- Analyse du CDC, clarifications client obtenues, stack validée avec Naomedia.
-- _(à compléter au fil du build)_
-
-**À faire — dans l'ordre :**
-1. [ ] Init projet Next.js + Docker + Coolify de base.
-2. [ ] **Figer le schéma Prisma complet** (source de vérité) + migrations.
-3. [ ] Seeders : catalogue avicole + liste villes + jeu de test avec cas limites.
-4. [ ] Auth + rôles (Better Auth, sessions DB) + paramétrage système.
-5. [ ] Fondations front (AppLayout, composants ui, thème Tailwind, 2 écrans de réf) —
-       Claude Code.
-6. [ ] CRUD admin : produits/prix + historique, utilisateurs, clients.
-7. [ ] Commande + paiement (module critique — revue croisée).
-8. [ ] Listes + externes + pagination serveur, retours, PDF BL, export Excel.
-9. [ ] KPI commercial + consolidé admin, graphes, tops, objectifs, audit, sessions.
-10. [ ] Durcissement + recette 16.2 (buffer).
-
-**Bloqué sur info client :** les 3 questions ouvertes du §7 (avant le module paiement/KPI).
-
----
-
-## 10. « Où je change X ? »
+## 7. Ou changer X
 
 | Changement | Endroit |
 |---|---|
-| Modèle de données (tables, champs) | `prisma/schema.prisma` (via Mehdi uniquement) |
-| Règles métier / interdits | `CLAUDE.md` / `AGENTS.md` |
-| Facts société (nom, ICE, logo, préfixe BL, fuseau) | table `parametres_systeme` (jamais en dur) |
-| Catalogue produits initial / villes | seeders |
-| Design tokens (couleurs, polices) | thème Tailwind (Claude Code) |
-| Composants réutilisables | `components/ui/` (Claude Code) |
-| Formules KPI | module `kpi` — voir CDC section 7.4 |
-| Contenu PDF du BL | template @react-pdf/renderer (alimenté par `parametres_systeme`) |
+| Schema / tables / champs | `prisma/schema.prisma` |
+| Migrations | `prisma/migrations/*/migration.sql` |
+| Base locale | `docker-compose.yml`, `.env`, `.env.example` |
+| Prisma client runtime | `lib/db.ts` |
+| Auth Better Auth | `lib/auth.ts` |
+| Guards serveur | `lib/session.ts` |
+| Route auth API | `app/api/auth/[...all]/route.ts` |
+| Comptes seed username/password | `prisma/seed.ts` |
+| Shell dashboard admin/commercial | `components/app-shell.tsx` |
+| Pages espaces utilisateurs | `app/admin/page.tsx`, `app/commercial/page.tsx` |
+| Decimal / format / dates | `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` |
+| Numerotation BL | `lib/bl.ts` |
+| Plan projet | `PLAN.md` |
+| Regles projet | `CLAUDE.md`, `AGENTS.md` |
+
+## 8. Notes de reprise
+
+- Ne pas modifier le schema seul si Mehdi n'a pas valide la decision.
+- Ne pas introduire PostgreSQL.
+- Ne pas utiliser `number` pour les montants.
+- Ne pas remplacer le compteur BL transactionnel.
+- Ne pas exposer de sign-up public.
+- Generer un vrai `BETTER_AUTH_SECRET` long avant production.

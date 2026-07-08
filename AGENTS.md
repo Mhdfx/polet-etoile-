@@ -79,7 +79,7 @@ simple, écrans de liste), un seul agent suffit — pas de revue croisée néces
 - [ ] États vides, chargement, erreurs de validation, 403/404/500 couverts.
 - [ ] Permissions vérifiées **côté serveur** (test d'accès non autorisé → 403).
 - [ ] Montants cohérents écran / PDF / Excel (si le module produit un de ces sorties).
-- [ ] Aucun `number` sur un montant, aucun `max+1` de BL, aucun total client non
+- [ ] Aucun `number` sur un montant, aucun `max+1`/`AUTO_INCREMENT` de BL, aucun total client non
       recalculé.
 - [ ] Français partout (tables, colonnes, UI).
 - [ ] Commit clair + `HANDOFF.md` mis à jour si l'état du projet a changé.

@@ -1,268 +1,515 @@
-# PLAN.md — Plan de réalisation pas à pas (Poulet Étoilé / Naomedia)
+# PLAN.md - Full App Delivery Plan (Poulet Etoile / Naomedia)
 
-> Plan opérationnel dérivé de `CLAUDE.md` (règles), `HANDOFF.md` (état/intentions) et
-> `AGENTS.md`/`COLLABORATION.md` (protocole multi-agents). **Plusieurs modèles/agents
-> travailleront sur ce projet** : chaque étape indique son propriétaire, ses
-> dépendances, et les portes de synchronisation (« GATE ») où Mehdi valide avant de
-> continuer.
->
-> Discipline : cocher les cases au fil du build, committer souvent, mettre à jour
-> `HANDOFF.md` §9 quand une phase change d'état. Ne JAMAIS sauter une GATE.
+> Operational roadmap for the full application. This file is the planning board.
+> `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
+> rules. Keep all three aligned after each meaningful change.
 
-**Légende propriétaires** : `[CC]` Claude Code (lead/architecte/design) · `[CX]` Codex
-(constructeur suiveur) · `[M]` Mehdi (humain, arbitre/schéma) · `[CC+CX]` revue croisée.
+Current date: 08/07/2026  
+Current status: **foundation + auth gate implemented, business app not finished**  
+Database decision: **MySQL 8**, not PostgreSQL.
+
+Legend:
+- `[M]` Mehdi: product/schema decision owner.
+- `[CC]` Claude Code: lead architecture, core business modules, design system.
+- `[CX]` Codex: follower/builder for peripheral modules, lists, exports, audit/sessions.
+- `[CC+CX]` Cross-review.
+
+Rules for updating this plan:
+- Mark an item `[x]` only when the code exists and has been verified.
+- If an item is only documented or scaffolded, keep it unchecked.
+- Every completed module must pass build, relevant tests, and a handoff update.
+- Do not skip gates. The schema gate is especially important.
 
 ---
 
-## Entrées manquantes (à fournir par Mehdi — bloquantes par phase)
+## 0. Missing Inputs And Blockers
 
-| Entrée | Bloque | Détail |
+| Item | Blocks | Current assumption |
 |---|---|---|
-| `CDC_Freelance_Technique_Gestion_Commerciale.pdf` dans le repo (ou extraits) | Phase 1 (seed catalogue §14), Phase 7 (formules KPI §7.4), Phase 8 (recette §16.2) | Le CDC est référencé partout mais absent du dossier. |
-| Réponse client Q1 : n° + date d'échéance pour chèque/traite ? | Phase 5 (modèle paiement) | Hypothèse actuelle : `reference` optionnel, pas de `date_echeance`. |
-| Réponse client Q2 : paiement par commande ou solde global client ? | Phase 5 | Hypothèse actuelle : par commande. |
-| Réponse client Q3 : « RELIQUAT PAYEMENT » inclus dans les KPI ? | Phase 7 | Hypothèse actuelle : produit normal inclus. |
-| URL du dépôt Git Naomedia | Phase 0.1 (remote) / livraison | Peut démarrer en local en attendant. |
+| Docker Desktop running locally | Applying migration and seed to MySQL | Resolved 08/07/2026 |
+| CDC PDF or extracted sections 14, 7.4, 16.2 | Exact product catalogue, KPI formulas, acceptance tests | Temporary seed and KPI assumptions only |
+| Payment Q1: cheque/traite number and due date? | Payment schema and UI | Current schema has optional `reference`, no `date_echeance` |
+| Payment Q2: payment per order or global client balance? | Payment model and KPI | Current model is per order |
+| KPI Q3: include `RELIQUAT PAYEMENT` in KPI? | KPI formulas | Current seed treats it as a normal product |
+| Naomedia Git remote URL | Push/delivery | Local repo only for now |
 
 ---
 
-## Phase 0 — Socle technique (séquentiel, un seul agent : [CC], supervision [M])
+## 1. Real Status Snapshot
 
-Objectif : projet qui build, base qui tourne, outillage agents en place. **Aucun
-parallélisme avant la fin de la Phase 3.**
+### Done
 
-- [ ] **0.1 Git** `[CC]`
-  - [ ] `git init`, branche `main`, `.gitignore` (node, `.env*`, `graphify-out/`, `.next/`)
-  - [ ] Premier commit : les 5 fichiers `.md` (docs = mémoire partagée)
-  - [ ] Brancher le remote Naomedia quand l'URL est connue
-- [ ] **0.2 Init Next.js 15** `[CC]`
-  - [ ] `create-next-app` : App Router, TypeScript, Tailwind, `src/` non (suivre défaut), ESLint
-  - [ ] `tsconfig.json` : vérifier `strict: true` (non négociable)
-  - [ ] Vérifier `npm run build` vert à vide
-- [ ] **0.3 Dépendances** `[CC]`
-  - [ ] Data : `prisma`, `@prisma/client`, `decimal.js`, `zod`
-  - [ ] Auth : `better-auth`
-  - [ ] UI : `shadcn/ui` (init + composants de base), `@tanstack/react-table`, `@tremor/react` (ou recharts)
-  - [ ] Sorties : `@react-pdf/renderer`, `exceljs`
-  - [ ] Dates : `luxon` + `@types/luxon`
-  - [ ] Tests : `vitest` (+ config, script `npm run test`)
-- [ ] **0.4 PostgreSQL local** `[CC]`
-  - [ ] `docker-compose.yml` : service `postgres` (volume, port, credentials via `.env`)
-  - [ ] `.env` + `.env.example` (`DATABASE_URL`, secrets Better Auth)
-  - [ ] Vérifier connexion (`prisma db pull` sur base vide ou `psql`)
-- [ ] **0.5 Arborescence & conventions** `[CC]`
-  - [ ] `app/(auth)/`, `app/(commercial)/`, `app/(admin)/` — groupes de routes par espace
-  - [ ] `lib/` (db, auth, decimal, dates, format), `components/ui/`, `modules/` métier si retenu
-  - [ ] Documenter l'arborescence choisie dans `HANDOFF.md` §10
-- [ ] **0.6 Outillage agents** `[CC]`
-  - [ ] Installer graphify + hooks git `post-commit`/`post-checkout` (⚠ pinner l'interpréteur
-        Python `_PINNED` — username Windows avec espaces)
-  - [ ] Installer les skills `.claude/skills/` référencés par `COLLABORATION.md` §4
-        (`ui-ux-pro-max`, `impeccable`, `minimalist-ui`…) — signaler à [M] s'ils sont absents
-  - [ ] `README.md` squelette (installation, env, seed — complété au fil de l'eau)
+- [x] Next.js 15 app initialized with App Router, TypeScript strict, Tailwind 4, ESLint.
+- [x] Git repo initialized.
+- [x] Core dependencies installed: Prisma 7, MySQL adapter, decimal.js, Zod, Better Auth, TanStack Table, Recharts, PDF/Excel/Luxon/Vitest.
+- [x] MySQL Docker compose file added.
+- [x] `.env.example` added.
+- [x] Prisma schema drafted for MySQL.
+- [x] Initial MySQL migration SQL generated.
+- [x] Prisma runtime client added in `lib/db.ts`.
+- [x] Decimal/date/format helpers added.
+- [x] BL formatting and transaction counter helper added.
+- [x] Seed script drafted in `prisma/seed.ts`.
+- [x] Better Auth schema migration added and applied.
+- [x] Better Auth configured with MySQL-backed sessions.
+- [x] Seed users migrated to Better Auth credential accounts.
+- [x] Username/password authentication enabled via Better Auth username plugin.
+- [x] Email sign-in endpoint disabled.
+- [x] Basic login page, logout button, protected admin/commercial placeholders added.
+- [x] Reference-style dashboard shell added for admin/commercial spaces based on the WhatsApp image.
+- [x] Removed dashboard shell dead space: teal outer frame, forced shell min-height, stretched content area, and late `lg` admin grid breakpoint.
+- [x] Server-side role helpers added: `requireSession`, `requireAdmin`, `requireCommercial`, `requireOwnerOrAdmin`.
+- [x] Dedicated 403, 404 and 500/error pages added.
+- [x] Verified: `npm run prisma:generate`.
+- [x] Verified: `npx tsc --noEmit`.
+- [x] Verified: `npm run test`.
+- [x] Verified: `npm run lint`.
+- [x] Verified: `npm run build`.
+- [x] Smoke verified username auth on `http://localhost:3107`: `admin` / `password` -> `/admin`, wrong role -> `/403`, email sign-in -> 404.
 
-**GATE G0 `[M]`** : `npm run build` vert · `docker compose up` OK · commit initial poussé.
+### Not Done
 
----
-
-## Phase 1 — Schéma Prisma + migrations + seeders (⚠ LA phase la plus importante)
-
-Objectif : figer LA source de vérité. Propriétaire : `[CC]` rédige, `[M]` valide et fige.
-Après la GATE G1, **plus aucun agent ne touche au schéma** (évolutions via Mehdi uniquement).
-
-- [ ] **1.1 Rédiger `prisma/schema.prisma` complet** `[CC]` — noms 100 % français, d'après `HANDOFF.md` §4 :
-  - [ ] `users` (nom_utilisateur unique, mot_de_passe hashé, role enum admin|commercial, actif, derniere_connexion_at, soft delete)
-  - [ ] `objectifs` (utilisateur_id, mois AAAA-MM, montant_objectif Decimal(10,2), created_by)
-  - [ ] `produits` (nom, categorie, unite kg, prix_reference Decimal(10,2), actif, ordre_affichage, soft delete)
-  - [ ] `historique_prix` (produit_id, ancien_prix, nouveau_prix, utilisateur_id, date)
-  - [ ] `clients` + `clients_externes` (nom, region_ville, telephone, commercial_id, soft delete)
-  - [ ] `commandes` (numero_bl unique, client_id / client_externe_id nullable, utilisateur_id, date_commande, type_commande enum, soft delete — PAS de colonne statut_paiement : calculé)
-  - [ ] `lignes_commande` (commande_id, produit_id, quantite Decimal(10,3), prix_unitaire figé Decimal(10,2), prix_net Decimal(10,2) — PAS de remise, soft delete)
-  - [ ] `paiements` (commande_id, montant Decimal(10,2), mode_paiement enum espèces|chèque|traite|autre, date_paiement, reference nullable, encaisse_par, created_at)
-  - [ ] `retours` (produit_id, quantite_kg Decimal(10,3), commentaire, utilisateur_id, created_at — immuable)
-  - [ ] `parametres_systeme` (cle unique, valeur, updated_by, updated_at)
-  - [ ] `audit_log` (utilisateur_id, action, entite, entite_id, donnees_avant/apres JSON, ip_address, created_at)
-  - [ ] Index : recherches fréquentes (commandes par utilisateur+date, clients par commercial, paiements par commande)
-- [ ] **1.2 Séquence PostgreSQL `numero_bl`** `[CC]`
-  - [ ] `CREATE SEQUENCE` dans une migration SQL custom (jamais `max+1` applicatif)
-  - [ ] Helper serveur unique `attribuerNumeroBL(tx)` qui tire `nextval` DANS la transaction de création
-  - [ ] Préfixe lu depuis `parametres_systeme` au moment du formatage (jamais stocké dans la séquence)
-- [ ] **1.3 Migration initiale** `[CC]` : `prisma migrate dev`, vérifier SQL généré (types Decimal corrects)
-- [ ] **1.4 Seeders** `[CC]` (`prisma/seed.ts`) :
-  - [ ] Catalogue avicole complet (**CDC section 14 — entrée manquante**, y c. « RELIQUAT PAYEMENT »)
-  - [ ] Liste des villes Maroc (région client prédéfinie)
-  - [ ] `parametres_systeme` : raison sociale, ICE, RC, préfixe BL, fuseau Africa/Casablanca, taux TVA (non appliqué)
-  - [ ] 1 admin + 2 commerciaux de test
-  - [ ] Jeu de cas limites (CDC §15) : client sans commande, produit désactivé, commande payée en totalité, commande partiellement payée
-- [ ] **1.5 Lib de base liée au modèle** `[CC]`
-  - [ ] `lib/decimal.ts` : helpers decimal.js (calcul prix_net, sommes, arrondis 2 déc.)
-  - [ ] `lib/format.ts` : `formatMontant` (« 60 037,00 DH »), `formatDate` (JJ/MM/AAAA)
-  - [ ] `lib/dates.ts` : Luxon, bornes de filtre inclusives (`>= début 00:00` et `< fin+1j 00:00` heure locale Casablanca)
-  - [ ] Tests Vitest sur ces trois libs (arrondis, milliers, bornes de dates)
-
-**GATE G1 `[M]`** : Mehdi relit et **fige le schéma**. Migration appliquée, seed OK,
-tests libs verts, commit `feat: schema prisma fige + seed`. → Le schéma devient loi commune.
+- [x] MySQL container running.
+- [x] Migration applied to real MySQL.
+- [x] Seed executed against real MySQL.
+- [ ] Schema reviewed and frozen by Mehdi.
+- [x] Auth implemented.
+- [ ] App layout/design system implemented.
+- [ ] Admin/commercial business workflows implemented.
+- [ ] PDF/Excel/KPI/audit/sessions implemented.
+- [ ] Deployment implemented.
 
 ---
 
-## Phase 2 — Auth, rôles, paramétrage (`[CC]`, séquentiel)
+## 2. Phase 0 - Local Foundation And Database
 
-- [ ] **2.1 Better Auth** : sessions en base, credentials nom_utilisateur/mot de passe, hash sûr
-- [ ] **2.2 Page de connexion** (français, mobile-first, erreurs claires, anti double-soumission)
-- [ ] **2.3 Garde serveur** : helpers `requireSession()`, `requireAdmin()`, `requireCommercial()` —
-      utilisés dans CHAQUE server action / page ; redirections par rôle
-- [ ] **2.4 Pages 403 / 404 / 500 dédiées** (le 403 ne révèle pas l'existence de la ressource)
-- [ ] **2.5 `derniere_connexion_at`** mis à jour au login ; base des « sessions actives » (UI en Phase 7)
-- [ ] **2.6 Écran admin Paramétrage** : CRUD `parametres_systeme` (raison sociale, ICE, RC, logo, préfixe BL…) + audit des modifications
-- [ ] **2.7 Tests** : accès commercial → route admin = 403 ; session expirée → redirection login
+Goal: get a reproducible local app with a real MySQL database and seeded data.
 
-**GATE G2 `[M]`** : login fonctionne pour les 2 rôles, 403 vérifié serveur, build + tests verts.
+- [x] Initialize Next.js app.
+- [x] Install core dependencies.
+- [x] Add MySQL `docker-compose.yml`.
+- [x] Add `.env.example`.
+- [x] Add Prisma 7 config in `prisma.config.ts`.
+- [x] Add Prisma MySQL runtime adapter in `lib/db.ts`.
+- [x] Add `npm run seed`.
+- [x] Start Docker Desktop.
+- [x] Run `docker compose up -d mysql`.
+- [x] Copy `.env.example` to `.env`.
+- [x] Run `npm run prisma:migrate`.
+- [x] Run `npm run seed`.
+- [x] Verify seed data with Prisma Studio or a DB query.
+- [ ] Commit the foundation once DB verification passes.
 
----
-
-## Phase 3 — Fondations front / design system (`[CC]` SEUL — Codex ne touche à rien ici)
-
-Esthétique : app de gestion terrain sobre (cf. `COLLABORATION.md` §4) — lisibilité mobile,
-densité, une couleur d'accent + couleurs fonctionnelles (vert = payé, rouge/orange = non réglé).
-
-- [ ] **3.1 Thème Tailwind** : tokens couleurs/typo/espacements ; consulter `ui-ux-pro-max` et `minimalist-ui`
-- [ ] **3.2 `AppLayout`** : nav mobile-first (bottom bar/burger) côté commercial, sidebar côté admin, en-tête avec user + déconnexion
-- [ ] **3.3 Kit de composants `components/ui/`** :
-  - [ ] `Button` (états loading/disabled), `Input`, `Select`, `Textarea` + affichage erreurs Zod au champ
-  - [ ] `CardKPI` (valeur + libellé + variation, état « — » sans données)
-  - [ ] `DataTable` (wrapper TanStack : **pagination serveur**, tri, état vide explicite, skeleton)
-  - [ ] `BadgeStatut` (payé/en attente), `Modal`/`ConfirmDialog`, `ChampMontant` / `ChampQuantite` (saisie décimale virgule)
-  - [ ] Filtre de période (dates JJ/MM/AAAA, bornes inclusives via `lib/dates.ts`)
-- [ ] **3.4 Deux écrans de référence** (la « bible visuelle » que Codex imitera) :
-  - [ ] Un tableau de bord (shell + CardKPI + graphe placeholder)
-  - [ ] Un formulaire complet (validation, chargement, erreurs, succès)
-- [ ] **3.5 QA design** : `/impeccable init` + audit sur les 2 écrans ; `prefers-reduced-motion` respecté
-
-**GATE G3 `[M]`** : design validé. **À partir d'ici le parallélisme est ouvert** :
-Codex peut consommer `components/ui/` (sans jamais les modifier).
+Gate G0:
+- [x] `npm run build` passes.
+- [x] `npm run test` passes.
+- [x] MySQL migration applied.
+- [x] Seed executed.
+- [x] `HANDOFF.md` updated.
 
 ---
 
-## Phase 4 — CRUD admin (PARALLÈLE : zones étanches)
+## 3. Phase 1 - Schema Freeze
 
-Chaque module suit la même check-list micro-steps : schéma Zod partagé → server actions
-(permissions + audit + soft delete) → liste paginée serveur (état vide) → formulaire
-(validation champ, anti double-soumission) → tests Vitest → commit + `HANDOFF.md`.
+Goal: make `prisma/schema.prisma` the locked source of truth before UI work expands.
 
-- [ ] **4A Produits & prix** `[CC]` *(sensible : argent + historique)*
-  - [ ] CRUD produit (soft delete = disparaît des listes de sélection, reste dans l'historique)
-  - [ ] Changement de prix ⇒ écrit `historique_prix` dans la MÊME transaction
-  - [ ] MàJ prix en masse = transaction atomique ; écran historique des prix
-  - [ ] Test : changer un prix ne modifie AUCUNE commande passée
-- [ ] **4B Utilisateurs & objectifs** `[CC]`
-  - [ ] CRUD users (rôles, actif/inactif, reset mot de passe), soft delete
-  - [ ] Objectifs mensuels en DH par commercial (mois AAAA-MM), created_by
-- [ ] **4C Clients & clients externes** `[CX]` *(premier module Codex : suivre l'écran de référence)*
-  - [ ] CRUD clients (ville = select liste prédéfinie, rattachement commercial_id), soft delete
-  - [ ] CRUD clients externes (admin uniquement, invisibles côté commercial)
-  - [ ] Côté commercial : voir/gérer uniquement SES clients (403 sinon — testé)
-  - [ ] Fusion de clients (si retenue) : transaction atomique multi-tables + audit
+- [x] Draft schema with French table/model mapping.
+- [x] Include users, products, price history, clients, external clients, orders, order lines, payments, returns, system params, audit log.
+- [x] Use Decimal for amounts and quantities.
+- [x] Remove discount/markup from schema.
+- [x] Add MySQL BL counter table.
+- [x] Add initial migration SQL.
+- [x] Draft seed data.
+- [ ] Review schema field names with Mehdi.
+- [ ] Decide whether `users` table name stays English because Better Auth expects it, or map to a French DB table while keeping auth compatibility.
+- [ ] Decide payment Q1: add `date_echeance` for cheque/traite or keep `reference` only.
+- [ ] Decide payment Q2: per-order payments or global client balance.
+- [ ] Decide RELIQUAT KPI rule.
+- [ ] Apply any schema changes requested by Mehdi.
+- [ ] Regenerate migration if schema changes.
+- [x] Apply migration to MySQL.
+- [x] Run seed successfully.
+- [ ] Mark schema frozen in `HANDOFF.md`.
 
-**GATE G4 `[M]`** : les 3 CRUD finis selon la check-list `AGENTS.md` ; cohérence visuelle
-du module Codex vérifiée contre les écrans de référence.
-
----
-
-## Phase 5 — ⭐ Commande + Paiement (`[CC]` construit, `[CX]` revue croisée obligatoire)
-
-⚠ Avant de finaliser le paiement : réponses client Q1 & Q2 (voir tableau des entrées).
-Le cœur peut se construire avec les hypothèses actuelles.
-
-- [ ] **5.1 Contrat de données figé d'abord** : schémas Zod `creerCommandeSchema`,
-      `ajouterPaiementSchema` + types partagés (noms de champs = ceux du schéma Prisma)
-- [ ] **5.2 Server action `creerCommande`** :
-  - [ ] Recalcule TOUT côté serveur : relit `prix_reference` en base, fige `prix_unitaire`, calcule `prix_net = quantite × prix_unitaire` en decimal.js — rejette toute incohérence avec les totaux clients
-  - [ ] Transaction atomique : commande + lignes + `nextval` séquence BL + audit — tout ou rien
-  - [ ] Permissions : commercial ⇒ uniquement pour SES clients ; admin ⇒ sélecteur de commercial (tracé audit)
-  - [ ] Garantie anti double-soumission côté serveur (idempotence/contrainte)
-- [ ] **5.3 Formulaire commande commercial** (mobile-first, l'écran le plus utilisé) :
-  - [ ] Sélection client (ses clients actifs) → lignes produits (produits actifs, quantité kg à virgule) → prix affiché non éditable → total live (affichage seulement)
-  - [ ] États : chargement, erreurs au champ, succès → écran récap avec numéro BL
-- [ ] **5.4 Formulaire commande admin** : idem + sélecteur commercial + choix client externe (type_commande externe)
-- [ ] **5.5 Détail commande** : lignes, totaux, montant payé, **reste dû**, badge statut calculé
-- [ ] **5.6 Paiements (admin uniquement)** :
-  - [ ] `ajouterPaiement` : montant ≤ reste dû, mode enum, reference optionnelle, encaisse_par, audit
-  - [ ] Statut calculé partout : `payé` si reste_dû = 0 sinon `en attente` — jamais stocké
-  - [ ] (Selon Q1 : ajouter `date_echeance` ⇒ évolution schéma via [M])
-- [ ] **5.7 Suppression commande** : admin seul, soft delete + audit (les paiements restent visibles dans l'historique)
-- [ ] **5.8 Tests Vitest (obligatoires)** :
-  - [ ] Calculs decimal (arrondis, quantités 3 déc., totaux)
-  - [ ] Concurrence : 2 créations simultanées ⇒ 2 numéros BL distincts, sans trou
-  - [ ] Totaux client falsifiés ⇒ rejet ; commercial → commande d'un collègue ⇒ 403
-  - [ ] Paiement > reste dû ⇒ rejet ; Σ paiements = total ⇒ statut payé
-- [ ] **5.9 REVUE CROISÉE `[CX]`** : bugs, Decimal/arrondis, permissions, concurrence BL, compléter les tests
-
-**GATE G5 `[M]`** : module critique validé après revue croisée. Rien d'autre ne dépend
-autant du reste — ne pas passer outre.
+Gate G1:
+- [ ] Mehdi explicitly validates schema.
+- [x] Migration and seed pass on MySQL.
+- [x] `npm run prisma:validate`, `npm run test`, `npm run build` pass.
+- [ ] Commit: `feat: freeze mysql prisma schema and seed`.
 
 ---
 
-## Phase 6 — Listes, retours, PDF, Excel (`[CX]` majoritaire, en parallèle possible avec Phase 7A)
+## 4. Phase 2 - Auth, Roles, Sessions
 
-- [ ] **6.1 Liste commandes commercial** `[CX]` : SES commandes, pagination serveur (2 200+ lignes), filtre période inclusif, recherche client, état vide explicite
-- [ ] **6.2 Liste commandes admin** `[CX]` : toutes + filtres (commercial, client, type, statut paiement calculé, période)
-- [ ] **6.3 Retours magasin** `[CX]` : saisie commercial (produit, quantité kg, commentaire), horodaté + lié au compte automatiquement, **non modifiable** après création (aucune action d'édition, garanti serveur), liste consultable
-- [ ] **6.4 PDF Bon de livraison** `[CX]` construit, `[CC]` relit *(sortie d'argent)* :
-  - [ ] Template @react-pdf alimenté par `parametres_systeme` (raison sociale, ICE, RC, logo, préfixe) — **rien en dur**
-  - [ ] Montants via les MÊMES helpers `lib/format.ts`/`lib/decimal.ts` que l'écran — identité écran/PDF = critère de recette
-- [ ] **6.5 Export Excel** `[CX]` : exceljs, commandes filtrées, mêmes montants/formats, colonnes françaises
-- [ ] **6.6 Tests** : cohérence montants écran/PDF/Excel sur une commande de référence ; filtres de dates aux bornes (commande à 23h59 heure Casablanca incluse)
+Goal: working login and server-side access control before business modules.
 
-**GATE G6 `[M]`** : parcours complet commercial (commande → liste → PDF) démontré sur mobile.
+- [x] Configure Better Auth for MySQL-backed sessions.
+- [x] Decide password hash strategy and align seed/login verification.
+- [x] Implement username/password login page in French.
+- [x] Implement logout.
+- [ ] Add server auth helpers:
+  - [x] `requireSession()`
+  - [x] `requireAdmin()`
+  - [x] `requireCommercial()`
+  - [x] `requireOwnerOrAdmin()`
+- [x] Route commercial users to commercial area.
+- [x] Route admin users to admin area.
+- [x] Update `derniere_connexion_at` on login.
+- [x] Add dedicated 403 page.
+- [x] Add dedicated 404 page.
+- [x] Add dedicated 500/error boundary.
+- [ ] Add tests for unauthorized access.
+- [ ] Add tests for commercial blocked from admin routes.
 
----
-
-## Phase 7 — KPI + pilotage (parallèle : 7A `[CC]` / 7B `[CX]`)
-
-⚠ Nécessite : formules KPI du CDC §7.4 (entrée manquante) + réponse client Q3 (RELIQUAT PAYEMENT).
-
-- [ ] **7A KPI** `[CC]` :
-  - [ ] Module `kpi` centralisé : toutes les formules calculées depuis les commandes/paiements (jamais de totaux stockés), période inclusive, decimal.js
-  - [ ] Dashboard commercial : CA période, nb commandes, jauge objectif mensuel (DH), top clients/produits — états « 0,00 DH » / « — », jamais NaN
-  - [ ] Dashboard admin consolidé : CA global, par commercial, **« Non réglé » = Σ restes dus**, graphes Tremor, tops
-  - [ ] Tests : formules, périodes vides, exclusion des soft-deleted, (in)clusion RELIQUAT selon Q3
-  - [ ] **Revue croisée `[CX]`** (3ᵉ module critique)
-- [ ] **7B Audit & sessions** `[CX]` :
-  - [ ] Journal d'audit admin : lecture seule, pagination serveur, filtres (utilisateur, entité, action, période), diff avant/après lisible
-  - [ ] Vérifier que TOUTES les actions sensibles écrivent bien l'audit (revue transversale — signaler les manques, ne pas patcher hors de sa zone)
-  - [ ] Sessions actives : liste (user, dernière activité, IP) + **déconnexion forcée** par l'admin (invalidation serveur immédiate)
-
-**GATE G7 `[M]`** : chiffres KPI vérifiés à la main contre le seed ; revue croisée KPI faite.
+Gate G2:
+- [x] Login works with seeded admin and commercial users.
+- [x] Admin seed is `admin` / `password`.
+- [x] Email/password sign-in route disabled.
+- [x] Server-side 403 verified.
+- [x] Build/tests pass.
+- [x] `HANDOFF.md` updated.
 
 ---
 
-## Phase 8 — Durcissement, recette, déploiement (`[CC+CX]`, assignation par [M])
+## 5. Phase 3 - App Shell And Design System
 
-- [ ] **8.1 Recette CDC §16.2** (entrée manquante) : dérouler chaque cas de recette, corriger, ajouter un test Vitest par cas
-- [ ] **8.2 Passe sécurité** : re-tester chaque route/action en commercial ET en anonyme (403/redirect systématiques) ; aucune stack trace exposée ; rate-limit sur le login
-- [ ] **8.3 Passe concurrence** : créations simultanées (BL), paiements simultanés sur la même commande (reste dû jamais négatif)
-- [ ] **8.4 Passe cas limites UI** : chaque écran vidé/surchargé, mobile réel, `impeccable audit` global
-- [ ] **8.5 Déploiement** : Dockerfile prod multi-stage, Coolify sur VPS, migrations au déploiement, seed de recette, sauvegardes Postgres
-- [ ] **8.6 Livrables CDC §15** : README final (installation, env, seed), doc courte des choix techniques (dont : pas de remise, table paiements, statut calculé), historique Git propre poussé chez Naomedia
-- [ ] **8.7 `HANDOFF.md` final** : statut « livré », questions résolues, procédure d'exploitation
+Goal: create the UI foundation every later module must reuse.
 
-**GATE G8 `[M]`** : recette complète verte sur l'environnement de recette → livraison Naomedia.
+- [ ] Establish Tailwind tokens for app UI.
+- [x] Create first-pass `AppShell`.
+- [x] Create admin sidebar navigation.
+- [x] Create commercial responsive navigation.
+- [ ] Create reusable UI components:
+  - [ ] `Button` with loading/disabled states.
+  - [ ] `Input`, `Select`, `Textarea`.
+  - [ ] Field error display.
+  - [ ] `CardKPI`.
+  - [ ] `DataTable` using TanStack Table with server pagination.
+  - [ ] `BadgeStatut`.
+  - [ ] `Modal` / `ConfirmDialog`.
+  - [ ] `ChampMontant`.
+  - [ ] `ChampQuantite`.
+  - [ ] Date period filter.
+- [x] Create commercial dashboard reference screen.
+- [x] Create admin dashboard reference screen.
+- [ ] Create admin list/form reference screen.
+- [ ] Ensure empty/loading/error states are visually defined.
+- [ ] Verify mobile layout.
+
+Gate G3:
+- [ ] Mehdi validates visual direction.
+- [ ] Codex can start peripheral modules using existing UI components.
+- [ ] Build passes.
+- [ ] `HANDOFF.md` updated.
 
 ---
 
-## Matrice de parallélisme (qui peut travailler quand)
+## 6. Phase 4 - Admin CRUD Foundation
 
-| Après GATE | Claude Code | Codex |
+Goal: admin can manage master data safely.
+
+### 4A Products And Prices `[CC]`
+
+- [ ] Product list with server pagination.
+- [ ] Create product.
+- [ ] Update product.
+- [ ] Soft-delete/deactivate product.
+- [ ] Price update writes `historique_prix` in the same transaction.
+- [ ] Bulk price update as one transaction.
+- [ ] Product price history screen.
+- [ ] Prevent inactive products from appearing in new order selection.
+- [ ] Test: changing reference price does not modify old order lines.
+
+### 4B Users And Objectives `[CC]`
+
+- [ ] User list.
+- [ ] Create admin/commercial user.
+- [ ] Activate/deactivate user.
+- [ ] Soft-delete user.
+- [ ] Reset password flow.
+- [ ] Monthly objective CRUD.
+- [ ] Tests for role restrictions.
+
+### 4C Clients And External Clients `[CX]`
+
+- [ ] Admin client list.
+- [ ] Commercial client list limited to own clients.
+- [ ] Create/update client.
+- [ ] Soft-delete client.
+- [ ] City select from predefined Morocco city list.
+- [ ] External clients CRUD for admin.
+- [ ] Server-side 403 if commercial accesses another commercial's client.
+- [ ] Optional client merge only if confirmed.
+
+Gate G4:
+- [ ] Products/users/clients workflows pass.
+- [ ] Audit entries written for sensitive changes.
+- [ ] Build/tests pass.
+- [ ] `HANDOFF.md` updated.
+
+---
+
+## 7. Phase 5 - Orders And Payments
+
+Goal: complete the critical commercial workflow.
+
+### 5A Shared Contracts
+
+- [ ] Zod schema for creating an order.
+- [ ] Zod schema for adding payment.
+- [ ] Shared return types for order detail/list rows.
+- [ ] Decimal-safe total calculation helpers.
+
+### 5B Order Creation `[CC]`
+
+- [ ] Commercial order form.
+- [ ] Admin order form with commercial selector.
+- [ ] External order support for admin.
+- [ ] Server action `creerCommande`.
+- [ ] Server reloads product prices and freezes `prix_unitaire`.
+- [ ] Server calculates `prix_net`.
+- [ ] Server ignores/rejects client-sent total mismatches.
+- [ ] Transaction: BL counter lock + order + lines + audit.
+- [ ] Anti double-submit UI.
+- [ ] Server idempotency or uniqueness protection.
+- [ ] Success screen with BL number.
+
+### 5C Order Detail And Deletion
+
+- [ ] Order detail page.
+- [ ] Show lines, totals, paid amount, remaining amount.
+- [ ] Calculated payment badge: `payé` or `en attente`.
+- [ ] No edit screen.
+- [ ] Admin-only soft delete.
+- [ ] Audit deletion.
+
+### 5D Payments `[CC]`
+
+- [ ] Admin payment form.
+- [ ] Validate payment amount <= remaining balance.
+- [ ] Support modes: espèces, chèque, traite, autre.
+- [ ] Optional `reference`.
+- [ ] Add due date only if schema decision says yes.
+- [ ] Recompute remaining amount after payment.
+- [ ] Handle concurrent payments safely.
+- [ ] Audit payment creation.
+
+### 5E Critical Tests
+
+- [ ] Decimal totals and rounding.
+- [ ] Quantity precision to 3 decimals.
+- [ ] Two concurrent order creations get distinct BL numbers.
+- [ ] No `max+1` usage.
+- [ ] Commercial cannot order for another commercial's client.
+- [ ] Falsified totals rejected.
+- [ ] Payment greater than remaining amount rejected.
+- [ ] Fully paid order displays `payé`.
+
+Gate G5:
+- [ ] Cross-review by Codex.
+- [ ] Build/tests pass.
+- [ ] `HANDOFF.md` updated.
+
+---
+
+## 8. Phase 6 - Lists, Returns, PDF, Excel
+
+Goal: complete operational views and outputs.
+
+### 6A Order Lists `[CX]`
+
+- [ ] Commercial sees only own orders.
+- [ ] Admin sees all orders.
+- [ ] Server pagination.
+- [ ] Filters: period, commercial, client, external/standard, payment status.
+- [ ] Inclusive Casablanca date filtering.
+- [ ] Empty/loading/error states.
+
+### 6B Returns `[CX]`
+
+- [ ] Commercial return form.
+- [ ] Product select.
+- [ ] Quantity in kg.
+- [ ] Comment field.
+- [ ] Return linked automatically to logged-in user.
+- [ ] No edit action.
+- [ ] Server prevents update after creation.
+- [ ] Admin/Commercial return lists as required.
+
+### 6C PDF Delivery Note `[CX]`, Review `[CC]`
+
+- [ ] PDF template with `@react-pdf/renderer`.
+- [ ] Company facts read from `parametres_systeme`.
+- [ ] BL prefix from params.
+- [ ] Same formatting helpers as screen.
+- [ ] No hardcoded company identity.
+- [ ] Verify amounts match screen exactly.
+
+### 6D Excel Export `[CX]`
+
+- [ ] Excel export for filtered orders.
+- [ ] French column names.
+- [ ] Same amount/date formatting rules.
+- [ ] Export respects permissions.
+
+Gate G6:
+- [ ] Commercial path works: create order -> list -> PDF.
+- [ ] Export verified.
+- [ ] Build/tests pass.
+- [ ] `HANDOFF.md` updated.
+
+---
+
+## 9. Phase 7 - KPI, Audit, Sessions
+
+Goal: management visibility and admin control.
+
+### 7A KPI `[CC]`
+
+- [ ] Central KPI module.
+- [ ] Sales amount by period.
+- [ ] Number of orders.
+- [ ] Monthly objective gauge.
+- [ ] Top clients.
+- [ ] Top products.
+- [ ] Admin consolidated dashboard.
+- [ ] KPI per commercial.
+- [ ] Unpaid amount = sum of remaining balances.
+- [ ] Empty period shows `0,00 DH` or `-`, never NaN.
+- [ ] Decide and implement RELIQUAT rule.
+- [ ] Tests for formulas, empty periods, soft-deleted exclusions.
+
+### 7B Audit `[CX]`
+
+- [ ] Audit list for admin.
+- [ ] Server pagination.
+- [ ] Filters: user, entity, action, period.
+- [ ] Readable before/after diff.
+- [ ] Verify all sensitive actions write audit entries.
+
+### 7C Sessions `[CX]`
+
+- [ ] Active sessions screen.
+- [ ] Display user, last activity, IP.
+- [ ] Admin force logout.
+- [ ] Server invalidates session immediately.
+
+Gate G7:
+- [ ] KPI checked manually against seed.
+- [ ] Cross-review by Codex.
+- [ ] Build/tests pass.
+- [ ] `HANDOFF.md` updated.
+
+---
+
+## 10. Phase 8 - Hardening And Acceptance
+
+Goal: make the app reliable outside the happy path.
+
+- [ ] Full permission audit: anonymous, commercial, admin.
+- [ ] Race-condition tests:
+  - [ ] concurrent BL assignment.
+  - [ ] concurrent payments.
+- [ ] Validation messages in French.
+- [ ] Server errors hide stack traces.
+- [ ] Dedicated 403/404/500 verified.
+- [ ] Empty states on every list.
+- [ ] Loading states on every async action.
+- [ ] Anti double-submit on every mutation.
+- [ ] Mobile QA for commercial workflow.
+- [ ] Admin table QA with large row counts.
+- [ ] Run CDC section 16.2 acceptance tests once CDC is available.
+- [ ] Add missing tests discovered during acceptance.
+
+Gate G8:
+- [ ] Acceptance checklist green.
+- [ ] Build/tests pass.
+- [ ] `HANDOFF.md` updated.
+
+---
+
+## 11. Phase 9 - Deployment And Delivery
+
+Goal: production-ready deploy on VPS/Coolify.
+
+- [ ] Production Dockerfile.
+- [ ] Coolify configuration.
+- [ ] Production env var documentation.
+- [ ] Migration command for deploy.
+- [ ] Seed/fixture policy for staging only.
+- [ ] MySQL backup plan.
+- [ ] README final.
+- [ ] Technical choices document:
+  - [ ] Next.js instead of Laravel/Vue.
+  - [ ] MySQL decision.
+  - [ ] no discount/markup.
+  - [ ] payments table and calculated status.
+  - [ ] BL counter strategy.
+- [ ] Push to Naomedia remote.
+- [ ] Final `HANDOFF.md` with operations notes.
+
+Gate G9:
+- [ ] App deployed to recipe/staging.
+- [ ] Smoke tests pass on deployed URL.
+- [ ] Client delivery package complete.
+
+---
+
+## 12. Parallel Work Matrix
+
+| After gate | Claude Code | Codex |
 |---|---|---|
-| G0→G3 | Tout (socle, schéma, auth, design) | **Rien** (attend les fondations) |
-| G3 | 4A Produits, 4B Users | 4C Clients |
-| G4 | 5 Commande+Paiement | (relecture 5 en fin de phase ; peut préparer 6.3 Retours si zone étanche) |
-| G5 | 7A KPI | 6.1–6.5 Listes/PDF/Excel |
-| G6/G7 | Revue 6.4 PDF ; corrections | 7B Audit/Sessions ; revue 7A |
-| G7 | 8 durcissement (assignation par module, zones étanches) | 8 durcissement |
+| Before G3 | Foundation, schema, auth, design | Wait or review docs only |
+| After G3 | Products/users, core flows | Clients/external clients |
+| After G4 | Orders/payments | Prepare lists/returns, then cross-review orders |
+| After G5 | KPI | Lists, returns, PDF, Excel |
+| After G6 | KPI review/fixes | Audit and sessions |
+| After G7 | Hardening assigned by module | Hardening assigned by module |
 
-Rappels absolus (détail dans `AGENTS.md`) : un seul agent par fichier/dossier ·
-schéma Prisma modifiable par Mehdi seulement · Codex ne touche jamais `lib/`,
-`components/ui/`, le thème, le layout · tout module « terminé » = check-list
-`AGENTS.md` cochée (build vert, tests verts, états vides/erreurs/403, français partout,
-commit + `HANDOFF.md` à jour).
+---
+
+## 13. Verification Commands
+
+Run after meaningful changes:
+
+```bash
+npm run prisma:validate
+npm run prisma:generate
+npx tsc --noEmit
+npm run test
+npm run lint
+npm run build
+```
+
+When Docker Desktop is running:
+
+```bash
+docker compose up -d mysql
+npm run prisma:migrate
+npm run seed
+```
+
+For smoke test:
+
+```bash
+npm run start -- -p 3107
+```
+
+Then curl or open `http://localhost:3107`, and stop the server.
+
+---
+
+## 14. Execution Journal
+
+- 08/07/2026 - Foundation created: Next.js, dependencies, MySQL schema draft, migration SQL, helpers, seed draft.
+- 08/07/2026 - Verified locally: Prisma generate, TypeScript, tests, lint, build.
+- 08/07/2026 - Docker Desktop started; MySQL container runs on host port `3307` to avoid Laragon's `3306`.
+- 08/07/2026 - Migration `20260708163200_init_mysql` applied successfully to MySQL.
+- 08/07/2026 - Seed executed successfully. Verified counts: 3 users, 8 products, 3 orders, 2 payments, BL counter `numero_bl = 3`.
+- 08/07/2026 - Plan reset to truthful full-app roadmap after all checkboxes had been marked complete manually.
+- 08/07/2026 - Better Auth schema migration applied: `sessions`, `accounts`, `verifications`, email fields on `users`, obsolete custom password hash removed.
+- 08/07/2026 - Seed updated to create Better Auth credential accounts for admin and commercials.
+- 08/07/2026 - Auth smoke verified on port `3107`: admin and commercial login work; wrong-role access redirects to `/403`.
+- 08/07/2026 - Auth switched to username/password using Better Auth username plugin. Admin seed is `admin` / `password`; email sign-in endpoint returns 404.
+- 08/07/2026 - Admin/commercial spaces restyled into a blue-sidebar dashboard shell matching the provided WhatsApp reference direction.
+- 08/07/2026 - Dashboard shell spacing fixed: full-bleed light workspace, content-height shell, non-stretched content wrapper, admin two-column layout from `md`.

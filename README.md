@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Poulet Etoile / Naomedia
 
-## Getting Started
+Application de gestion commerciale pour distribution avicole.
 
-First, run the development server:
+## Stack actuelle
+
+- Next.js 15 App Router
+- TypeScript strict
+- MySQL 8
+- Prisma 7
+- Better Auth avec sessions en base
+- Decimal.js pour tous les calculs de montants
+- Zod, TanStack Table, Recharts
+- Luxon avec fuseau `Africa/Casablanca`
+- Vitest
+
+## Installation locale
 
 ```bash
+npm install
+cp .env.example .env
+docker compose up -d mysql
+npm run prisma:migrate
+npm run seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L'application demarre sur [http://localhost:3000](http://localhost:3000).
+Le MySQL Docker ecoute sur le port hote `3307` pour eviter le conflit avec Laragon
+qui utilise souvent `3306`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Comptes seed
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Admin : `admin` / `password`
+- Commercial : `commercial.nord` / `commercial123`
+- Commercial : `commercial.sud` / `commercial123`
 
-## Learn More
+Avant production, remplacer `BETTER_AUTH_SECRET` par une valeur aleatoire longue
+de 32 caracteres minimum.
 
-To learn more about Next.js, take a look at the following resources:
+## Commandes utiles
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm run lint
+npm run test
+npm run prisma:validate
+npm run prisma:generate
+npm run seed
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Si Prisma Migrate demande une shadow database, l'utilisateur local Docker `poulet`
+dispose des privileges necessaires dans l'environnement de developpement.
 
-## Deploy on Vercel
+## Regles a ne pas casser
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- La commande est la source de verite.
+- Les montants ne passent jamais par le type `number`.
+- Le numero BL utilise `compteurs_bl` avec verrou transactionnel MySQL, jamais `max+1`.
+- Pas de remise ni majoration.
+- Interface et donnees metier en francais.
+- Les permissions se verifient cote serveur sur chaque action.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Voir `CLAUDE.md`, `AGENTS.md`, `PLAN.md` et `HANDOFF.md` avant toute modification.
