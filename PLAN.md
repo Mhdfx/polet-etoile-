@@ -217,15 +217,15 @@ Goal: admin can manage master data safely.
 
 ### 4A Products And Prices `[CC]`
 
-- [ ] Product list with server pagination.
-- [ ] Create product.
-- [ ] Update product.
-- [ ] Soft-delete/deactivate product.
-- [ ] Price update writes `historique_prix` in the same transaction.
-- [ ] Bulk price update as one transaction.
-- [ ] Product price history screen.
-- [ ] Prevent inactive products from appearing in new order selection.
-- [ ] Test: changing reference price does not modify old order lines.
+- [x] Product list with server pagination.
+- [x] Create product (duplicate active name rejected server-side).
+- [x] Update product (name/category; price via dedicated action).
+- [x] Soft-delete/deactivate product.
+- [x] Price update writes `historique_prix` in the same transaction (row locked `FOR UPDATE`).
+- [x] Bulk price update as one transaction (`/admin/produits/prix`, all-or-nothing verified on MySQL).
+- [x] Product price history screen (`/admin/produits/[id]/historique`).
+- [ ] Prevent inactive products from appearing in new order selection (enforced when order form is built — Phase 5B).
+- [x] Test: changing reference price does not modify old order lines (unit + verified against real DB: order line kept `23,50` after price change).
 
 ### 4B Users And Objectives `[CC]`
 
@@ -526,3 +526,5 @@ Then curl or open `http://localhost:3107`, and stop the server.
 - 08/07/2026 - Reusable kit built: Bouton, Champ, ChampMontant, ChampQuantite, CarteKPI, BadgeStatut, DataTable (server pagination), DialogueConfirmation, FiltrePeriode. `lib/saisie.ts` (French decimal input normalization) added with tests. DialogueConfirmation/ChampQuantite/FiltrePeriode compile but are not yet used on a screen.
 - 08/07/2026 - Reference screen `/admin/produits` added: read-only server-paginated product list with search, empty/loading states, and a reference "Nouveau produit" dialog (Zod field errors; real creation deferred to Phase 4 after schema freeze).
 - 08/07/2026 - Smoke verified on `:3107`: admin sees products with `XX,XX DH` formatting, search + empty state work, commercial gets `/403`, anonymous gets `/connexion`. Note: stale server on port 3107 had to be killed; corrupted `.next` rebuilt.
+- 08/07/2026 - Phase 4A products CRUD: server actions (create/edit/price change/bulk prices/activate/soft-delete) with `requireAdmin`, Zod French errors, audit written in the same transaction, price rows locked `FOR UPDATE`. New screens: actions column + dialogs on `/admin/produits`, price history page, bulk price page. `lib/audit.ts` + `lib/validations/produit.ts` added.
+- 08/07/2026 - Phase 4A verified end-to-end on `:3107` by invoking the real server actions over HTTP: price change ok + French validation error + commercial blocked (303 to /403); DB checked — `prix_reference` updated, `historique_prix` rows correct, audit entries written, existing `lignes_commande` price untouched; bulk update applied 2 products atomically and a batch containing a missing product rolled back completely. Seed prices restored. 51 Vitest tests green.

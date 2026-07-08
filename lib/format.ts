@@ -13,3 +13,9 @@ export function formatDate(date: Date | string): string {
 
   return dateTime.setZone("Africa/Casablanca").toFormat("dd/MM/yyyy");
 }
+
+export function formatDateHeure(date: Date | string): string {
+  const dateTime = typeof date === "string" ? DateTime.fromISO(date) : DateTime.fromJSDate(date);
+
+  return dateTime.setZone("Africa/Casablanca").toFormat("dd/MM/yyyy HH:mm");
+}

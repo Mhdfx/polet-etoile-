@@ -4,7 +4,7 @@ Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
 Derniere mise a jour : 08/07/2026 (soir).  
-Statut : **socle + auth + design system operationnels - schema a valider par Mehdi (G1) et direction visuelle a valider (G3)**.
+Statut : **socle + auth + design system + CRUD produits/prix operationnels - schema a valider par Mehdi (G1) et direction visuelle a valider (G3)**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -165,6 +165,22 @@ rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
   anonyme -> `/connexion`.
 - Historique git remis au propre : tout le travail est commite en commits
   logiques (socle, auth, shell, docs, tests, design system).
+- **Module Produits (Phase 4A) livre** :
+  - Actions serveur dans `app/admin/produits/actions.ts` : `creerProduit`
+    (doublon de nom actif refuse), `modifierProduit`, `changerPrixProduit`
+    (verrou `FOR UPDATE` + `historique_prix` dans la meme transaction),
+    `changerPrixEnMasse` (tout ou rien), `definirActivationProduit`,
+    `supprimerProduit` (soft delete). Toutes : `requireAdmin` + audit dans la
+    transaction + erreurs Zod en francais + message generique avec ref. en cas
+    d'erreur serveur.
+  - Ecrans : liste avec colonne actions et dialogues (`/admin/produits`),
+    historique des prix (`/admin/produits/[id]/historique`), prix en masse
+    (`/admin/produits/prix`).
+  - Helpers : `lib/audit.ts` (`ecrireAudit` transactionnel + IP),
+    `lib/validations/produit.ts` (schemas partages), `formatDateHeure`.
+  - Verifie de bout en bout contre MySQL : changement de prix ne touche pas
+    les `lignes_commande` existantes ; lot avec produit manquant = rollback
+    complet ; commercial bloque sur les actions (303 vers /403).
 - Verifications passees apres auth :
   - `npm run prisma:validate`
   - `npm run prisma:generate`
@@ -180,8 +196,9 @@ Ordre recommande :
 1. **Mehdi** : valider/freeze le schema (G1, questions paiement/KPI) et la
    direction visuelle sur `/admin/produits` (G3).
 2. Verifier le layout mobile (dernier item Phase 3 non coche).
-3. CRUD admin produits/prix/utilisateurs (Claude Code) + clients (Codex apres G3).
-4. Module commande + paiement, critique.
+3. CRUD utilisateurs + objectifs (4B, Claude Code) ; clients (4C, Codex apres G3).
+4. Module commande + paiement, critique (rappel : le formulaire commande ne
+   doit proposer que les produits `actif = true` et non supprimes).
 5. Listes, retours, PDF BL, Excel.
 6. KPI, audit, sessions actives.
 7. Durcissement et recette.
@@ -209,7 +226,9 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | Tokens couleurs / theme | `app/globals.css` |
 | Primitives shadcn | `components/ui/*`, `components.json` |
 | Kit metier (Bouton, Champ, DataTable…) | `components/*.tsx` |
-| Ecran reference produits | `app/admin/produits/` |
+| Module produits (ecrans + actions) | `app/admin/produits/` |
+| Validations produit (Zod partage) | `lib/validations/produit.ts` |
+| Audit transactionnel | `lib/audit.ts` |
 | Normalisation saisies FR | `lib/saisie.ts` |
 | Decimal / format / dates | `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` |
 | Numerotation BL | `lib/bl.ts` |
