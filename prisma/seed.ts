@@ -1,0 +1,398 @@
+import "dotenv/config";
+import { hashPassword } from "better-auth/crypto";
+import { calculerPrixNet } from "@/lib/decimal";
+import { prisma } from "@/lib/db";
+import { attribuerNumeroBL } from "@/lib/bl";
+
+const villesMaroc = [
+  "Casablanca",
+  "Rabat",
+  "Marrakech",
+  "Fès",
+  "Tanger",
+  "Agadir",
+  "Meknès",
+  "Oujda",
+  "Kénitra",
+  "Tétouan",
+  "Safi",
+  "Mohammedia",
+  "El Jadida",
+  "Béni Mellal",
+  "Nador",
+];
+
+const produits = [
+  { nom: "Poulet entier", categorie: "Poulet frais", prix_reference: "23.50", ordre_affichage: 10 },
+  { nom: "Cuisse de poulet", categorie: "Découpe", prix_reference: "28.00", ordre_affichage: 20 },
+  { nom: "Blanc de poulet", categorie: "Découpe", prix_reference: "48.00", ordre_affichage: 30 },
+  { nom: "Aile de poulet", categorie: "Découpe", prix_reference: "21.00", ordre_affichage: 40 },
+  { nom: "Foie de poulet", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 50 },
+  { nom: "Gésier", categorie: "Abats", prix_reference: "16.00", ordre_affichage: 60 },
+  { nom: "RELIQUAT PAYEMENT", categorie: "Règlement", prix_reference: "1.00", ordre_affichage: 900 },
+];
+
+type SeedUtilisateur = {
+  nom_utilisateur: string;
+  nom_complet: string;
+  email: string;
+  mot_de_passe: string;
+  role: "ADMIN" | "COMMERCIAL";
+};
+
+async function upsertUtilisateur(seed: SeedUtilisateur) {
+  const utilisateur = await prisma.user.upsert({
+    where: { email: seed.email },
+    create: {
+      nom_utilisateur: seed.nom_utilisateur,
+      nom_complet: seed.nom_complet,
+      email: seed.email,
+      email_verifie: true,
+      role: seed.role,
+    },
+    update: {
+      nom_utilisateur: seed.nom_utilisateur,
+      nom_complet: seed.nom_complet,
+      email_verifie: true,
+      role: seed.role,
+      actif: true,
+      deleted_at: null,
+    },
+  });
+
+  await prisma.account.upsert({
+    where: {
+      providerId_accountId: {
+        providerId: "credential",
+        accountId: utilisateur.id,
+      },
+    },
+    create: {
+      providerId: "credential",
+      accountId: utilisateur.id,
+      userId: utilisateur.id,
+      password: await hashPassword(seed.mot_de_passe),
+    },
+    update: {
+      password: await hashPassword(seed.mot_de_passe),
+    },
+  });
+
+  return utilisateur;
+}
+
+async function main() {
+  await prisma.compteurBl.upsert({
+    where: { cle: "numero_bl" },
+    create: { cle: "numero_bl", valeur: 0 },
+    update: {},
+  });
+
+  const admin = await upsertUtilisateur({
+    nom_utilisateur: "admin",
+    nom_complet: "Administrateur",
+    email: "admin@poulet-etoile.local",
+    mot_de_passe: "password",
+    role: "ADMIN",
+  });
+
+  const commercialNord = await upsertUtilisateur({
+    nom_utilisateur: "commercial.nord",
+    nom_complet: "Commercial Nord",
+    email: "commercial.nord@poulet-etoile.local",
+    mot_de_passe: "commercial123",
+    role: "COMMERCIAL",
+  });
+
+  const commercialSud = await upsertUtilisateur({
+    nom_utilisateur: "commercial.sud",
+    nom_complet: "Commercial Sud",
+    email: "commercial.sud@poulet-etoile.local",
+    mot_de_passe: "commercial123",
+    role: "COMMERCIAL",
+  });
+
+  await prisma.parametreSysteme.createMany({
+    data: [
+      { cle: "raison_sociale", valeur: "Poulet Étoilé", updated_by: admin.id },
+      { cle: "ice", valeur: "000000000000000", updated_by: admin.id },
+      { cle: "rc", valeur: "RC Casablanca 000000", updated_by: admin.id },
+      { cle: "prefixe_bl", valeur: "PE", updated_by: admin.id },
+      { cle: "fuseau_horaire", valeur: "Africa/Casablanca", updated_by: admin.id },
+      { cle: "taux_tva", valeur: "0", updated_by: admin.id },
+      { cle: "villes_maroc", valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
+    ],
+    skipDuplicates: true,
+  });
+
+  for (const produit of produits) {
+    await prisma.produit.upsert({
+      where: { id: `seed-produit-${produit.ordre_affichage}` },
+      create: {
+        id: `seed-produit-${produit.ordre_affichage}`,
+        nom: produit.nom,
+        categorie: produit.categorie,
+        unite: "kg",
+        prix_reference: produit.prix_reference,
+        ordre_affichage: produit.ordre_affichage,
+      },
+      update: {
+        nom: produit.nom,
+        categorie: produit.categorie,
+        prix_reference: produit.prix_reference,
+        actif: true,
+        deleted_at: null,
+      },
+    });
+  }
+
+  await prisma.produit.upsert({
+    where: { id: "seed-produit-desactive" },
+    create: {
+      id: "seed-produit-desactive",
+      nom: "Produit désactivé recette",
+      categorie: "Recette",
+      unite: "kg",
+      prix_reference: "10.00",
+      actif: false,
+      ordre_affichage: 999,
+      deleted_at: new Date(),
+    },
+    update: {
+      actif: false,
+      deleted_at: new Date(),
+    },
+  });
+
+  const clientSansCommande = await prisma.client.upsert({
+    where: { id: "seed-client-sans-commande" },
+    create: {
+      id: "seed-client-sans-commande",
+      nom: "Client sans commande",
+      region_ville: "Casablanca",
+      telephone: "0600000000",
+      commercial_id: commercialNord.id,
+    },
+    update: {
+      commercial_id: commercialNord.id,
+      actif: true,
+      deleted_at: null,
+    },
+  });
+
+  const clientBoucherie = await prisma.client.upsert({
+    where: { id: "seed-client-boucherie-atlas" },
+    create: {
+      id: "seed-client-boucherie-atlas",
+      nom: "Boucherie Atlas",
+      region_ville: "Casablanca",
+      telephone: "0611111111",
+      commercial_id: commercialNord.id,
+    },
+    update: {
+      commercial_id: commercialNord.id,
+      actif: true,
+      deleted_at: null,
+    },
+  });
+
+  const clientRestaurant = await prisma.client.upsert({
+    where: { id: "seed-client-restaurant-sud" },
+    create: {
+      id: "seed-client-restaurant-sud",
+      nom: "Restaurant Sud",
+      region_ville: "Marrakech",
+      telephone: "0622222222",
+      commercial_id: commercialSud.id,
+    },
+    update: {
+      commercial_id: commercialSud.id,
+      actif: true,
+      deleted_at: null,
+    },
+  });
+
+  const clientExterne = await prisma.clientExterne.upsert({
+    where: { id: "seed-client-externe-traiteur" },
+    create: {
+      id: "seed-client-externe-traiteur",
+      nom: "Traiteur Externe",
+      region_ville: "Rabat",
+      telephone: "0633333333",
+    },
+    update: {
+      actif: true,
+      deleted_at: null,
+    },
+  });
+
+  await prisma.objectif.upsert({
+    where: { utilisateur_id_mois: { utilisateur_id: commercialNord.id, mois: "2026-07" } },
+    create: {
+      utilisateur_id: commercialNord.id,
+      mois: "2026-07",
+      montant_objectif: "60000.00",
+      created_by: admin.id,
+    },
+    update: {
+      montant_objectif: "60000.00",
+      created_by: admin.id,
+    },
+  });
+
+  await prisma.objectif.upsert({
+    where: { utilisateur_id_mois: { utilisateur_id: commercialSud.id, mois: "2026-07" } },
+    create: {
+      utilisateur_id: commercialSud.id,
+      mois: "2026-07",
+      montant_objectif: "45000.00",
+      created_by: admin.id,
+    },
+    update: {
+      montant_objectif: "45000.00",
+      created_by: admin.id,
+    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    const commandeExistante = await tx.commande.findUnique({ where: { id: "seed-commande-payee" } });
+
+    if (!commandeExistante) {
+      const bl = await attribuerNumeroBL(tx);
+      const ligne1 = calculerPrixNet("120.000", "23.50");
+      const ligne2 = calculerPrixNet("35.500", "48.00");
+      const total = ligne1.plus(ligne2);
+
+      await tx.commande.create({
+        data: {
+          id: "seed-commande-payee",
+          numero_bl: bl.numeroBl,
+          numero_bl_compteur: bl.compteur,
+          client_id: clientBoucherie.id,
+          utilisateur_id: commercialNord.id,
+          date_commande: new Date("2026-07-08T10:00:00.000Z"),
+          lignes: {
+            create: [
+              {
+                produit_id: "seed-produit-10",
+                quantite: "120.000",
+                prix_unitaire: "23.50",
+                prix_net: ligne1.toFixed(2),
+              },
+              {
+                produit_id: "seed-produit-30",
+                quantite: "35.500",
+                prix_unitaire: "48.00",
+                prix_net: ligne2.toFixed(2),
+              },
+            ],
+          },
+          paiements: {
+            create: {
+              montant: total.toFixed(2),
+              mode_paiement: "ESPECES",
+              date_paiement: new Date("2026-07-08T15:00:00.000Z"),
+              encaisse_par: admin.id,
+            },
+          },
+        },
+      });
+    }
+  });
+
+  await prisma.$transaction(async (tx) => {
+    const commandeExistante = await tx.commande.findUnique({ where: { id: "seed-commande-partielle" } });
+
+    if (!commandeExistante) {
+      const bl = await attribuerNumeroBL(tx);
+      const ligne = calculerPrixNet("80.000", "28.00");
+
+      await tx.commande.create({
+        data: {
+          id: "seed-commande-partielle",
+          numero_bl: bl.numeroBl,
+          numero_bl_compteur: bl.compteur,
+          client_id: clientRestaurant.id,
+          utilisateur_id: commercialSud.id,
+          date_commande: new Date("2026-07-08T18:30:00.000Z"),
+          lignes: {
+            create: {
+              produit_id: "seed-produit-20",
+              quantite: "80.000",
+              prix_unitaire: "28.00",
+              prix_net: ligne.toFixed(2),
+            },
+          },
+          paiements: {
+            create: {
+              montant: "500.00",
+              mode_paiement: "CHEQUE",
+              reference: "CHQ-TEST-001",
+              date_paiement: new Date("2026-07-08T19:00:00.000Z"),
+              encaisse_par: admin.id,
+            },
+          },
+        },
+      });
+    }
+  });
+
+  await prisma.$transaction(async (tx) => {
+    const commandeExistante = await tx.commande.findUnique({ where: { id: "seed-commande-externe" } });
+
+    if (!commandeExistante) {
+      const bl = await attribuerNumeroBL(tx);
+      const ligne = calculerPrixNet("50.000", "21.00");
+
+      await tx.commande.create({
+        data: {
+          id: "seed-commande-externe",
+          numero_bl: bl.numeroBl,
+          numero_bl_compteur: bl.compteur,
+          client_externe_id: clientExterne.id,
+          utilisateur_id: commercialNord.id,
+          type_commande: "EXTERNE",
+          date_commande: new Date("2026-07-09T09:00:00.000Z"),
+          lignes: {
+            create: {
+              produit_id: "seed-produit-40",
+              quantite: "50.000",
+              prix_unitaire: "21.00",
+              prix_net: ligne.toFixed(2),
+            },
+          },
+        },
+      });
+    }
+  });
+
+  await prisma.retour.create({
+    data: {
+      produit_id: "seed-produit-10",
+      quantite_kg: "4.500",
+      commentaire: "Retour magasin test",
+      utilisateur_id: commercialNord.id,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      utilisateur_id: admin.id,
+      action: "SEED",
+      entite: "base",
+      entite_id: clientSansCommande.id,
+      donnees_apres: { message: "Seed initial chargé" },
+      ip_address: "127.0.0.1",
+    },
+  });
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (error) => {
+    console.error(error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
