@@ -42,7 +42,17 @@ import {
   requireSession,
 } from "@/lib/session";
 
-const utilisateurAdmin = {
+type UtilisateurTest = {
+  id: string;
+  nom_utilisateur: string;
+  nom_complet: string;
+  email: string;
+  role: RoleUtilisateur;
+  actif: boolean;
+  deleted_at: Date | null;
+};
+
+const utilisateurAdmin: UtilisateurTest = {
   id: "admin-1",
   nom_utilisateur: "admin",
   nom_complet: "Administrateur",
@@ -52,7 +62,7 @@ const utilisateurAdmin = {
   deleted_at: null,
 };
 
-const utilisateurCommercial = {
+const utilisateurCommercial: UtilisateurTest = {
   id: "com-1",
   nom_utilisateur: "commercial.nord",
   nom_complet: "Commercial Nord",
@@ -62,7 +72,7 @@ const utilisateurCommercial = {
   deleted_at: null,
 };
 
-function simulerConnexion(utilisateur: typeof utilisateurAdmin | null) {
+function simulerConnexion(utilisateur: UtilisateurTest | null) {
   if (!utilisateur) {
     getSessionMock.mockResolvedValue(null);
     findUniqueMock.mockResolvedValue(null);

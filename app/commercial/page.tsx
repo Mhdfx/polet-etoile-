@@ -1,4 +1,5 @@
-import { AppShell, MetricCard, Panel } from "@/components/app-shell";
+import { AppShell, Panel } from "@/components/app-shell";
+import { CarteKPI } from "@/components/carte-kpi";
 import { requireCommercial } from "@/lib/session";
 
 const commandes = [
@@ -20,14 +21,15 @@ export default async function CommercialPage() {
     <AppShell
       utilisateur={utilisateur}
       espace="commercial"
+      cheminActif="/commercial"
       titre="Selling Dashboard"
       description="Espace terrain pour suivre les commandes, clients et objectifs."
     >
       <div className="grid gap-4 md:grid-cols-[0.85fr_1.15fr]">
         <div className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <MetricCard label="Commandes du jour" value="12" tone="blue" />
-            <MetricCard label="Retours saisis" value="3" tone="red" />
+            <CarteKPI label="Commandes du jour" valeur="12" tonalite="bleu" />
+            <CarteKPI label="Retours saisis" valeur="3" tonalite="rouge" />
           </div>
 
           <Panel title="Profil commercial" eyebrow="Session">

@@ -1,4 +1,5 @@
-import { AppShell, MetricCard, Panel } from "@/components/app-shell";
+import { AppShell, Panel } from "@/components/app-shell";
+import { CarteKPI } from "@/components/carte-kpi";
 import { requireAdmin } from "@/lib/session";
 
 const ventes = [
@@ -30,15 +31,16 @@ export default async function AdminPage() {
     <AppShell
       utilisateur={utilisateur}
       espace="admin"
+      cheminActif="/admin"
       titre="Summary Dashboard"
       description="Vue pilote pour les ventes, encaissements et modules admin."
     >
       <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
         <div className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-3">
-            <MetricCard label="Ventes du mois" value="28" tone="red" />
-            <MetricCard label="Clients actifs" value="146" tone="blue" />
-            <MetricCard label="Reste du" value="18K" tone="green" />
+            <CarteKPI label="Ventes du mois" valeur="28" tonalite="rouge" />
+            <CarteKPI label="Clients actifs" valeur="146" tonalite="bleu" />
+            <CarteKPI label="Reste du" valeur="18K" tonalite="vert" />
           </div>
 
           <Panel title="Ventes par jour" eyebrow="Month to Date">

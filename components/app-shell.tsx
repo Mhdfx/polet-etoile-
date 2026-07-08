@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import Link from "next/link";
 import {
   BarChart3,
   ClipboardList,
@@ -12,17 +13,19 @@ import {
   Users,
 } from "lucide-react";
 import { DeconnexionButton } from "@/components/deconnexion-button";
+import { cn } from "@/lib/utils";
 import type { UtilisateurSession } from "@/lib/session";
 
 type NavigationItem = {
   label: string;
-  active?: boolean;
   icon: ComponentType<{ className?: string }>;
+  /** Absent tant que le module n'est pas construit : rendu inactif. */
+  href?: string;
 };
 
 const navigationAdmin: NavigationItem[] = [
-  { label: "Accueil", icon: Home, active: true },
-  { label: "Produits", icon: Package },
+  { label: "Accueil", icon: Home, href: "/admin" },
+  { label: "Produits", icon: Package, href: "/admin/produits" },
   { label: "Commandes", icon: ClipboardList },
   { label: "Paiements", icon: CreditCard },
   { label: "Clients", icon: Users },
@@ -32,7 +35,7 @@ const navigationAdmin: NavigationItem[] = [
 ];
 
 const navigationCommercial: NavigationItem[] = [
-  { label: "Accueil", icon: Home, active: true },
+  { label: "Accueil", icon: Home, href: "/commercial" },
   { label: "Nouvelle commande", icon: ShoppingCart },
   { label: "Mes clients", icon: Users },
   { label: "Retours", icon: RotateCcw },
@@ -42,6 +45,8 @@ const navigationCommercial: NavigationItem[] = [
 type AppShellProps = {
   utilisateur: UtilisateurSession;
   espace: "admin" | "commercial";
+  /** Chemin de la page courante, pour marquer l'entree active du menu. */
+  cheminActif: string;
   titre: string;
   description: string;
   children: ReactNode;
@@ -50,6 +55,7 @@ type AppShellProps = {
 export function AppShell({
   utilisateur,
   espace,
+  cheminActif,
   titre,
   description,
   children,
@@ -58,69 +64,83 @@ export function AppShell({
     espace === "admin" ? navigationAdmin : navigationCommercial;
 
   return (
-    <main className="bg-[#eef1f4] text-[#1f2937]">
-      <section className="flex min-h-screen w-full bg-[#eef1f4]">
-        <aside className="hidden w-[188px] shrink-0 flex-col bg-[#0f66d5] text-white md:flex md:min-h-full">
+    <main className="bg-background text-foreground">
+      <section className="flex min-h-screen w-full bg-background">
+        <aside className="hidden w-[188px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:min-h-full">
           <div className="flex h-20 items-center gap-3 px-5">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-white text-lg font-black text-[#0f66d5]">
-              Y
+            <div className="grid h-9 w-9 place-items-center rounded-md bg-sidebar-primary text-lg font-black text-sidebar-primary-foreground">
+              P
             </div>
             <div className="leading-tight">
-              <p className="text-xs font-semibold">Your</p>
-              <p className="text-sm font-bold">Company</p>
+              <p className="text-xs font-semibold">Poulet</p>
+              <p className="text-sm font-bold">Étoilé</p>
             </div>
           </div>
 
           <nav className="flex flex-1 flex-col gap-1 px-3">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase text-white/65">
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase text-sidebar-foreground/65">
               Menu
             </p>
             {navigation.map((item) => {
               const Icon = item.icon;
+              const actif = item.href === cheminActif;
+              const classes = cn(
+                "flex h-9 items-center gap-3 rounded-full px-3 text-left text-xs font-medium transition",
+                actif
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground/85 hover:bg-sidebar-foreground/10",
+              );
+
+              if (!item.href) {
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    disabled
+                    title="Module à venir"
+                    className={cn(classes, "cursor-not-allowed opacity-50")}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              }
 
               return (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={`flex h-9 items-center gap-3 rounded-full px-3 text-left text-xs font-medium transition ${
-                    item.active
-                      ? "bg-white text-[#0f66d5]"
-                      : "text-white/85 hover:bg-white/10"
-                  }`}
-                >
+                <Link key={item.label} href={item.href} className={classes}>
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </nav>
 
-          <div className="border-t border-white/15 p-4">
-            <p className="text-[11px] uppercase text-white/60">Filtre</p>
-            <div className="mt-3 rounded-md bg-[#0b58bd] p-3 text-xs">
-              <p className="text-white/65">Annee</p>
+          <div className="border-t border-sidebar-border p-4">
+            <p className="text-[11px] uppercase text-sidebar-foreground/60">Filtre</p>
+            <div className="mt-3 rounded-md bg-sidebar-accent p-3 text-xs text-sidebar-accent-foreground">
+              <p className="opacity-65">Annee</p>
               <p className="mt-1 font-semibold">2026</p>
             </div>
           </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex min-h-20 flex-col gap-4 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-7">
+          <header className="flex min-h-20 flex-col gap-4 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-7">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#0f66d5]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                 {espace === "admin" ? "Dashboard admin" : "Dashboard commercial"}
               </p>
-              <h1 className="mt-1 text-xl font-semibold tracking-normal text-slate-900 sm:text-2xl">
+              <h1 className="mt-1 text-xl font-semibold tracking-normal text-foreground sm:text-2xl">
                 {titre}
               </h1>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 {description}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden text-right text-xs text-slate-500 sm:block">
-                <p className="font-semibold text-slate-800">
+              <div className="hidden text-right text-xs text-muted-foreground sm:block">
+                <p className="font-semibold text-foreground">
                   Hello, {utilisateur.nom_complet}
                 </p>
                 <p>Aujourd&apos;hui</p>
@@ -129,23 +149,37 @@ export function AppShell({
             </div>
           </header>
 
-          <div className="flex gap-2 overflow-x-auto border-b border-slate-200 px-5 py-3 md:hidden">
+          <div className="flex gap-2 overflow-x-auto border-b border-border px-5 py-3 md:hidden">
             {navigation.map((item) => {
               const Icon = item.icon;
+              const actif = item.href === cheminActif;
+              const classes = cn(
+                "flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-medium",
+                actif
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground",
+              );
+
+              if (!item.href) {
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    disabled
+                    title="Module à venir"
+                    className={cn(classes, "cursor-not-allowed opacity-50")}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                );
+              }
 
               return (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={`flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-medium ${
-                    item.active
-                      ? "bg-[#0f66d5] text-white"
-                      : "bg-white text-slate-600"
-                  }`}
-                >
+                <Link key={item.label} href={item.href} className={classes}>
                   <Icon className="h-4 w-4" />
                   {item.label}
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -161,7 +195,7 @@ export function Panel({
   title,
   eyebrow,
   children,
-  className = "bg-white text-slate-900",
+  className = "bg-card text-card-foreground",
 }: {
   title: string;
   eyebrow?: string;
@@ -169,7 +203,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <article className={`rounded-lg p-4 shadow-sm ring-1 ring-slate-200 ${className}`}>
+    <article className={cn("rounded-lg p-4 shadow-sm ring-1 ring-border", className)}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           {eyebrow ? (
@@ -181,29 +215,6 @@ export function Panel({
         </div>
       </div>
       {children}
-    </article>
-  );
-}
-
-export function MetricCard({
-  label,
-  value,
-  tone = "blue",
-}: {
-  label: string;
-  value: string;
-  tone?: "blue" | "red" | "green";
-}) {
-  const toneClass = {
-    blue: "bg-[#0f66d5]",
-    red: "bg-[#f05d68]",
-    green: "bg-[#2aa876]",
-  }[tone];
-
-  return (
-    <article className={`${toneClass} rounded-lg p-4 text-white shadow-sm`}>
-      <p className="text-xs font-medium text-white/75">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-normal">{value}</p>
     </article>
   );
 }
