@@ -5,7 +5,7 @@
 > rules. Keep all three aligned after each meaningful change.
 
 Current date: 08/07/2026  
-Current status: **foundation + auth gate implemented, business app not finished**  
+Current status: **foundation + auth + design system implemented, business modules not started**  
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -66,6 +66,13 @@ Rules for updating this plan:
 - [x] Verified: `npm run lint`.
 - [x] Verified: `npm run build`.
 - [x] Smoke verified username auth on `http://localhost:3107`: `admin` / `password` -> `/admin`, wrong role -> `/403`, email sign-in -> 404.
+- [x] Work committed in logical commits (foundation, auth, shell, docs, tests, design system).
+- [x] Vitest permission tests for auth guards (anonymous, wrong role, owner-or-admin, inactive/soft-deleted user).
+- [x] shadcn/ui initialized (Nova preset, Tailwind 4) with base primitives in `components/ui/`.
+- [x] Brand design tokens in `app/globals.css` (blue sidebar, light workspace, KPI red/blue/green).
+- [x] Reusable kit: `Bouton`, `Champ`, `ChampMontant`, `ChampQuantite`, `CarteKPI`, `BadgeStatut`, `DataTable`, `DialogueConfirmation`, `FiltrePeriode` + `lib/saisie.ts` (tested).
+- [x] Admin reference screen `/admin/produits`: read-only list, server pagination, search, empty/loading states, reference form dialog with Zod field errors.
+- [x] Smoke verified `/admin/produits`: admin 200 with data + formatted prices, search, empty state; commercial -> `/403`; anonymous -> `/connexion`.
 
 ### Not Done
 
@@ -74,7 +81,7 @@ Rules for updating this plan:
 - [x] Seed executed against real MySQL.
 - [ ] Schema reviewed and frozen by Mehdi.
 - [x] Auth implemented.
-- [ ] App layout/design system implemented.
+- [x] App layout/design system implemented (visual validation by Mehdi pending — gate G3).
 - [ ] Admin/commercial business workflows implemented.
 - [ ] PDF/Excel/KPI/audit/sessions implemented.
 - [ ] Deployment implemented.
@@ -98,7 +105,7 @@ Goal: get a reproducible local app with a real MySQL database and seeded data.
 - [x] Run `npm run prisma:migrate`.
 - [x] Run `npm run seed`.
 - [x] Verify seed data with Prisma Studio or a DB query.
-- [ ] Commit the foundation once DB verification passes.
+- [x] Commit the foundation once DB verification passes.
 
 Gate G0:
 - [x] `npm run build` passes.
@@ -147,7 +154,7 @@ Goal: working login and server-side access control before business modules.
 - [x] Decide password hash strategy and align seed/login verification.
 - [x] Implement username/password login page in French.
 - [x] Implement logout.
-- [ ] Add server auth helpers:
+- [x] Add server auth helpers:
   - [x] `requireSession()`
   - [x] `requireAdmin()`
   - [x] `requireCommercial()`
@@ -158,8 +165,8 @@ Goal: working login and server-side access control before business modules.
 - [x] Add dedicated 403 page.
 - [x] Add dedicated 404 page.
 - [x] Add dedicated 500/error boundary.
-- [ ] Add tests for unauthorized access.
-- [ ] Add tests for commercial blocked from admin routes.
+- [x] Add tests for unauthorized access.
+- [x] Add tests for commercial blocked from admin routes.
 
 Gate G2:
 - [x] Login works with seeded admin and commercial users.
@@ -175,32 +182,32 @@ Gate G2:
 
 Goal: create the UI foundation every later module must reuse.
 
-- [ ] Establish Tailwind tokens for app UI.
+- [x] Establish Tailwind tokens for app UI (`app/globals.css`, shadcn Nova preset + brand palette).
 - [x] Create first-pass `AppShell`.
 - [x] Create admin sidebar navigation.
 - [x] Create commercial responsive navigation.
-- [ ] Create reusable UI components:
-  - [ ] `Button` with loading/disabled states.
-  - [ ] `Input`, `Select`, `Textarea`.
-  - [ ] Field error display.
-  - [ ] `CardKPI`.
-  - [ ] `DataTable` using TanStack Table with server pagination.
-  - [ ] `BadgeStatut`.
-  - [ ] `Modal` / `ConfirmDialog`.
-  - [ ] `ChampMontant`.
-  - [ ] `ChampQuantite`.
-  - [ ] Date period filter.
+- [x] Create reusable UI components:
+  - [x] `Button` with loading/disabled states (`components/bouton.tsx`).
+  - [x] `Input`, `Select`, `Textarea` (shadcn, `components/ui/`).
+  - [x] Field error display (`components/champ.tsx`).
+  - [x] `CardKPI` (`components/carte-kpi.tsx`).
+  - [x] `DataTable` using TanStack Table with server pagination (`components/data-table.tsx`).
+  - [x] `BadgeStatut` (`components/badge-statut.tsx`).
+  - [x] `Modal` / `ConfirmDialog` (`components/dialogue-confirmation.tsx` — not yet exercised on a screen).
+  - [x] `ChampMontant` (`components/champ-montant.tsx` + `lib/saisie.ts` tested).
+  - [x] `ChampQuantite` (`components/champ-quantite.tsx` — not yet exercised on a screen).
+  - [x] Date period filter (`components/filtre-periode.tsx` — not yet exercised on a screen).
 - [x] Create commercial dashboard reference screen.
 - [x] Create admin dashboard reference screen.
-- [ ] Create admin list/form reference screen.
-- [ ] Ensure empty/loading/error states are visually defined.
+- [x] Create admin list/form reference screen (`/admin/produits`, read-only until schema freeze).
+- [x] Ensure empty/loading/error states are visually defined (empty + skeleton in DataTable, field errors in reference form, dedicated 403/404/500).
 - [ ] Verify mobile layout.
 
 Gate G3:
 - [ ] Mehdi validates visual direction.
-- [ ] Codex can start peripheral modules using existing UI components.
-- [ ] Build passes.
-- [ ] `HANDOFF.md` updated.
+- [x] Codex can start peripheral modules using existing UI components.
+- [x] Build passes.
+- [x] `HANDOFF.md` updated.
 
 ---
 
@@ -513,3 +520,9 @@ Then curl or open `http://localhost:3107`, and stop the server.
 - 08/07/2026 - Auth switched to username/password using Better Auth username plugin. Admin seed is `admin` / `password`; email sign-in endpoint returns 404.
 - 08/07/2026 - Admin/commercial spaces restyled into a blue-sidebar dashboard shell matching the provided WhatsApp reference direction.
 - 08/07/2026 - Dashboard shell spacing fixed: full-bleed light workspace, content-height shell, non-stretched content wrapper, admin two-column layout from `md`.
+- 08/07/2026 - All pending work committed in logical commits (foundation, auth, shell, docs). Working tree was previously fully uncommitted.
+- 08/07/2026 - Vitest permission tests added for `lib/session.ts` guards: 17 tests (anonymous, wrong role, owner-or-admin, inactive and soft-deleted users).
+- 08/07/2026 - shadcn/ui initialized (Nova preset, radix base) with button/input/textarea/select/label/badge/dialog/alert-dialog/table/skeleton/card. Brand tokens set in `globals.css`; `AppShell` migrated from hardcoded hex to tokens; sidebar nav items are now real links (inactive modules disabled with "Module à venir").
+- 08/07/2026 - Reusable kit built: Bouton, Champ, ChampMontant, ChampQuantite, CarteKPI, BadgeStatut, DataTable (server pagination), DialogueConfirmation, FiltrePeriode. `lib/saisie.ts` (French decimal input normalization) added with tests. DialogueConfirmation/ChampQuantite/FiltrePeriode compile but are not yet used on a screen.
+- 08/07/2026 - Reference screen `/admin/produits` added: read-only server-paginated product list with search, empty/loading states, and a reference "Nouveau produit" dialog (Zod field errors; real creation deferred to Phase 4 after schema freeze).
+- 08/07/2026 - Smoke verified on `:3107`: admin sees products with `XX,XX DH` formatting, search + empty state work, commercial gets `/403`, anonymous gets `/connexion`. Note: stale server on port 3107 had to be killed; corrupted `.next` rebuilt.

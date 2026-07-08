@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 08/07/2026.  
-Statut : **socle Next/MySQL + auth Better Auth operationnels - schema initial a valider par Mehdi**.
+Derniere mise a jour : 08/07/2026 (soir).  
+Statut : **socle + auth + design system operationnels - schema a valider par Mehdi (G1) et direction visuelle a valider (G3)**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -34,7 +34,7 @@ projections des commandes.
 | Argent | Prisma Decimal + decimal.js |
 | Validation | Zod |
 | Auth | Better Auth, sessions en base |
-| UI | Tailwind, futur shadcn/ui |
+| UI | Tailwind 4 + shadcn/ui (preset Nova, base radix) |
 | Tables | TanStack Table |
 | Graphes | Recharts ou Tremor |
 | PDF | @react-pdf/renderer |
@@ -100,15 +100,39 @@ Comptes seed :
 - Commercial Nord : `commercial.nord` / `commercial123`
 - Commercial Sud : `commercial.sud` / `commercial123`
 
-Front actuel volontairement basique. Le user a autorise un front minimal temporaire,
-mais la logique/structure doit rester propre.
-Direction visuelle demandee ensuite : dashboard type image WhatsApp fournie
-(sidebar bleue, workspace gris clair, topbar compacte, panels blancs arrondis,
-cartes KPI rouges/bleues). Premier passage implemente dans `components/app-shell.tsx`
-et les pages `/admin`, `/commercial`.
-Dernier correctif layout : suppression du cadre exterieur gris/vert, suppression de
-la hauteur forcee du shell, suppression du `flex-1` sur le wrapper contenu, et grille
-admin en deux colonnes des `md` pour eviter le grand empilement vers 931px.
+Direction visuelle : dashboard type image WhatsApp fournie (sidebar bleue,
+workspace gris clair, topbar compacte, panels blancs arrondis, cartes KPI
+rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
+`/commercial`, et desormais portee par des tokens.
+
+## 4bis. Design system (Phase 3)
+
+- shadcn/ui initialise (preset Nova, base radix) : primitives dans
+  `components/ui/` (button, input, textarea, select, label, badge, dialog,
+  alert-dialog, table, skeleton, card). `components.json` a la racine.
+- Tokens de marque dans `app/globals.css` : `--primary` bleu #0f66d5,
+  `--background` #eef1f4, `--succes` #2aa876, `--alerte` #f05d68, tokens
+  sidebar bleus. Utiliser les classes semantiques (`bg-primary`, `bg-succes`,
+  `bg-alerte`, `bg-sidebar`…), plus de hex en dur dans les composants.
+- Kit metier (Codex DOIT reutiliser ces composants, ne pas reinventer) :
+  - `components/bouton.tsx` : `Bouton` avec prop `chargement` (anti double-clic).
+  - `components/champ.tsx` : `Champ` = label + erreur/description sous le champ.
+  - `components/champ-montant.tsx` / `champ-quantite.tsx` : saisie DH / kg en
+    chaine, normalisation via `lib/saisie.ts` (jamais `number`).
+  - `components/carte-kpi.tsx` : `CarteKPI` tonalites bleu/rouge/vert/neutre.
+  - `components/badge-statut.tsx` : `BadgeStatut` (paye, en_attente, actif…).
+  - `components/data-table.tsx` : `DataTable` TanStack, pagination serveur,
+    etats vide + squelette de chargement integres.
+  - `components/dialogue-confirmation.tsx` : `DialogueConfirmation` (AlertDialog
+    avec etat en-cours). Pas encore exerce sur un ecran.
+  - `components/filtre-periode.tsx` : `FiltrePeriode` (du/au inclusif). Pas
+    encore exerce sur un ecran.
+- Ecran de reference : `/admin/produits` = liste lecture seule paginee serveur
+  + recherche + formulaire de reference (validation Zod, creation reelle
+  differee en Phase 4 apres gel du schema).
+- La nav sidebar est en vrais liens ; les modules non construits sont
+  desactives avec l'infobulle « Module à venir ». `AppShell` prend maintenant
+  une prop `cheminActif`.
 
 ## 5. Etat fait
 
@@ -134,6 +158,13 @@ admin en deux colonnes des `md` pour eviter le grand empilement vers 931px.
   - commercial connecte -> `/commercial` 200.
   - mauvais role -> redirection `/403`.
   - endpoint email `/api/auth/sign-in/email` -> 404.
+- Tests de permissions Vitest sur `lib/session.ts` (17 tests) : anonyme,
+  mauvais role, owner-or-admin, utilisateur desactive/soft-delete.
+- Design system Phase 3 en place (voir §4bis) ; smoke verifie sur `/admin/produits` :
+  admin 200 avec prix `XX,XX DH`, recherche + etat vide OK, commercial -> `/403`,
+  anonyme -> `/connexion`.
+- Historique git remis au propre : tout le travail est commite en commits
+  logiques (socle, auth, shell, docs, tests, design system).
 - Verifications passees apres auth :
   - `npm run prisma:validate`
   - `npm run prisma:generate`
@@ -146,14 +177,14 @@ admin en deux colonnes des `md` pour eviter le grand empilement vers 931px.
 
 Ordre recommande :
 
-1. Valider/freeze le schema avec Mehdi, notamment les questions paiement/KPI.
-2. Ajouter les tests automatises de permissions auth (anonyme, admin, commercial).
-3. Poser le vrai AppLayout + composants UI de reference.
-4. CRUD admin produits/prix/utilisateurs/clients.
-5. Module commande + paiement, critique.
-6. Listes, retours, PDF BL, Excel.
-7. KPI, audit, sessions actives.
-8. Durcissement et recette.
+1. **Mehdi** : valider/freeze le schema (G1, questions paiement/KPI) et la
+   direction visuelle sur `/admin/produits` (G3).
+2. Verifier le layout mobile (dernier item Phase 3 non coche).
+3. CRUD admin produits/prix/utilisateurs (Claude Code) + clients (Codex apres G3).
+4. Module commande + paiement, critique.
+5. Listes, retours, PDF BL, Excel.
+6. KPI, audit, sessions actives.
+7. Durcissement et recette.
 
 Questions ouvertes a confirmer avant paiement/KPI :
 
@@ -175,6 +206,11 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | Comptes seed username/password | `prisma/seed.ts` |
 | Shell dashboard admin/commercial | `components/app-shell.tsx` |
 | Pages espaces utilisateurs | `app/admin/page.tsx`, `app/commercial/page.tsx` |
+| Tokens couleurs / theme | `app/globals.css` |
+| Primitives shadcn | `components/ui/*`, `components.json` |
+| Kit metier (Bouton, Champ, DataTable…) | `components/*.tsx` |
+| Ecran reference produits | `app/admin/produits/` |
+| Normalisation saisies FR | `lib/saisie.ts` |
 | Decimal / format / dates | `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` |
 | Numerotation BL | `lib/bl.ts` |
 | Plan projet | `PLAN.md` |
