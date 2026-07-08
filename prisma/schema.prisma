@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum RoleUtilisateur {
+  ADMIN
+  COMMERCIAL
+}
+
+enum TypeCommande {
+  STANDARD
+  EXTERNE
+}
+
+enum ModePaiement {
+  ESPECES
+  CHEQUE
+  TRAITE
+  AUTRE
+}
+
+model User {
+  id                    String          @id @default(cuid())
+  nom_utilisateur       String          @unique @db.VarChar(100)
+  nom_complet           String          @db.VarChar(160)
+  email                 String          @unique @db.VarChar(191)
+  email_verifie         Boolean         @default(false) @map("emailVerified")
+  image                 String?         @db.VarChar(500)
+  role                  RoleUtilisateur
+  actif                 Boolean         @default(true)
+  derniere_connexion_at DateTime?       @db.DateTime(3)
+  created_at            DateTime        @default(now()) @db.DateTime(3)
+  updated_at            DateTime        @updatedAt @db.DateTime(3)
+  deleted_at            DateTime?       @db.DateTime(3)
+
+  objectifs_crees     Objectif[]         @relation("ObjectifCreateur")
+  objectifs_assignes  Objectif[]         @relation("ObjectifCommercial")
+  produits_modifies   HistoriquePrix[]
+  clients             Client[]           @relation("ClientCommercial")
+  commandes           Commande[]         @relation("CommandeCommercial")
+  paiements_encaisses Paiement[]         @relation("PaiementEncaissement")
+  retours             Retour[]
+  parametres_modifies ParametreSysteme[]
+  audit_logs          AuditLog[]
+  sessions            Session[]
+  accounts            Account[]
+
+  @@index([role, actif])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime @db.DateTime(3)
+  token     String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String    @db.VarChar(255)
+  providerId            String    @db.VarChar(120)
+  userId                String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime? @db.DateTime(3)
+  refreshTokenExpiresAt DateTime? @db.DateTime(3)
+  scope                 String?   @db.Text
+  password              String?   @db.VarChar(255)
+  createdAt             DateTime  @default(now()) @db.DateTime(3)
+  updatedAt             DateTime  @updatedAt @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String    @db.VarChar(255)
+  value      String    @db.Text
+  expiresAt  DateTime  @db.DateTime(3)
+  createdAt  DateTime? @default(now()) @db.DateTime(3)
+  updatedAt  DateTime? @updatedAt @db.DateTime(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model Objectif {
+  id               String   @id @default(cuid())
+  utilisateur_id   String
+  mois             String   @db.Char(7)
+  montant_objectif Decimal  @db.Decimal(10, 2)
+  created_by       String
+  created_at       DateTime @default(now()) @db.DateTime(3)
+  updated_at       DateTime @updatedAt @db.DateTime(3)
+
+  utilisateur User @relation("ObjectifCommercial", fields: [utilisateur_id], references: [id])
+  createur    User @relation("ObjectifCreateur", fields: [created_by], references: [id])
+
+  @@unique([utilisateur_id, mois])
+  @@index([mois])
+  @@map("objectifs")
+}
+
+model Produit {
+  id              String    @id @default(cuid())
+  nom             String    @db.VarChar(180)
+  categorie       String    @db.VarChar(120)
+  unite           String    @default("kg") @db.VarChar(10)
+  prix_reference  Decimal   @db.Decimal(10, 2)
+  actif           Boolean   @default(true)
+  ordre_affichage Int       @default(0)
+  created_at      DateTime  @default(now()) @db.DateTime(3)
+  updated_at      DateTime  @updatedAt @db.DateTime(3)
+  deleted_at      DateTime? @db.DateTime(3)
+
+  historique_prix HistoriquePrix[]
+  lignes_commande LigneCommande[]
+  retours         Retour[]
+
+  @@index([actif, ordre_affichage])
+  @@index([categorie])
+  @@map("produits")
+}
+
+model HistoriquePrix {
+  id             String   @id @default(cuid())
+  produit_id     String
+  ancien_prix    Decimal  @db.Decimal(10, 2)
+  nouveau_prix   Decimal  @db.Decimal(10, 2)
+  utilisateur_id String
+  date           DateTime @default(now()) @db.DateTime(3)
+
+  produit     Produit @relation(fields: [produit_id], references: [id])
+  utilisateur User    @relation(fields: [utilisateur_id], references: [id])
+
+  @@index([produit_id, date])
+  @@map("historique_prix")
+}
+
+model Client {
+  id            String    @id @default(cuid())
+  nom           String    @db.VarChar(180)
+  region_ville  String    @db.VarChar(120)
+  telephone     String?   @db.VarChar(40)
+  commercial_id String
+  actif         Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.DateTime(3)
+  updated_at    DateTime  @updatedAt @db.DateTime(3)
+  deleted_at    DateTime? @db.DateTime(3)
+
+  commercial User       @relation("ClientCommercial", fields: [commercial_id], references: [id])
+  commandes  Commande[]
+
+  @@index([commercial_id, actif])
+  @@index([region_ville])
+  @@map("clients")
+}
+
+model ClientExterne {
+  id           String    @id @default(cuid())
+  nom          String    @db.VarChar(180)
+  region_ville String    @db.VarChar(120)
+  telephone    String?   @db.VarChar(40)
+  actif        Boolean   @default(true)
+  created_at   DateTime  @default(now()) @db.DateTime(3)
+  updated_at   DateTime  @updatedAt @db.DateTime(3)
+  deleted_at   DateTime? @db.DateTime(3)
+
+  commandes Commande[]
+
+  @@index([actif])
+  @@index([region_ville])
+  @@map("clients_externes")
+}
+
+model Commande {
+  id                 String       @id @default(cuid())
+  numero_bl          String       @unique @db.VarChar(40)
+  numero_bl_compteur Int          @unique
+  client_id          String?
+  client_externe_id  String?
+  utilisateur_id     String
+  date_commande      DateTime     @default(now()) @db.DateTime(3)
+  type_commande      TypeCommande @default(STANDARD)
+  created_at         DateTime     @default(now()) @db.DateTime(3)
+  deleted_at         DateTime?    @db.DateTime(3)
+
+  client         Client?         @relation(fields: [client_id], references: [id])
+  client_externe ClientExterne?  @relation(fields: [client_externe_id], references: [id])
+  utilisateur    User            @relation("CommandeCommercial", fields: [utilisateur_id], references: [id])
+  lignes         LigneCommande[]
+  paiements      Paiement[]
+
+  @@index([utilisateur_id, date_commande])
+  @@index([client_id])
+  @@index([client_externe_id])
+  @@index([type_commande, date_commande])
+  @@map("commandes")
+}
+
+model LigneCommande {
+  id            String    @id @default(cuid())
+  commande_id   String
+  produit_id    String
+  quantite      Decimal   @db.Decimal(10, 3)
+  prix_unitaire Decimal   @db.Decimal(10, 2)
+  prix_net      Decimal   @db.Decimal(10, 2)
+  created_at    DateTime  @default(now()) @db.DateTime(3)
+  deleted_at    DateTime? @db.DateTime(3)
+
+  commande Commande @relation(fields: [commande_id], references: [id])
+  produit  Produit  @relation(fields: [produit_id], references: [id])
+
+  @@index([commande_id])
+  @@index([produit_id])
+  @@map("lignes_commande")
+}
+
+model Paiement {
+  id            String       @id @default(cuid())
+  commande_id   String
+  montant       Decimal      @db.Decimal(10, 2)
+  mode_paiement ModePaiement
+  date_paiement DateTime     @default(now()) @db.DateTime(3)
+  reference     String?      @db.VarChar(120)
+  encaisse_par  String
+  created_at    DateTime     @default(now()) @db.DateTime(3)
+
+  commande    Commande @relation(fields: [commande_id], references: [id])
+  utilisateur User     @relation("PaiementEncaissement", fields: [encaisse_par], references: [id])
+
+  @@index([commande_id, date_paiement])
+  @@index([encaisse_par])
+  @@map("paiements")
+}
+
+model Retour {
+  id             String   @id @default(cuid())
+  produit_id     String
+  quantite_kg    Decimal  @db.Decimal(10, 3)
+  commentaire    String?  @db.Text
+  utilisateur_id String
+  created_at     DateTime @default(now()) @db.DateTime(3)
+
+  produit     Produit @relation(fields: [produit_id], references: [id])
+  utilisateur User    @relation(fields: [utilisateur_id], references: [id])
+
+  @@index([utilisateur_id, created_at])
+  @@index([produit_id])
+  @@map("retours")
+}
+
+model ParametreSysteme {
+  id         String   @id @default(cuid())
+  cle        String   @unique @db.VarChar(120)
+  valeur     String   @db.Text
+  updated_by String?
+  updated_at DateTime @updatedAt @db.DateTime(3)
+
+  utilisateur User? @relation(fields: [updated_by], references: [id])
+
+  @@map("parametres_systeme")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  utilisateur_id String?
+  action         String   @db.VarChar(120)
+  entite         String   @db.VarChar(120)
+  entite_id      String?  @db.VarChar(120)
+  donnees_avant  Json?
+  donnees_apres  Json?
+  ip_address     String?  @db.VarChar(45)
+  created_at     DateTime @default(now()) @db.DateTime(3)
+
+  utilisateur User? @relation(fields: [utilisateur_id], references: [id])
+
+  @@index([utilisateur_id, created_at])
+  @@index([entite, entite_id])
+  @@index([action])
+  @@map("audit_log")
+}
+
+model CompteurBl {
+  cle        String   @id @db.VarChar(40)
+  valeur     Int
+  updated_at DateTime @updatedAt @db.DateTime(3)
+
+  @@map("compteurs_bl")
+}

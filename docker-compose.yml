@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: poulet_etoile_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: poulet_etoile
+      MYSQL_USER: poulet
+      MYSQL_PASSWORD: poulet_dev_password
+      MYSQL_ROOT_PASSWORD: root_dev_password
+      TZ: Africa/Casablanca
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-upoulet", "-ppoulet_dev_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
