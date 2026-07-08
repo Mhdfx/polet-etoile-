@@ -62,7 +62,7 @@ export default async function ProduitsPage({
       espace="admin"
       cheminActif="/admin/produits"
       titre="Produits et prix"
-      description="Catalogue avicole — écran de référence liste + formulaire. Lecture seule tant que le schéma n'est pas gelé (Phase 4 pour le CRUD)."
+      description="Catalogue avicole : création, modification, changement de prix tracé, activation et suppression logique."
     >
       <ProduitsTable
         lignes={lignes}
