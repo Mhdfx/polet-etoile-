@@ -1,0 +1,94 @@
+import { notFound, redirect } from "next/navigation";
+import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { prisma } from "@/lib/db";
+import { formatDateHeure, formatMontant } from "@/lib/format";
+
+export type CommandeDocumentData = {
+  societe: {
+    raisonSociale: string;
+    ice?: string;
+    rc?: string;
+  };
+  id: string;
+  numeroBl: string;
+  date: string;
+  client: string;
+  ville: string;
+  commercial: string;
+  total: string;
+  totalPaye: string;
+  resteDu: string;
+  lignes: Array<{
+    produit: string;
+    quantite: string;
+    prixUnitaire: string;
+    prixNet: string;
+  }>;
+};
+
+export async function chargerCommandeDocument(
+  id: string,
+  commercialId?: string,
+): Promise<CommandeDocumentData> {
+  const commande = await prisma.commande.findFirst({
+    where: { id, deleted_at: null },
+    select: {
+      id: true,
+      numero_bl: true,
+      utilisateur_id: true,
+      date_commande: true,
+      client: { select: { nom: true, region_ville: true } },
+      client_externe: { select: { nom: true, region_ville: true } },
+      utilisateur: { select: { nom_complet: true } },
+      lignes: {
+        where: { deleted_at: null },
+        select: {
+          produit: { select: { nom: true } },
+          quantite: true,
+          prix_unitaire: true,
+          prix_net: true,
+        },
+      },
+      paiements: { select: { montant: true } },
+    },
+  });
+
+  if (!commande) {
+    notFound();
+  }
+
+  if (commercialId && commande.utilisateur_id !== commercialId) {
+    redirect("/403");
+  }
+
+  const parametres = await prisma.parametreSysteme.findMany({
+    where: { cle: { in: ["raison_sociale", "ice", "rc"] } },
+    select: { cle: true, valeur: true },
+  });
+  const params = new Map(parametres.map((parametre) => [parametre.cle, parametre.valeur]));
+  const client = commande.client ?? commande.client_externe;
+  const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+
+  return {
+    societe: {
+      raisonSociale: params.get("raison_sociale") ?? "Poulet Etoile",
+      ice: params.get("ice"),
+      rc: params.get("rc"),
+    },
+    id: commande.id,
+    numeroBl: commande.numero_bl,
+    date: formatDateHeure(commande.date_commande),
+    client: client?.nom ?? "-",
+    ville: client?.region_ville ?? "-",
+    commercial: commande.utilisateur.nom_complet,
+    total: formatMontant(totaux.total),
+    totalPaye: formatMontant(totaux.totalPaye),
+    resteDu: formatMontant(totaux.resteDu),
+    lignes: commande.lignes.map((ligne) => ({
+      produit: ligne.produit.nom,
+      quantite: `${ligne.quantite.toFixed(3)} kg`,
+      prixUnitaire: formatMontant(ligne.prix_unitaire),
+      prixNet: formatMontant(ligne.prix_net),
+    })),
+  };
+}

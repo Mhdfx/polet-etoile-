@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { normaliserSaisieMontant } from "@/lib/saisie";
+import { champMontantPositif } from "@/lib/validations/commun";
+
+export { erreursParChamp } from "@/lib/validations/commun";
+export type { ResultatAction } from "@/lib/validations/commun";
 
 /**
  * Schemas partages client/serveur pour le module Produits.
@@ -19,21 +22,9 @@ const champCategorie = z
   .min(1, "La catégorie est obligatoire")
   .max(120, "La catégorie ne doit pas dépasser 120 caractères");
 
-export const champPrix = z
-  .string()
-  .transform((valeur, contexte) => {
-    const normalise = normaliserSaisieMontant(valeur);
-
-    if (normalise === null || Number.parseFloat(normalise) <= 0) {
-      contexte.addIssue({
-        code: "custom",
-        message: "Le prix doit être un montant supérieur à 0 (ex. 45,50)",
-      });
-      return z.NEVER;
-    }
-
-    return normalise;
-  });
+export const champPrix = champMontantPositif(
+  "Le prix doit être un montant supérieur à 0 (ex. 45,50)",
+);
 
 export const schemaCreationProduit = z.object({
   nom: champNom,
@@ -64,18 +55,3 @@ export type ModificationProduit = z.infer<typeof schemaModificationProduit>;
 export type ChangementPrix = z.infer<typeof schemaChangementPrix>;
 export type PrixEnMasse = z.infer<typeof schemaPrixEnMasse>;
 
-/** Resultat commun des actions serveur du module Produits. */
-export type ResultatAction =
-  | { ok: true }
-  | { ok: false; erreurs?: Record<string, string>; message?: string };
-
-export function erreursParChamp(erreur: z.ZodError): Record<string, string> {
-  const erreurs: Record<string, string> = {};
-
-  for (const probleme of erreur.issues) {
-    const champ = String(probleme.path[0] ?? "_");
-    erreurs[champ] ??= probleme.message;
-  }
-
-  return erreurs;
-}

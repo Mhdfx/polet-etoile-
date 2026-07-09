@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Settings,
   ShoppingCart,
+  UserCog,
   Users,
 } from "lucide-react";
 import { DeconnexionButton } from "@/components/deconnexion-button";
@@ -26,20 +27,27 @@ type NavigationItem = {
 const navigationAdmin: NavigationItem[] = [
   { label: "Accueil", icon: Home, href: "/admin" },
   { label: "Produits", icon: Package, href: "/admin/produits" },
-  { label: "Commandes", icon: ClipboardList },
+  { label: "Commandes", icon: ClipboardList, href: "/admin/commandes" },
   { label: "Paiements", icon: CreditCard },
-  { label: "Clients", icon: Users },
-  { label: "KPI", icon: BarChart3 },
-  { label: "Audit", icon: FileText },
-  { label: "Parametres", icon: Settings },
+  { label: "Clients", icon: Users, href: "/admin/clients" },
+  { label: "Utilisateurs", icon: UserCog, href: "/admin/utilisateurs" },
+  { label: "KPI", icon: BarChart3, href: "/admin/kpi" },
+  { label: "Retours", icon: RotateCcw, href: "/admin/retours" },
+  { label: "Audit", icon: FileText, href: "/admin/audit" },
+  { label: "Sessions", icon: Settings, href: "/admin/sessions" },
 ];
 
 const navigationCommercial: NavigationItem[] = [
   { label: "Accueil", icon: Home, href: "/commercial" },
-  { label: "Nouvelle commande", icon: ShoppingCart },
-  { label: "Mes clients", icon: Users },
-  { label: "Retours", icon: RotateCcw },
-  { label: "Mes KPI", icon: BarChart3 },
+  {
+    label: "Nouvelle commande",
+    icon: ShoppingCart,
+    href: "/commercial/commandes/nouvelle",
+  },
+  { label: "Mes commandes", icon: ClipboardList, href: "/commercial/commandes" },
+  { label: "Mes clients", icon: Users, href: "/commercial/clients" },
+  { label: "Retours", icon: RotateCcw, href: "/commercial/retours" },
+  { label: "Mes KPI", icon: BarChart3, href: "/commercial/kpi" },
 ];
 
 type AppShellProps = {
