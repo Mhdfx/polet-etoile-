@@ -1,7 +1,11 @@
 import type { Prisma } from "@prisma/client";
 import { DateTime } from "luxon";
 import { AppShell } from "@/components/app-shell";
+import { Bouton } from "@/components/bouton";
 import { CarteKPI } from "@/components/carte-kpi";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SelectNatif } from "@/components/ui/select-natif";
 import {
   Table,
   TableBody,
@@ -91,38 +95,35 @@ export default async function KpiAdminPage({
       utilisateur={admin}
       espace="admin"
       cheminActif="/admin/kpi"
-      titre="KPI"
-      description="Indicateurs consolides : ventes, commandes, impayes et tops."
+      titre="Audit KPIs"
+      description="Indicateurs consolidés : ventes, commandes, impayés et tops."
     >
       <div className="grid gap-5">
-        <form className="flex flex-wrap items-end gap-2">
-          <input
-            name="debut"
-            type="date"
-            defaultValue={debut}
-            className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-          />
-          <input
-            name="fin"
-            type="date"
-            defaultValue={fin}
-            className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-          />
-          <select
-            name="commercial"
-            defaultValue={commercial ?? ""}
-            className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-          >
-            <option value="">Tous les commerciaux</option>
-            {commerciaux.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.nom_complet}
-              </option>
-            ))}
-          </select>
-          <button className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
-            Filtrer
-          </button>
+        <form className="flex flex-wrap items-end gap-3 rounded-lg bg-card p-3 shadow-sm ring-1 ring-border">
+          <div className="grid gap-1.5">
+            <Label htmlFor="kpi-debut">Date début</Label>
+            <Input id="kpi-debut" name="debut" type="date" defaultValue={debut} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="kpi-fin">Date fin</Label>
+            <Input id="kpi-fin" name="fin" type="date" defaultValue={fin} />
+          </div>
+          <div className="grid min-w-44 gap-1.5">
+            <Label htmlFor="kpi-commercial">Commercial</Label>
+            <SelectNatif
+              id="kpi-commercial"
+              name="commercial"
+              defaultValue={commercial ?? ""}
+            >
+              <option value="">Tous les commerciaux</option>
+              {commerciaux.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nom_complet}
+                </option>
+              ))}
+            </SelectNatif>
+          </div>
+          <Bouton type="submit">Filtrer</Bouton>
         </form>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -137,7 +138,7 @@ export default async function KpiAdminPage({
             tonalite="neutre"
           />
           <CarteKPI
-            label="Impayes"
+            label="Impayés"
             valeur={formatMontant(kpi.montantImpaye)}
             tonalite="rouge"
           />
@@ -181,7 +182,7 @@ function TopTable({
           {lignes.length === 0 ? (
             <TableRow>
               <TableCell colSpan={2} className="h-20 text-center text-muted-foreground">
-                Aucune donnee.
+                Aucune donnée sur cette période.
               </TableCell>
             </TableRow>
           ) : (

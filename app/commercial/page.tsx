@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import {
+  AlertTriangle,
   BarChart3,
+  CalendarDays,
   ClipboardList,
   ExternalLink,
   RotateCcw,
+  Scale,
   ShoppingCart,
+  TrendingUp,
 } from "lucide-react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { CarteKPI } from "@/components/carte-kpi";
@@ -117,30 +121,35 @@ export default async function CommercialPage() {
             valeur={formatMontant(kpiMois.chiffreAffaires)}
             detail={periodeMois}
             tonalite="bleu"
+            icon={TrendingUp}
           />
           <CarteKPI
             label="Quantité du mois"
             valeur={formatQuantite(kpiMois.quantite)}
             detail={periodeMois}
             tonalite="neutre"
+            icon={Scale}
           />
           <CarteKPI
             label="Chiffre d'affaires du jour"
             valeur={formatMontant(kpiJour.chiffreAffaires)}
             detail={formatDate(maintenant.toJSDate())}
             tonalite="vert"
+            icon={CalendarDays}
           />
           <CarteKPI
             label="Quantité du jour"
             valeur={formatQuantite(kpiJour.quantite)}
             detail={formatDate(maintenant.toJSDate())}
             tonalite="neutre"
+            icon={Scale}
           />
           <CarteKPI
             label="Chiffre non réglé"
             valeur={formatMontant(impaye)}
             detail="Toutes commandes confondues"
             tonalite="rouge"
+            icon={AlertTriangle}
           />
         </div>
 

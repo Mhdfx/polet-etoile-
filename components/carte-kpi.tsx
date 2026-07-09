@@ -1,12 +1,17 @@
+import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 
 type Tonalite = "bleu" | "rouge" | "vert" | "neutre";
 
-const tonalites: Record<Tonalite, string> = {
-  bleu: "bg-primary text-primary-foreground",
-  rouge: "bg-alerte text-alerte-foreground",
-  vert: "bg-succes text-succes-foreground",
-  neutre: "bg-card text-card-foreground ring-1 ring-border",
+/**
+ * bleu / vert / neutre : carte blanche avec pastille d'accent (lecture dense).
+ * rouge : carte pleine — reservee aux alertes (ex. chiffre non regle, CDC §5.2).
+ */
+const pastilles: Record<Tonalite, string> = {
+  bleu: "bg-primary/10 text-primary",
+  vert: "bg-succes/10 text-succes",
+  rouge: "bg-white/20 text-white",
+  neutre: "bg-muted text-muted-foreground",
 };
 
 type CarteKPIProps = {
@@ -18,6 +23,7 @@ type CarteKPIProps = {
   valeur: string;
   tonalite?: Tonalite;
   detail?: string;
+  icon?: ComponentType<{ className?: string }>;
   className?: string;
 };
 
@@ -26,26 +32,50 @@ export function CarteKPI({
   valeur,
   tonalite = "bleu",
   detail,
+  icon: Icon,
   className,
 }: CarteKPIProps) {
+  const alerte = tonalite === "rouge";
+
   return (
-    <article className={cn("rounded-lg p-4 shadow-sm", tonalites[tonalite], className)}>
-      <p
-        className={cn(
-          "text-xs font-medium",
-          tonalite === "neutre" ? "text-muted-foreground" : "opacity-75",
-        )}
-      >
-        {label}
-      </p>
-      <p className="mt-3 text-3xl font-semibold tracking-normal tabular-nums">
+    <article
+      className={cn(
+        "rounded-lg p-4 shadow-sm transition-shadow hover:shadow-md",
+        alerte
+          ? "bg-alerte text-alerte-foreground"
+          : "bg-card text-card-foreground ring-1 ring-border",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p
+          className={cn(
+            "text-xs font-semibold uppercase tracking-wide",
+            alerte ? "text-white/80" : "text-muted-foreground",
+          )}
+        >
+          {label}
+        </p>
+        {Icon ? (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-md",
+              pastilles[tonalite],
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums lg:text-3xl">
         {valeur}
       </p>
       {detail ? (
         <p
           className={cn(
             "mt-1 text-xs",
-            tonalite === "neutre" ? "text-muted-foreground" : "opacity-70",
+            alerte ? "text-white/75" : "text-muted-foreground",
           )}
         >
           {detail}

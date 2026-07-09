@@ -31,8 +31,36 @@
 | 6. Fusion clients + doublons (§3.1) | À faire | — |
 | 7. Exports audit/global (§3.6) | À faire | — |
 | 8. Seed catalogue + 1 000 commandes (§4) | À faire | — |
-| 9. Finitions UX (§3.2, §3.3, §3.4, §3.5, §3.7) | Partiel (bandeau identité fait) | — |
+| 9. Finitions UX (§3.2, §3.3, §3.4, §3.5, §3.7) | Partiel (§3.7 connexion ✅) | — |
 | 10. QA finale + doc écarts | À faire | — |
+| **Pass front-end senior** (design system, hors ordre §8) | ✅ **FAIT** | voir ci-dessous |
+
+**Pass front-end senior (09/07/2026)** — élévation du design system, vérifié
+navigateur (build + captures headless) :
+
+- **Bug corrigé : polices.** Les variables `--font-geist-*` étaient attachées au
+  `<body>` alors que `font-sans` s'applique sur `html` → **toute l'app rendait en
+  Times New Roman**. Corrigé dans `app/layout.tsx` (variables sur `<html>`).
+- `globals.css` : antialiasing, `::selection` marque, `tabular-nums` par défaut
+  dans les tableaux, `prefers-reduced-motion` respecté.
+- `CarteKPI` v2 : carte blanche + pastille d'icône (bleu/vert/neutre), variante
+  pleine rouge réservée aux alertes (chiffre non réglé) ; prop `icon`.
+- `AppShell` v2 : sidebar sticky, nav admin groupée (Menu / Pilotage), état actif
+  par préfixe d'URL (sous-pages), `aria-current`, lien d'évitement clavier,
+  header sticky avec avatar + rôle, footer marque ; mobile : chips scrollables.
+- Tables : en-têtes en petites capitales muted, cellules aérées (global).
+- Connexion : refonte complète (§3.7 ci-dessous), seed credentials retirés.
+- Pages 403 / 404 / 500 : alignées marque, lien retour (CDC §10.4), identifiant
+  d'erreur (`digest`) affiché sur la 500.
+- États de chargement : `SquelettePage` + `loading.tsx` segments admin et
+  commercial (CDC §10.2).
+- Kit filtres : `SelectNatif` stylé + formulaires de filtre normalisés
+  (Label/Input/Bouton) sur `/admin`, `/admin/kpi`, `/commercial/kpi`.
+- Vérification : 102/102 tests, build OK, login + dashboard admin vérifiés en
+  HTTP réel (session curl), captures headless de la connexion (desktop OK ;
+  la capture 375 px est un artefact du harnais Edge headless — largeur minimale
+  de fenêtre ~480 px —, témoin reproduit hors app ; QA mobile réelle toujours
+  au backlog §6).
 
 > ⚠️ Le lien « Voir les commandes externes » du dashboard commercial pointe vers
 > `/commercial/commandes/externes`, route livrée au module 3 (404 en attendant).
@@ -280,14 +308,14 @@ il manque seulement le **bouton** sur l'écran sessions.
 
 ---
 
-### 3.7 Connexion — détails UX (§5.1)
+### 3.7 Connexion — détails UX (§5.1) — ✅ FAIT (09/07/2026, pass front-end)
 
-Vérifié absent de `app/connexion/connexion-form.tsx` :
-
-- [ ] Bouton afficher / masquer le mot de passe
-- [ ] Mention réassurance (« Connexion chiffrée et protégée »)
+- [x] Bouton afficher / masquer le mot de passe (icône œil, aria-label)
+- [x] Mention réassurance (« Connexion chiffrée et protégée », icône bouclier)
 - [x] Bandeau identité post-connexion : « Connecté : {nom} · Rôle : COMMERCIAL /
   ADMINISTRATEUR » — fait au module 1 (shell + description des deux dashboards)
+- [x] Refonte complète de l'écran (panneau marque + formulaire kit UI) ;
+  **identifiants seed retirés de l'interface** (fuite d'info en production)
 
 ---
 

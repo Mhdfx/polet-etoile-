@@ -22,19 +22,26 @@ type NavigationItem = {
   icon: ComponentType<{ className?: string }>;
   /** Absent tant que le module n'est pas construit : rendu inactif. */
   href?: string;
+  /** Regroupement visuel dans la sidebar (admin). */
+  groupe?: "menu" | "pilotage";
 };
 
 const navigationAdmin: NavigationItem[] = [
-  { label: "Accueil", icon: Home, href: "/admin" },
-  { label: "Produits", icon: Package, href: "/admin/produits" },
-  { label: "Commandes", icon: ClipboardList, href: "/admin/commandes" },
-  { label: "Paiements", icon: CreditCard },
-  { label: "Clients", icon: Users, href: "/admin/clients" },
-  { label: "Utilisateurs", icon: UserCog, href: "/admin/utilisateurs" },
-  { label: "KPI", icon: BarChart3, href: "/admin/kpi" },
-  { label: "Retours", icon: RotateCcw, href: "/admin/retours" },
-  { label: "Audit", icon: FileText, href: "/admin/audit" },
-  { label: "Sessions", icon: Settings, href: "/admin/sessions" },
+  { label: "Accueil", icon: Home, href: "/admin", groupe: "menu" },
+  { label: "Produits", icon: Package, href: "/admin/produits", groupe: "menu" },
+  { label: "Commandes", icon: ClipboardList, href: "/admin/commandes", groupe: "menu" },
+  { label: "Paiements", icon: CreditCard, groupe: "menu" },
+  { label: "Clients", icon: Users, href: "/admin/clients", groupe: "menu" },
+  { label: "Retours", icon: RotateCcw, href: "/admin/retours", groupe: "menu" },
+  { label: "KPI", icon: BarChart3, href: "/admin/kpi", groupe: "pilotage" },
+  {
+    label: "Utilisateurs",
+    icon: UserCog,
+    href: "/admin/utilisateurs",
+    groupe: "pilotage",
+  },
+  { label: "Audit", icon: FileText, href: "/admin/audit", groupe: "pilotage" },
+  { label: "Sessions", icon: Settings, href: "/admin/sessions", groupe: "pilotage" },
 ];
 
 const navigationCommercial: NavigationItem[] = [
@@ -49,6 +56,35 @@ const navigationCommercial: NavigationItem[] = [
   { label: "Retours", icon: RotateCcw, href: "/commercial/retours" },
   { label: "Mes KPI", icon: BarChart3, href: "/commercial/kpi" },
 ];
+
+/**
+ * Une entree est active si le chemin courant est la page elle-meme ou une de
+ * ses sous-pages. Les accueils (/admin, /commercial) matchent en exact pour ne
+ * pas rester allumes partout. "Nouvelle commande" prime sur "Mes commandes".
+ */
+function estActif(item: NavigationItem, cheminActif: string, racine: string): boolean {
+  if (!item.href) {
+    return false;
+  }
+  if (item.href === racine) {
+    return cheminActif === racine;
+  }
+  if (cheminActif === item.href) {
+    return true;
+  }
+  if (!cheminActif.startsWith(`${item.href}/`)) {
+    return false;
+  }
+  // Ne pas allumer un parent si un item plus specifique correspond deja.
+  const navigation = racine === "/admin" ? navigationAdmin : navigationCommercial;
+  return !navigation.some(
+    (autre) =>
+      autre.href &&
+      autre.href !== item.href &&
+      autre.href.startsWith(`${item.href}/`) &&
+      (cheminActif === autre.href || cheminActif.startsWith(`${autre.href}/`)),
+  );
+}
 
 type AppShellProps = {
   utilisateur: UtilisateurSession;
@@ -70,128 +106,184 @@ export function AppShell({
 }: AppShellProps) {
   const navigation =
     espace === "admin" ? navigationAdmin : navigationCommercial;
+  const racine = espace === "admin" ? "/admin" : "/commercial";
+  const groupes: Array<{ cle: NavigationItem["groupe"]; titre: string }> =
+    espace === "admin"
+      ? [
+          { cle: "menu", titre: "Menu" },
+          { cle: "pilotage", titre: "Pilotage" },
+        ]
+      : [{ cle: undefined, titre: "Menu" }];
 
   return (
     <main className="bg-background text-foreground">
-      <section className="flex min-h-screen w-full bg-background">
-        <aside className="hidden w-[188px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex md:min-h-full">
-          <div className="flex h-20 items-center gap-3 px-5">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-sidebar-primary text-lg font-black text-sidebar-primary-foreground">
+      <a
+        href="#contenu-principal"
+        className="sr-only rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50"
+      >
+        Aller au contenu principal
+      </a>
+      <section className="flex min-h-dvh w-full bg-background">
+        <aside className="sticky top-0 hidden h-dvh w-[212px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+          <div className="flex h-16 items-center gap-3 px-5">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-sidebar-primary text-lg font-black text-sidebar-primary-foreground">
               P
             </div>
             <div className="leading-tight">
-              <p className="text-xs font-semibold">Poulet</p>
-              <p className="text-sm font-bold">Étoilé</p>
+              <p className="text-sm font-bold">Poulet Étoilé</p>
+              <p className="text-[11px] text-sidebar-foreground/70">
+                {espace === "admin" ? "Administration" : "Espace commercial"}
+              </p>
             </div>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 px-3">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase text-sidebar-foreground/65">
-              Menu
-            </p>
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const actif = item.href === cheminActif;
-              const classes = cn(
-                "flex h-9 items-center gap-3 rounded-full px-3 text-left text-xs font-medium transition",
-                actif
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/85 hover:bg-sidebar-foreground/10",
-              );
+          <nav
+            aria-label="Navigation principale"
+            className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4"
+          >
+            {groupes.map((groupe) => (
+              <div key={groupe.titre} className="mt-3 first:mt-1">
+                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/55">
+                  {groupe.titre}
+                </p>
+                <div className="grid gap-0.5">
+                  {navigation
+                    .filter((item) => item.groupe === groupe.cle)
+                    .map((item) => {
+                      const Icon = item.icon;
+                      const actif = estActif(item, cheminActif, racine);
+                      const classes = cn(
+                        "flex h-9 items-center gap-3 rounded-md px-3 text-left text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                        actif
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                          : "text-sidebar-foreground/85 hover:bg-white/10 hover:text-sidebar-foreground",
+                      );
 
-              if (!item.href) {
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    disabled
-                    title="Module à venir"
-                    className={cn(classes, "cursor-not-allowed opacity-50")}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              }
+                      if (!item.href) {
+                        return (
+                          <button
+                            key={item.label}
+                            type="button"
+                            disabled
+                            title="Module à venir"
+                            className={cn(classes, "cursor-not-allowed opacity-45")}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      }
 
-              return (
-                <Link key={item.label} href={item.href} className={classes}>
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                      return (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          aria-current={actif ? "page" : undefined}
+                          className={classes}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <div className="border-t border-sidebar-border p-4 text-[11px] text-sidebar-foreground/60">
-            <p className="font-semibold uppercase">Poulet Étoilé</p>
-            <p className="mt-1">Gestion commerciale — Naomedia</p>
+          <div className="border-t border-sidebar-border px-5 py-4 text-[11px] leading-relaxed text-sidebar-foreground/60">
+            <p className="font-semibold text-sidebar-foreground/80">
+              Gestion commerciale
+            </p>
+            <p>Poulet Étoilé — Naomedia</p>
           </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex min-h-20 flex-col gap-4 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-7">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                {espace === "admin" ? "Dashboard admin" : "Dashboard commercial"}
-              </p>
-              <h1 className="mt-1 text-xl font-semibold tracking-normal text-foreground sm:text-2xl">
-                {titre}
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                {description}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden text-right text-xs text-muted-foreground sm:block">
-                <p className="font-semibold text-foreground">
-                  Connecté : {utilisateur.nom_complet}
+          <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="flex min-h-16 items-center justify-between gap-4 px-5 py-3 lg:px-7">
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-primary">
+                  {espace === "admin" ? "Espace administrateur" : "Espace commercial"}
                 </p>
-                <p>
-                  Rôle : {utilisateur.role === "ADMIN" ? "ADMINISTRATEUR" : "COMMERCIAL"}
-                </p>
+                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                  {titre}
+                </h1>
               </div>
-              <DeconnexionButton />
+
+              <div className="flex shrink-0 items-center gap-3">
+                <div className="hidden items-center gap-3 sm:flex">
+                  <div className="text-right text-xs leading-tight">
+                    <p className="font-semibold text-foreground">
+                      {utilisateur.nom_complet}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {espace === "admin" ? "Administrateur" : "Commercial"}
+                    </p>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+                  >
+                    {utilisateur.nom_complet.slice(0, 1).toUpperCase()}
+                  </div>
+                </div>
+                <DeconnexionButton />
+              </div>
             </div>
-          </header>
 
-          <div className="flex gap-2 overflow-x-auto border-b border-border px-5 py-3 md:hidden">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const actif = item.href === cheminActif;
-              const classes = cn(
-                "flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-medium",
-                actif
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground",
-              );
+            <nav
+              aria-label="Navigation mobile"
+              className="flex gap-1.5 overflow-x-auto px-5 pb-3 md:hidden"
+            >
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const actif = estActif(item, cheminActif, racine);
+                const classes = cn(
+                  "flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors",
+                  actif
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground",
+                );
 
-              if (!item.href) {
+                if (!item.href) {
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      disabled
+                      title="Module à venir"
+                      className={cn(classes, "cursor-not-allowed opacity-50")}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
+                  <Link
                     key={item.label}
-                    type="button"
-                    disabled
-                    title="Module à venir"
-                    className={cn(classes, "cursor-not-allowed opacity-50")}
+                    href={item.href}
+                    aria-current={actif ? "page" : undefined}
+                    className={classes}
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
-                  </button>
+                  </Link>
                 );
-              }
+              })}
+            </nav>
+          </header>
 
-              return (
-                <Link key={item.label} href={item.href} className={classes}>
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+          <div id="contenu-principal" className="mx-auto w-full max-w-[1440px] p-4 sm:p-5 lg:p-7">
+            {description ? (
+              <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+            {children}
           </div>
-
-          <div className="overflow-visible p-4 sm:p-5 lg:p-7">{children}</div>
         </section>
       </section>
     </main>
@@ -201,11 +293,13 @@ export function AppShell({
 export function Panel({
   title,
   eyebrow,
+  actions,
   children,
   className = "bg-card text-card-foreground",
 }: {
   title: string;
   eyebrow?: string;
+  actions?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -214,12 +308,13 @@ export function Panel({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase opacity-70">
+            <p className="text-[11px] font-semibold uppercase tracking-wide opacity-70">
               {eyebrow}
             </p>
           ) : null}
           <h2 className="text-sm font-semibold text-inherit">{title}</h2>
         </div>
+        {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
       {children}
     </article>

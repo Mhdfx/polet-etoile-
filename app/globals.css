@@ -134,9 +134,27 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable;
+  }
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary), transparent 80%);
+  }
+  /* Chiffres a chasse fixe par defaut dans les tableaux : les montants
+     restent alignes verticalement (regle CDC formats marocains). */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

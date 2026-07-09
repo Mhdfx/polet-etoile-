@@ -2,12 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Bouton } from "@/components/bouton";
+import { Champ } from "@/components/champ";
+import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
 
 export function ConnexionForm() {
   const router = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,6 +32,7 @@ export function ConnexionForm() {
     setChargement(false);
 
     if (resultat.error) {
+      // CDC §5.1 : ne jamais indiquer lequel des deux champs est errone.
       setErreur("Nom d'utilisateur ou mot de passe incorrect.");
       return;
     }
@@ -36,55 +42,69 @@ export function ConnexionForm() {
   }
 
   return (
-    <form className="mt-6 flex flex-col gap-4" onSubmit={onSubmit}>
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="username">
-          Nom d&apos;utilisateur
-        </label>
-        <input
+    <form className="mt-6 grid gap-4" onSubmit={onSubmit} noValidate>
+      <Champ id="username" label="Nom d'utilisateur" obligatoire>
+        <Input
           id="username"
           name="username"
           type="text"
           required
           autoComplete="username"
-          className="rounded-md border border-[#cfd8d3] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#2f6f57] focus:ring-2 focus:ring-[#2f6f57]/20"
-          placeholder="admin"
+          autoFocus
+          disabled={chargement}
+          className="h-10"
+          placeholder="votre.identifiant"
         />
-      </div>
+      </Champ>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="password">
-          Mot de passe
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="current-password"
-          className="rounded-md border border-[#cfd8d3] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#2f6f57] focus:ring-2 focus:ring-[#2f6f57]/20"
-        />
-      </div>
+      <Champ id="password" label="Mot de passe" obligatoire>
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={motDePasseVisible ? "text" : "password"}
+            required
+            minLength={8}
+            autoComplete="current-password"
+            disabled={chargement}
+            className="h-10 pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setMotDePasseVisible((visible) => !visible)}
+            aria-label={
+              motDePasseVisible
+                ? "Masquer le mot de passe"
+                : "Afficher le mot de passe"
+            }
+            className="absolute inset-y-0 right-0 grid w-10 cursor-pointer place-items-center text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-primary"
+          >
+            {motDePasseVisible ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </Champ>
 
       {erreur ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm font-medium text-destructive"
+        >
           {erreur}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={chargement}
-        className="rounded-md bg-[#2f6f57] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#285e4b] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {chargement ? "Connexion..." : "Se connecter"}
-      </button>
+      <Bouton type="submit" size="lg" chargement={chargement} className="h-10 w-full">
+        Se connecter
+      </Bouton>
 
-      <div className="rounded-md bg-[#f4f6f5] p-3 text-xs leading-5 text-[#596052]">
-        <p>Admin seed : admin / password</p>
-        <p>Commercial seed : commercial.nord / commercial123</p>
-      </div>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5 text-succes" />
+        Connexion chiffrée et protégée
+      </p>
     </form>
   );
 }

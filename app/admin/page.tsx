@@ -2,15 +2,23 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { DateTime } from "luxon";
 import {
+  AlertTriangle,
   BarChart3,
+  CalendarDays,
   ClipboardList,
   FileText,
+  Scale,
   Settings,
   Target,
+  TrendingUp,
   UserCog,
 } from "lucide-react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { CarteKPI } from "@/components/carte-kpi";
+import { Bouton } from "@/components/bouton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SelectNatif } from "@/components/ui/select-natif";
 import { bornesJourneeInclusive, FUSEAU_APPLICATION } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
@@ -146,31 +154,33 @@ export default async function AdminPage({
       description={`Connecté : ${utilisateur.nom_complet} · Rôle : ADMINISTRATEUR${nomCommercial ? ` · Filtre : ${nomCommercial}` : " · Tous les commerciaux"}`}
     >
       <div className="grid gap-4">
-        <form className="flex flex-wrap items-end gap-2">
-          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-            Date début
-            <input
+        <form className="flex flex-wrap items-end gap-3 rounded-lg bg-card p-3 shadow-sm ring-1 ring-border">
+          <div className="grid gap-1.5">
+            <Label htmlFor="filtre-debut">Date début</Label>
+            <Input
+              id="filtre-debut"
               name="debut"
               type="date"
               defaultValue={debutPeriode}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+              className="bg-card"
             />
-          </label>
-          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-            Date fin
-            <input
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="filtre-fin">Date fin</Label>
+            <Input
+              id="filtre-fin"
               name="fin"
               type="date"
               defaultValue={finPeriode}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+              className="bg-card"
             />
-          </label>
-          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-            Commercial
-            <select
+          </div>
+          <div className="grid min-w-44 gap-1.5">
+            <Label htmlFor="filtre-commercial">Commercial</Label>
+            <SelectNatif
+              id="filtre-commercial"
               name="commercial"
               defaultValue={commercial ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
             >
               <option value="">Tous les commerciaux</option>
               {commerciaux.map((item) => (
@@ -178,11 +188,9 @@ export default async function AdminPage({
                   {item.nom_complet}
                 </option>
               ))}
-            </select>
-          </label>
-          <button className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
-            Filtrer
-          </button>
+            </SelectNatif>
+          </div>
+          <Bouton type="submit">Filtrer</Bouton>
         </form>
 
         {erreurPeriode ? (
@@ -197,30 +205,35 @@ export default async function AdminPage({
             valeur={formatMontant(kpiMois.chiffreAffaires)}
             detail={periodeMois}
             tonalite="bleu"
+            icon={TrendingUp}
           />
           <CarteKPI
             label="Quantité du mois"
             valeur={formatQuantite(kpiMois.quantite)}
             detail={periodeMois}
             tonalite="neutre"
+            icon={Scale}
           />
           <CarteKPI
             label="Chiffre d'affaires du jour"
             valeur={formatMontant(kpiJour.chiffreAffaires)}
             detail={formatDate(maintenant.toJSDate())}
             tonalite="vert"
+            icon={CalendarDays}
           />
           <CarteKPI
             label="Quantité du jour"
             valeur={formatQuantite(kpiJour.quantite)}
             detail={formatDate(maintenant.toJSDate())}
             tonalite="neutre"
+            icon={Scale}
           />
           <CarteKPI
             label="Chiffre non réglé"
             valeur={formatMontant(impaye)}
             detail="Toutes commandes confondues"
             tonalite="rouge"
+            icon={AlertTriangle}
           />
         </div>
 
