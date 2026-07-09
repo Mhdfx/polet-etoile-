@@ -122,6 +122,11 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
           Enregistrer le retour
         </Bouton>
       </div>
+
+      {/* Note explicite CDC 5.6 : horodatage et utilisateur jamais saisis manuellement. */}
+      <p className="text-xs text-muted-foreground">
+        Le retour est horodaté automatiquement et lié à votre compte.
+      </p>
     </form>
   );
 }
