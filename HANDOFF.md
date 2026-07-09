@@ -4,7 +4,7 @@ Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
 Derniere mise a jour : 09/07/2026.  
-Statut : **socle + auth + design system + phases 4-8 code-hardening operationnelles - schema a valider par Mehdi (G1), RELIQUAT KPI/CDC recette a confirmer**.
+Statut : **code CDC pret pour tests locaux hors deploiement - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -336,9 +336,9 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | Module clients commercial | `app/commercial/clients/` |
 | Creation commandes | `app/commandes/actions.ts`, `app/commandes/commande-form.tsx`, `app/admin/commandes/nouvelle/`, `app/commercial/commandes/nouvelle/` |
 | Listes/detail commandes | `app/admin/commandes/`, `app/commercial/commandes/` |
-| Paiements commandes | `app/commandes/actions.ts`, `app/commandes/paiement-form.tsx` |
+| Paiements commandes | `app/admin/paiements/`, `app/commandes/actions.ts`, `app/commandes/paiement-form.tsx` |
 | PDF BL | `app/commandes/bon-livraison-pdf.tsx`, `app/commandes/document-data.ts`, routes `*/commandes/[id]/pdf` |
-| Exports Excel | `app/admin/commandes/export/route.ts`, `app/commercial/commandes/export/route.ts` |
+| Exports Excel | `app/admin/exports/`, `app/admin/commandes/export/route.ts`, `app/commercial/commandes/export/route.ts` |
 | Retours | `app/retours/`, `app/admin/retours/`, `app/commercial/retours/` |
 | KPI | `lib/kpi.ts`, `app/admin/kpi/`, `app/commercial/kpi/` |
 | Audit | `app/admin/audit/` |
@@ -365,3 +365,104 @@ Questions ouvertes a confirmer avant paiement/KPI :
 - Ne pas remplacer le compteur BL transactionnel.
 - Ne pas exposer de sign-up public.
 - Generer un vrai `BETTER_AUTH_SECRET` long avant production.
+## Mise a jour Codex - reconciliation whatsleft - 09/07/2026
+
+`whatsleft.md` a ete nettoye/reconcilie : les anciennes sections non cochees
+etaient obsoletes par rapport au code livre. Le fichier indique maintenant phase
+par phase les modules termines et les preuves fichier. Packaging livraison ajoute :
+`Dockerfile`, `.dockerignore`, `docs/DEPLOYMENT.md`, `docs/CDC_DEVIATIONS.md`,
+README mis a jour.
+
+Restes explicites dans `whatsleft.md` = validation externe/decision metier :
+QA mobile, QA volume, schema freeze Mehdi, RELIQUAT/date echeance/paiement global,
+deploiement recette.
+
+## Mise a jour Codex - finition whatsleft - 09/07/2026
+
+Ajouts de finition :
+
+- Upload logo binaire admin : `app/admin/parametres/actions.ts`,
+  `app/admin/parametres/parametres-form.tsx`, stockage `public/uploads/logos`.
+- Creation client inline dans la commande : `app/commandes/commande-form.tsx`
+  utilise les actions clients admin/commercial et `router.refresh()`.
+- Registre categories sans migration : `lib/categories.ts` +
+  `parametres_systeme.categories_produits`; page categories peut creer/reordonner
+  des categories vides et les expose aux formulaires produits.
+- Exports volumineux : `lib/export-jobs.ts`, routes `app/exports/jobs/[id]` et
+  `app/admin/exports/jobs/[id]`; exports commandes admin/commercial et audit
+  basculent en job au-dessus de 5 000 lignes.
+
+Verification finale :
+
+- `npx tsc --noEmit` OK
+- `npm run lint` OK
+- `npm run build` OK
+- `npm run test` OK (102/102)
+
+Restes hors code/freeze : QA mobile reelle, QA volume chronometree, decisions
+RELIQUAT/date echeance/paiement global, schema freeze Mehdi, deploiement recette.
+
+## Mise a jour Codex - 09/07/2026
+
+Passe CDC code effectuee apres analyse de `whatsleft.md` :
+
+- Ajoute `/admin/parametres`, `/commercial/commandes/externes`, fiches clients
+  admin/commercial, fusion clients, categories produits, exports audit/global.
+- KPI admin et commercial etendus (filtres client, cartes periode/cumul, graphiques,
+  tableaux commerciaux, top clients/produits, clients non regles, evolution 3 mois).
+- Listes commandes enrichies (KPI, region, date reglement, taille page 10/25/50/100,
+  premiere/derniere page, bouton BL direct).
+- Sessions : fermeture de toutes les sessions par utilisateur.
+- Seed : catalogue CDC complet 26 produits + 1 000 commandes volume idempotentes.
+  Seed local execute : 26 produits, 1 003 commandes actives, 1 000 commandes volume.
+
+Verification de cette passe :
+
+- `npx tsc --noEmit` OK
+- `npm run test` OK (102/102)
+- `npm run lint` OK
+- `npm run build` OK
+
+Runtime local :
+
+- Script production `build` repasse sur `next build` stable. Turbopack buildait
+  mais `next start` servait un 500 sous Windows a cause d'un chunk SSR manquant.
+- Smoke `npx next start -p 3111` OK : `/connexion`, `/admin/paiements`,
+  `/admin/exports`, `/admin`, `/commercial`, et commandes admin avec periode
+  invalide retournent une page 200.
+- `npm run seed` OK
+
+Restes connus apres cette passe : QA mobile/volume navigateur, decisions
+RELIQUAT/date echeance/paiement global et schema freeze explicite.
+
+## Mise a jour Codex - code readiness locale CDC - 09/07/2026
+
+Scope utilisateur courant : oublier le deploiement pour le moment ; finir le code
+pour qu'il soit testable localement contre `cdc.md`.
+
+Ajouts code de cette passe :
+
+- `/admin/paiements` : vraie page paiements admin, avec commandes a encaisser,
+  KPI, historique recent, recherche et liens vers le detail commande pour encaisser.
+- `/admin/exports` : page exports avec boutons vers export global, audit et
+  commandes, plus mention interface que les exports ne remplacent pas la
+  sauvegarde MySQL infrastructure Naomedia.
+- Audit auth : `auth.connexion` lors de la creation de session Better Auth et
+  `auth.deconnexion` avant `signOut`.
+- Objectifs commerciaux : `definirObjectif` refuse cote serveur tout mois deja clos.
+- Filtres dates : commandes admin, commandes commercial et audit affichent
+  maintenant une erreur claire si `Date fin < Date debut`.
+- Nouvelle commande : brouillon `localStorage` pour limiter la perte de saisie
+  apres reload/session expiree ; message et submit bloque si le navigateur est
+  hors ligne.
+
+Restes non-code pour valider la livraison client : QA navigateur/mobile reelle,
+QA volume chronometree, schema freeze explicite, decisions metier ouvertes.
+
+Verification de cette passe :
+
+- `npm run prisma:validate` OK
+- `npx tsc --noEmit` OK
+- `npm run test` OK (102/102)
+- `npm run lint` OK
+- `npm run build` OK

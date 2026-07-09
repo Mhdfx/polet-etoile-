@@ -2,12 +2,13 @@ import { AppShell } from "@/components/app-shell";
 import { prisma } from "@/lib/db";
 import { formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { listerVillesMaroc } from "@/lib/villes";
 import { CommandeForm } from "@/app/commandes/commande-form";
 
 export default async function NouvelleCommandeAdminPage() {
   const admin = await requireAdmin();
 
-  const [produits, clients, clientsExternes, commerciaux] = await Promise.all([
+  const [produits, clients, clientsExternes, commerciaux, villes] = await Promise.all([
     prisma.produit.findMany({
       where: { actif: true, deleted_at: null },
       orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
@@ -38,6 +39,7 @@ export default async function NouvelleCommandeAdminPage() {
       orderBy: { nom_complet: "asc" },
       select: { id: true, nom_complet: true, nom_utilisateur: true },
     }),
+    listerVillesMaroc(),
   ]);
 
   return (
@@ -72,6 +74,7 @@ export default async function NouvelleCommandeAdminPage() {
           id: commercial.id,
           nom: `${commercial.nom_complet} (${commercial.nom_utilisateur})`,
         }))}
+        villes={villes}
       />
     </AppShell>
   );

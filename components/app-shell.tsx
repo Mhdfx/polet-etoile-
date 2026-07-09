@@ -30,7 +30,7 @@ const navigationAdmin: NavigationItem[] = [
   { label: "Accueil", icon: Home, href: "/admin", groupe: "menu" },
   { label: "Produits", icon: Package, href: "/admin/produits", groupe: "menu" },
   { label: "Commandes", icon: ClipboardList, href: "/admin/commandes", groupe: "menu" },
-  { label: "Paiements", icon: CreditCard, groupe: "menu" },
+  { label: "Paiements", icon: CreditCard, href: "/admin/paiements", groupe: "menu" },
   { label: "Clients", icon: Users, href: "/admin/clients", groupe: "menu" },
   { label: "Retours", icon: RotateCcw, href: "/admin/retours", groupe: "menu" },
   { label: "KPI", icon: BarChart3, href: "/admin/kpi", groupe: "pilotage" },
@@ -42,6 +42,8 @@ const navigationAdmin: NavigationItem[] = [
   },
   { label: "Audit", icon: FileText, href: "/admin/audit", groupe: "pilotage" },
   { label: "Sessions", icon: Settings, href: "/admin/sessions", groupe: "pilotage" },
+  { label: "Parametrage", icon: Settings, href: "/admin/parametres", groupe: "pilotage" },
+  { label: "Exports", icon: FileText, href: "/admin/exports", groupe: "pilotage" },
 ];
 
 const navigationCommercial: NavigationItem[] = [
@@ -52,6 +54,7 @@ const navigationCommercial: NavigationItem[] = [
     href: "/commercial/commandes/nouvelle",
   },
   { label: "Mes commandes", icon: ClipboardList, href: "/commercial/commandes" },
+  { label: "Commandes externes", icon: FileText, href: "/commercial/commandes/externes" },
   { label: "Mes clients", icon: Users, href: "/commercial/clients" },
   { label: "Retours", icon: RotateCcw, href: "/commercial/retours" },
   { label: "Mes KPI", icon: BarChart3, href: "/commercial/kpi" },

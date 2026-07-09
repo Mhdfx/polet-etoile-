@@ -75,10 +75,24 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session) => {
-          await prisma.user.update({
-            where: { id: session.userId },
-            data: { derniere_connexion_at: new Date() },
-          });
+          try {
+            await prisma.$transaction([
+              prisma.user.update({
+                where: { id: session.userId },
+                data: { derniere_connexion_at: new Date() },
+              }),
+              prisma.auditLog.create({
+                data: {
+                  utilisateur_id: session.userId,
+                  action: "auth.connexion",
+                  entite: "sessions",
+                  entite_id: session.id,
+                },
+              }),
+            ]);
+          } catch (erreur) {
+            console.error("[auth:session.create] audit connexion impossible", erreur);
+          }
         },
       },
     },

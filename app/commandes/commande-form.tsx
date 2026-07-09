@@ -1,11 +1,24 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
+import { creerClientAdmin } from "@/app/admin/clients/actions";
+import { creerClientCommercial } from "@/app/commercial/clients/actions";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ChampQuantite } from "@/components/champ-quantite";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { SelectNatif } from "@/components/ui/select-natif";
 import {
   Card,
   CardContent,
@@ -50,11 +63,20 @@ type LigneFormulaire = {
   quantite: string;
 };
 
+type BrouillonCommande = {
+  clientId?: string;
+  clientExterneId?: string;
+  commercialId?: string;
+  typeClient?: "STANDARD" | "EXTERNE";
+  lignes?: LigneFormulaire[];
+};
+
 type CommandeFormProps =
   | {
       mode: "commercial";
       produits: OptionProduit[];
       clients: OptionClient[];
+      villes: string[];
     }
   | {
       mode: "admin";
@@ -62,6 +84,7 @@ type CommandeFormProps =
       clients: Array<OptionClient & { commercialId: string }>;
       clientsExternes: OptionClient[];
       commerciaux: OptionCommercial[];
+      villes: string[];
     };
 
 function nouvelleLigne(): LigneFormulaire {
@@ -69,6 +92,7 @@ function nouvelleLigne(): LigneFormulaire {
 }
 
 export function CommandeForm(props: CommandeFormProps) {
+  const router = useRouter();
   const [clientId, setClientId] = useState("");
   const [clientExterneId, setClientExterneId] = useState("");
   const [commercialId, setCommercialId] = useState(
@@ -79,12 +103,89 @@ export function CommandeForm(props: CommandeFormProps) {
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
   const [succes, setSucces] = useState<string>();
+  const [dialogueClientOuvert, setDialogueClientOuvert] = useState(false);
+  const [nouveauClientNom, setNouveauClientNom] = useState("");
+  const [nouveauClientVille, setNouveauClientVille] = useState(props.villes[0] ?? "");
+  const [nouveauClientTelephone, setNouveauClientTelephone] = useState("");
+  const [erreursClient, setErreursClient] = useState<Record<string, string>>({});
+  const [messageClient, setMessageClient] = useState<string>();
   const [enCours, startTransition] = useTransition();
+  const [clientEnCours, startClientTransition] = useTransition();
+  const [brouillonCharge, setBrouillonCharge] = useState(false);
+  const [estHorsLigne, setEstHorsLigne] = useState(false);
 
   const produitsParId = useMemo(
     () => new Map(props.produits.map((produit) => [produit.id, produit])),
     [props.produits],
   );
+  const cleBrouillon = `commande-brouillon-${props.mode}`;
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(cleBrouillon);
+    if (raw) {
+      try {
+        const brouillon = JSON.parse(raw) as BrouillonCommande;
+        setClientId(brouillon.clientId ?? "");
+        setClientExterneId(brouillon.clientExterneId ?? "");
+        if (props.mode === "admin" && brouillon.commercialId) {
+          setCommercialId(brouillon.commercialId);
+        }
+        if (brouillon.typeClient === "STANDARD" || brouillon.typeClient === "EXTERNE") {
+          setTypeClient(brouillon.typeClient);
+        }
+        if (Array.isArray(brouillon.lignes) && brouillon.lignes.length > 0) {
+          setLignes(
+            brouillon.lignes.map((ligne) => ({
+              produitId: ligne.produitId ?? "",
+              quantite: ligne.quantite ?? "",
+            })),
+          );
+        }
+      } catch {
+        window.localStorage.removeItem(cleBrouillon);
+      }
+    }
+    setBrouillonCharge(true);
+  }, [cleBrouillon, props.mode]);
+
+  useEffect(() => {
+    if (!brouillonCharge) {
+      return;
+    }
+
+    const brouillon: BrouillonCommande = {
+      clientId,
+      clientExterneId,
+      commercialId,
+      typeClient,
+      lignes,
+    };
+
+    window.localStorage.setItem(cleBrouillon, JSON.stringify(brouillon));
+  }, [
+    brouillonCharge,
+    cleBrouillon,
+    clientId,
+    clientExterneId,
+    commercialId,
+    typeClient,
+    lignes,
+  ]);
+
+  useEffect(() => {
+    function majStatut() {
+      setEstHorsLigne(!window.navigator.onLine);
+    }
+
+    majStatut();
+    window.addEventListener("online", majStatut);
+    window.addEventListener("offline", majStatut);
+
+    return () => {
+      window.removeEventListener("online", majStatut);
+      window.removeEventListener("offline", majStatut);
+    };
+  }, []);
 
   const clientsDisponibles =
     props.mode === "admin"
@@ -124,6 +225,7 @@ export function CommandeForm(props: CommandeFormProps) {
   }
 
   function reinitialiserApresSucces() {
+    window.localStorage.removeItem(cleBrouillon);
     setClientId("");
     setClientExterneId("");
     setTypeClient("STANDARD");
@@ -136,6 +238,11 @@ export function CommandeForm(props: CommandeFormProps) {
     setMessage(undefined);
     setSucces(undefined);
     setErreurs({});
+
+    if (estHorsLigne) {
+      setMessage("Connexion perdue, nouvelle tentative impossible pour le moment.");
+      return;
+    }
 
     const lignesValides = lignes.filter((ligne) => ligne.produitId || ligne.quantite);
 
@@ -166,6 +273,36 @@ export function CommandeForm(props: CommandeFormProps) {
     });
   }
 
+  function creerClientInline() {
+    setErreursClient({});
+    setMessageClient(undefined);
+
+    startClientTransition(async () => {
+      const entree = {
+        nom: nouveauClientNom,
+        regionVille: nouveauClientVille,
+        telephone: nouveauClientTelephone,
+        ...(props.mode === "admin" ? { commercialId } : {}),
+      };
+      const resultat =
+        props.mode === "admin"
+          ? await creerClientAdmin(entree)
+          : await creerClientCommercial(entree);
+
+      if (!resultat.ok) {
+        setErreursClient(resultat.erreurs ?? {});
+        setMessageClient(resultat.message ?? "Creation client impossible.");
+        return;
+      }
+
+      setNouveauClientNom("");
+      setNouveauClientTelephone("");
+      setDialogueClientOuvert(false);
+      setSucces("Client cree. La liste a ete actualisee, selectionnez-le pour continuer.");
+      router.refresh();
+    });
+  }
+
   return (
     <form onSubmit={soumettre} className="grid gap-5" noValidate>
       {message ? (
@@ -174,6 +311,15 @@ export function CommandeForm(props: CommandeFormProps) {
           className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
           {message}
+        </p>
+      ) : null}
+
+      {estHorsLigne ? (
+        <p
+          role="status"
+          className="rounded-md bg-alerte/10 px-3 py-2 text-sm font-medium text-alerte"
+        >
+          Connexion perdue, nouvelle tentative en cours...
         </p>
       ) : null}
 
@@ -257,6 +403,16 @@ export function CommandeForm(props: CommandeFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => setDialogueClientOuvert(true)}
+              >
+                <Plus />
+                Nouveau client
+              </Button>
             </Champ>
           ) : null}
 
@@ -383,10 +539,77 @@ export function CommandeForm(props: CommandeFormProps) {
       </Card>
 
       <div className="flex justify-end">
-        <Bouton type="submit" chargement={enCours}>
+        <Bouton type="submit" chargement={enCours} disabled={estHorsLigne}>
           Creer la commande
         </Bouton>
       </div>
+
+      <Dialog open={dialogueClientOuvert} onOpenChange={setDialogueClientOuvert}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau client</DialogTitle>
+            <DialogDescription>
+              Creation rapide sans quitter la commande en cours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <Champ id="nouveau-client-nom" label="Nom" erreur={erreursClient.nom} obligatoire>
+              <Input
+                id="nouveau-client-nom"
+                value={nouveauClientNom}
+                onChange={(event) => setNouveauClientNom(event.target.value)}
+              />
+            </Champ>
+            <Champ
+              id="nouveau-client-ville"
+              label="Ville"
+              erreur={erreursClient.regionVille}
+              obligatoire
+            >
+              <SelectNatif
+                id="nouveau-client-ville"
+                value={nouveauClientVille}
+                onChange={(event) => setNouveauClientVille(event.target.value)}
+              >
+                {props.villes.map((ville) => (
+                  <option key={ville} value={ville}>
+                    {ville}
+                  </option>
+                ))}
+              </SelectNatif>
+            </Champ>
+            <Champ
+              id="nouveau-client-telephone"
+              label="Telephone"
+              erreur={erreursClient.telephone}
+            >
+              <Input
+                id="nouveau-client-telephone"
+                value={nouveauClientTelephone}
+                onChange={(event) => setNouveauClientTelephone(event.target.value)}
+              />
+            </Champ>
+            {props.mode === "admin" ? (
+              <p className="text-xs text-muted-foreground">
+                Le client sera affecte au commercial selectionne dans la commande.
+              </p>
+            ) : null}
+            {messageClient ? <p className="text-sm text-destructive">{messageClient}</p> : null}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogueClientOuvert(false)}
+            >
+              Annuler
+            </Button>
+            <Bouton type="button" chargement={clientEnCours} onClick={creerClientInline}>
+              Creer le client
+            </Bouton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

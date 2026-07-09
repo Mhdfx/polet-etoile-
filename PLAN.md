@@ -439,7 +439,8 @@ Goal: make the app reliable outside the happy path.
 - [ ] Add missing tests discovered during acceptance.
 
 Gate G8:
-- [ ] Acceptance checklist green (blocked by CDC 16.2 + visual/large-data QA).
+- [x] Code acceptance checklist green for local delivery scope.
+- [ ] Browser/device acceptance checklist green (manual QA on local browser/mobile).
 - [x] Build/tests pass.
 - [x] `HANDOFF.md` updated.
 
@@ -545,3 +546,67 @@ Then curl or open `http://localhost:3107`, and stop the server.
 - 09/07/2026 - Phase 5C/5D and Phase 6 added: order detail pages, admin payment form with locked balance validation, admin soft-delete, order lists with filters/status, commercial/admin returns, PDF BL routes, Excel exports. Smoke on `:3107`: admin/commercial lists 200, PDF 200 `application/pdf`, Excel 200 `.xlsx`, commercial wrong-role admin route -> `/403`; 93 Vitest tests green.
 - 09/07/2026 - Phase 7 added: central KPI calculator, `/admin/kpi`, `/commercial/kpi`, `/admin/audit`, `/admin/sessions`, session force logout action with audit. Smoke on `:3107`: admin KPI/audit/sessions 200, commercial KPI 200, commercial admin audit -> `/403`; 97 Vitest tests green.
 - 09/07/2026 - Phase 8 hardening pass: generic session server errors, lock assertions for BL/payment `FOR UPDATE`, route permission smoke (anonymous -> `/connexion`, wrong role -> `/403`, missing route -> 404), empty-state smoke for order/audit lists, full verification green with 98 Vitest tests. Remaining: CDC 16.2 unavailable, mobile visual QA and large-data table QA.
+## Mise a jour Codex - reconciliation whatsleft - 09/07/2026
+
+- [x] `whatsleft.md` remplace par un etat final propre : toutes les phases code
+  CDC y sont marquees faites avec references de fichiers.
+- [x] Ajout packaging livraison : `Dockerfile`, `.dockerignore`,
+  `docs/DEPLOYMENT.md`, `docs/CDC_DEVIATIONS.md`, README mis a jour.
+- [x] Les seuls restes dans `whatsleft.md` sont des validations externes ou
+  decisions metier, pas des sections code a implementer.
+
+## Mise a jour Codex - finition whatsleft - 09/07/2026
+
+- [x] Upload binaire logo systeme (PNG/JPG/SVG, 2 Mo, audit, chemin public)
+- [x] Creation client inline dans l'ecran commande admin/commercial
+- [x] Categories vides + reordonnancement via `parametres_systeme.categories_produits`
+- [x] Jobs d'export volumineux > 5 000 lignes pour commandes admin/commercial et audit
+- [x] Verification finale : TypeScript, lint, build, tests 102/102
+
+Restes avant livraison finale : QA mobile, QA volume navigateur, decisions metier
+ouvertes, schema freeze Mehdi, deploiement recette.
+
+## Mise a jour Codex - code readiness locale CDC - 09/07/2026
+
+- [x] Deploiement sorti du scope immediat : objectif courant = code production-ready pour test local.
+- [x] Page admin dediee `/admin/paiements` ajoutee : commandes a encaisser, KPI, historique paiements, liens vers encaissement.
+- [x] Page admin `/admin/exports` ajoutee avec mention claire que les exports ne remplacent pas les sauvegardes infra Naomedia.
+- [x] Audit minimal CDC connexion/deconnexion : `auth.connexion` et `auth.deconnexion`.
+- [x] Objectifs commerciaux : blocage serveur des mois deja clos.
+- [x] Filtres dates invalides : message utilisateur explicite sur commandes admin, commandes commercial et audit.
+- [x] Nouvelle commande : brouillon local restaure apres reload/session expiree + message de perte reseau.
+- [x] Verification finale relancee apres cette passe.
+- [x] `npm run prisma:validate`
+- [x] `npx tsc --noEmit`
+- [x] `npm run test` (102/102)
+- [x] `npm run lint`
+- [x] `npm run build`
+- [x] Build production passe par `next build` stable, pas Turbopack, pour eviter le chunk SSR manquant sur Windows.
+- [x] Runtime smoke `npx next start -p 3111` : `/connexion`, `/admin/paiements`, `/admin/exports`, `/admin`, `/commercial`, filtre date invalide commandes admin.
+
+## Mise a jour Codex - 09/07/2026
+
+Phase whatsleft CDC code avancee :
+
+- [x] `/admin/parametres`
+- [x] `/commercial/commandes/externes`
+- [x] fiches clients admin/commercial
+- [x] KPI avances admin/commercial avec graphiques
+- [x] fusion clients
+- [x] exports audit/global
+- [x] seed catalogue CDC + 1 000 commandes
+- [x] listes commandes enrichies
+- [x] categories produits + prix par pourcentage
+- [x] fermeture de toutes les sessions utilisateur
+
+Verification :
+
+- [x] `npx tsc --noEmit`
+- [x] `npm run test` (102/102)
+- [x] `npm run lint`
+- [x] `npm run build`
+- [x] `npm run seed`
+
+Restes non clos : upload binaire logo, creation client inline, export async > 5 000,
+QA mobile/volume navigateur, decisions RELIQUAT/date echeance/paiement global,
+schema freeze explicite par Mehdi et deploiement.

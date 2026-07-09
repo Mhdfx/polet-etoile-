@@ -10,9 +10,9 @@ import type { ResultatAction } from "@/lib/validations/commun";
 const MESSAGE_ERREUR_SERVEUR =
   "Une erreur est survenue. Reessayez ou contactez l'administrateur.";
 
-function erreurServeur(erreur: unknown): ResultatAction {
+function erreurServeur(erreur: unknown, contexte = "suppression"): ResultatAction {
   const idErreur = randomUUID().slice(0, 8);
-  console.error(`[sessions:suppression] erreur ${idErreur}`, erreur);
+  console.error(`[sessions:${contexte}] erreur ${idErreur}`, erreur);
 
   return { ok: false, message: `${MESSAGE_ERREUR_SERVEUR} (ref. ${idErreur})` };
 }
@@ -70,5 +70,56 @@ export async function supprimerSession(sessionId: string): Promise<ResultatActio
     return resultat;
   } catch (erreur) {
     return erreurServeur(erreur);
+  }
+}
+
+export async function supprimerSessionsUtilisateur(userId: string): Promise<ResultatAction> {
+  const admin = await requireAdmin();
+
+  if (!userId) {
+    return { ok: false, message: "Utilisateur introuvable" };
+  }
+
+  try {
+    const ip = await adresseIpRequete();
+
+    const resultat = await prisma.$transaction(async (tx) => {
+      const utilisateur = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, nom_utilisateur: true, nom_complet: true },
+      });
+
+      if (!utilisateur) {
+        return { ok: false as const, message: "Utilisateur introuvable" };
+      }
+
+      const suppression = await tx.session.deleteMany({ where: { userId } });
+
+      await ecrireAudit(
+        tx,
+        {
+          utilisateurId: admin.id,
+          action: "session.suppression_utilisateur",
+          entite: "sessions",
+          entiteId: userId,
+          avant: {
+            userId,
+            nom_utilisateur: utilisateur.nom_utilisateur,
+            sessions_supprimees: suppression.count,
+          },
+        },
+        ip,
+      );
+
+      return { ok: true as const };
+    });
+
+    if (resultat.ok) {
+      revalidatePath("/admin/sessions");
+    }
+
+    return resultat;
+  } catch (erreur) {
+    return erreurServeur(erreur, "suppression_utilisateur");
   }
 }

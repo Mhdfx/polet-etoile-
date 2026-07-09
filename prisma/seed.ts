@@ -32,6 +32,8 @@ const produits = [
   { nom: "RELIQUAT PAYEMENT", categorie: "Règlement", prix_reference: "1.00", ordre_affichage: 900 },
 ];
 
+void produits;
+
 type SeedUtilisateur = {
   nom_utilisateur: string;
   nom_complet: string;
@@ -39,6 +41,35 @@ type SeedUtilisateur = {
   mot_de_passe: string;
   role: "ADMIN" | "COMMERCIAL";
 };
+
+const produitsCdc = [
+  { nom: "Abats de poulet", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 10 },
+  { nom: "Ailes", categorie: "Decoupe", prix_reference: "21.00", ordre_affichage: 20 },
+  { nom: "Blanc", categorie: "Decoupe", prix_reference: "48.00", ordre_affichage: 30 },
+  { nom: "Brochettes de Poulet", categorie: "Elabore", prix_reference: "55.00", ordre_affichage: 40 },
+  { nom: "Carcasse", categorie: "Decoupe", prix_reference: "8.00", ordre_affichage: 50 },
+  { nom: "Chawarma poulet", categorie: "Elabore", prix_reference: "52.00", ordre_affichage: 60 },
+  { nom: "Coquelet", categorie: "Poulet frais", prix_reference: "32.00", ordre_affichage: 70 },
+  { nom: "COU", categorie: "Abats", prix_reference: "11.00", ordre_affichage: 80 },
+  { nom: "Cuisse entiere", categorie: "Decoupe", prix_reference: "28.00", ordre_affichage: 90 },
+  { nom: "Cuisse entiere desossee A Peau", categorie: "Decoupe", prix_reference: "42.00", ordre_affichage: 100 },
+  { nom: "Cuisse entiere desossee SP", categorie: "Decoupe", prix_reference: "45.00", ordre_affichage: 110 },
+  { nom: "Emince de poulet", categorie: "Elabore", prix_reference: "50.00", ordre_affichage: 120 },
+  { nom: "FOIE", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 130 },
+  { nom: "GESIER", categorie: "Abats", prix_reference: "16.00", ordre_affichage: 140 },
+  { nom: "HDC Desosse", categorie: "Decoupe", prix_reference: "44.00", ordre_affichage: 150 },
+  { nom: "HDC Desosse S Peau", categorie: "Decoupe", prix_reference: "46.00", ordre_affichage: 160 },
+  { nom: "HDC Os & Peau", categorie: "Decoupe", prix_reference: "31.00", ordre_affichage: 170 },
+  { nom: "HDC Os & S Peau", categorie: "Decoupe", prix_reference: "33.00", ordre_affichage: 180 },
+  { nom: "KEFTA NATURE OU EPICE", categorie: "Elabore", prix_reference: "49.00", ordre_affichage: 190 },
+  { nom: "Pau", categorie: "Decoupe", prix_reference: "12.00", ordre_affichage: 200 },
+  { nom: "Petite Viande", categorie: "Decoupe", prix_reference: "20.00", ordre_affichage: 210 },
+  { nom: "Pilon", categorie: "Decoupe", prix_reference: "25.00", ordre_affichage: 220 },
+  { nom: "POULET ENTIER", categorie: "Poulet frais", prix_reference: "23.50", ordre_affichage: 230 },
+  { nom: "SAUCISSES NATURE OU EPICE", categorie: "Elabore", prix_reference: "54.00", ordre_affichage: 240 },
+  { nom: "Sot-l'y-laisse", categorie: "Decoupe", prix_reference: "58.00", ordre_affichage: 250 },
+  { nom: "RELIQUAT PAYEMENT", categorie: "Reglement", prix_reference: "1.00", ordre_affichage: 900 },
+];
 
 async function upsertUtilisateur(seed: SeedUtilisateur) {
   const utilisateur = await prisma.user.upsert({
@@ -125,7 +156,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  for (const produit of produits) {
+  for (const produit of produitsCdc) {
     await prisma.produit.upsert({
       where: { id: `seed-produit-${produit.ordre_affichage}` },
       create: {
@@ -365,6 +396,82 @@ async function main() {
       });
     }
   });
+
+  const volumeExistant = await prisma.commande.count({
+    where: { id: { startsWith: "seed-volume-" } },
+  });
+
+  if (volumeExistant < 1000) {
+    const produitsVolume = await prisma.produit.findMany({
+      where: { actif: true, deleted_at: null, nom: { not: "RELIQUAT PAYEMENT" } },
+      orderBy: { ordre_affichage: "asc" },
+      select: { id: true, prix_reference: true },
+    });
+    const clientsVolume = [clientBoucherie, clientRestaurant];
+    const commerciauxVolume = [commercialNord, commercialSud];
+
+    for (let index = volumeExistant; index < 1000; index += 1) {
+      const produit = produitsVolume[index % produitsVolume.length];
+      const client = clientsVolume[index % clientsVolume.length];
+      const commercial = commerciauxVolume[index % commerciauxVolume.length];
+      const quantite = `${(10 + (index % 90) + (index % 3) * 0.25).toFixed(3)}`;
+      const prixNet = calculerPrixNet(quantite, produit.prix_reference);
+      const dateCommande = new Date(
+        Date.UTC(2026, index % 12, (index % 27) + 1, 9 + (index % 8), 0, 0),
+      );
+      const idCommande = `seed-volume-${String(index + 1).padStart(4, "0")}`;
+
+      await prisma.$transaction(async (tx) => {
+        const existante = await tx.commande.findUnique({ where: { id: idCommande } });
+        if (existante) {
+          return;
+        }
+        const bl = await attribuerNumeroBL(tx);
+        await tx.commande.create({
+          data: {
+            id: idCommande,
+            numero_bl: bl.numeroBl,
+            numero_bl_compteur: bl.compteur,
+            client_id: client.id,
+            utilisateur_id: commercial.id,
+            date_commande: dateCommande,
+            lignes: {
+              create: {
+                produit_id: produit.id,
+                quantite,
+                prix_unitaire: produit.prix_reference,
+                prix_net: prixNet.toFixed(2),
+              },
+            },
+            ...(index % 4 === 0
+              ? {
+                  paiements: {
+                    create: {
+                      montant: prixNet.toFixed(2),
+                      mode_paiement: "ESPECES",
+                      date_paiement: dateCommande,
+                      encaisse_par: admin.id,
+                    },
+                  },
+                }
+              : index % 4 === 1
+                ? {
+                    paiements: {
+                      create: {
+                        montant: prixNet.div(2).toFixed(2),
+                        mode_paiement: "CHEQUE",
+                        reference: `VOL-${index + 1}`,
+                        date_paiement: dateCommande,
+                        encaisse_par: admin.id,
+                      },
+                    },
+                  }
+                : {}),
+          },
+        });
+      });
+    }
+  }
 
   await prisma.retour.create({
     data: {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { Download, FileText, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
+import { CarteKPI } from "@/components/carte-kpi";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,7 +19,7 @@ import { prisma } from "@/lib/db";
 import { formatDate, formatMontant } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
 
-const TAILLE_PAGE = 15;
+const TAILLES_PAGE = [10, 25, 50, 100] as const;
 
 type ParametresRecherche = Promise<{
   page?: string;
@@ -26,6 +27,7 @@ type ParametresRecherche = Promise<{
   statut?: string;
   debut?: string;
   fin?: string;
+  taille?: string;
 }>;
 
 function lienPage(params: Record<string, string | undefined>, page: number) {
@@ -50,6 +52,10 @@ export default async function CommandesCommercialPage({
   const commercial = await requireCommercial();
   const params = await searchParams;
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+  const tailleDemandee = Number.parseInt(params.taille ?? "25", 10);
+  const taillePage = TAILLES_PAGE.includes(tailleDemandee as (typeof TAILLES_PAGE)[number])
+    ? tailleDemandee
+    : 25;
   const recherche = (params.q ?? "").trim();
   const statut =
     params.statut === "paye" || params.statut === "en_attente"
@@ -57,11 +63,16 @@ export default async function CommandesCommercialPage({
       : undefined;
 
   let bornes: { debutUtc: Date; finExclusiveUtc: Date } | undefined;
+  let erreurPeriode: string | undefined;
   if (params.debut && params.fin) {
     try {
       bornes = bornesJourneeInclusive(params.debut, params.fin);
-    } catch {
+    } catch (erreur) {
       bornes = undefined;
+      erreurPeriode =
+        erreur instanceof Error
+          ? erreur.message
+          : "La date de fin doit etre egale ou posterieure a la date de debut.";
     }
   }
 
@@ -87,9 +98,9 @@ export default async function CommandesCommercialPage({
       id: true,
       numero_bl: true,
       date_commande: true,
-      client: { select: { nom: true } },
+      client: { select: { nom: true, region_ville: true } },
       lignes: { where: { deleted_at: null }, select: { prix_net: true } },
-      paiements: { select: { montant: true } },
+      paiements: { select: { montant: true, date_paiement: true } },
     },
   });
 
@@ -104,11 +115,22 @@ export default async function CommandesCommercialPage({
   });
   const totalLignes = commandesFiltrees.length;
   const commandes = commandesFiltrees.slice(
-    (page - 1) * TAILLE_PAGE,
-    page * TAILLE_PAGE,
+    (page - 1) * taillePage,
+    page * taillePage,
   );
 
-  const pagesTotal = Math.max(1, Math.ceil(totalLignes / TAILLE_PAGE));
+  const pagesTotal = Math.max(1, Math.ceil(totalLignes / taillePage));
+  const totauxListe = commandesFiltrees.reduce(
+    (acc, commande) => {
+      const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+      acc.total += 1;
+      acc.ca += Number(totaux.total);
+      acc.reste += Number(totaux.resteDu);
+      if (totaux.statutPaiement === "paye") acc.payees += 1;
+      return acc;
+    },
+    { total: 0, payees: 0, ca: 0, reste: 0 },
+  );
 
   return (
     <AppShell
@@ -119,6 +141,12 @@ export default async function CommandesCommercialPage({
       description="Commandes du portefeuille commercial avec paiements calcules."
     >
       <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-4">
+          <CarteKPI label="Commandes filtrees" valeur={String(totauxListe.total)} tonalite="neutre" />
+          <CarteKPI label="Payees" valeur={String(totauxListe.payees)} tonalite="vert" />
+          <CarteKPI label="CA filtre" valeur={formatMontant(totauxListe.ca)} tonalite="bleu" />
+          <CarteKPI label="Reste filtre" valeur={formatMontant(totauxListe.reste)} tonalite="rouge" />
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <form className="flex flex-wrap items-end gap-2">
             <input
@@ -148,14 +176,31 @@ export default async function CommandesCommercialPage({
               <option value="paye">Paye</option>
               <option value="en_attente">En attente</option>
             </select>
+            <select
+              name="taille"
+              defaultValue={String(taillePage)}
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
+            >
+              {TAILLES_PAGE.map((taille) => (
+                <option key={taille} value={taille}>
+                  {taille} / page
+                </option>
+              ))}
+            </select>
             <Button type="submit" variant="outline">
               Filtrer
             </Button>
           </form>
+          {erreurPeriode ? (
+            <p role="alert" className="w-full text-sm text-destructive">
+              {erreurPeriode}
+            </p>
+          ) : null}
 
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <Link href={`/commercial/commandes/export?${new URLSearchParams(params).toString()}`}>
+                <Download />
                 Export Excel
               </Link>
             </Button>
@@ -175,15 +220,18 @@ export default async function CommandesCommercialPage({
                 <TableHead>BL</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead>Date reglement</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Reste</TableHead>
                 <TableHead>Statut</TableHead>
+                <TableHead className="text-right">BL</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {commandes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     Aucune commande.
                   </TableCell>
                 </TableRow>
@@ -193,6 +241,12 @@ export default async function CommandesCommercialPage({
                     commande.lignes,
                     commande.paiements,
                   );
+                  const dateReglement =
+                    totaux.statutPaiement === "paye"
+                      ? commande.paiements
+                          .map((paiement) => paiement.date_paiement)
+                          .sort((a, b) => b.getTime() - a.getTime())[0]
+                      : undefined;
                   return (
                     <TableRow key={commande.id}>
                       <TableCell>
@@ -205,6 +259,8 @@ export default async function CommandesCommercialPage({
                       </TableCell>
                       <TableCell>{formatDate(commande.date_commande)}</TableCell>
                       <TableCell>{commande.client?.nom ?? "-"}</TableCell>
+                      <TableCell>{commande.client?.region_ville ?? "-"}</TableCell>
+                      <TableCell>{dateReglement ? formatDate(dateReglement) : "-"}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatMontant(totaux.total)}
                       </TableCell>
@@ -213,6 +269,13 @@ export default async function CommandesCommercialPage({
                       </TableCell>
                       <TableCell>
                         <BadgeStatut statut={totaux.statutPaiement} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon-sm" asChild>
+                          <Link href={`/commercial/commandes/${commande.id}/pdf`} target="_blank" title="PDF BL">
+                            <FileText />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -230,6 +293,13 @@ export default async function CommandesCommercialPage({
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
               {page > 1 ? (
+                <Link href={lienPage(params, 1)}>Premiere</Link>
+              ) : (
+                "Premiere"
+              )}
+            </Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
+              {page > 1 ? (
                 <Link href={lienPage(params, page - 1)}>Precedent</Link>
               ) : (
                 "Precedent"
@@ -245,6 +315,18 @@ export default async function CommandesCommercialPage({
                 <Link href={lienPage(params, page + 1)}>Suivant</Link>
               ) : (
                 "Suivant"
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pagesTotal}
+              asChild={page < pagesTotal}
+            >
+              {page < pagesTotal ? (
+                <Link href={lienPage(params, pagesTotal)}>Derniere</Link>
+              ) : (
+                "Derniere"
               )}
             </Button>
           </div>

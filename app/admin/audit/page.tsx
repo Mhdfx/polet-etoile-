@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import {
   Table,
@@ -12,6 +13,7 @@ import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { Button } from "@/components/ui/button";
 
 const TAILLE_PAGE = 20;
 
@@ -56,11 +58,16 @@ export default async function AuditPage({
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
   let bornes: { debutUtc: Date; finExclusiveUtc: Date } | undefined;
+  let erreurPeriode: string | undefined;
   if (params.debut && params.fin) {
     try {
       bornes = bornesJourneeInclusive(params.debut, params.fin);
-    } catch {
+    } catch (erreur) {
       bornes = undefined;
+      erreurPeriode =
+        erreur instanceof Error
+          ? erreur.message
+          : "La date de fin doit etre egale ou posterieure a la date de debut.";
     }
   }
 
@@ -108,6 +115,7 @@ export default async function AuditPage({
       description="Journal des actions sensibles conservees en base."
     >
       <div className="grid gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
         <form className="flex flex-wrap items-end gap-2">
           <select
             name="utilisateur"
@@ -149,6 +157,17 @@ export default async function AuditPage({
             Filtrer
           </button>
         </form>
+        <Button variant="outline" asChild>
+          <Link href={`/admin/audit/export?${new URLSearchParams(params).toString()}`}>
+            Export Excel audit
+          </Link>
+        </Button>
+        {erreurPeriode ? (
+          <p role="alert" className="w-full text-sm text-destructive">
+            {erreurPeriode}
+          </p>
+        ) : null}
+        </div>
 
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <Table>

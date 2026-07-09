@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
@@ -13,6 +14,14 @@ import {
   schemaModificationClientAdmin,
   schemaModificationClientExterne,
 } from "@/lib/validations/client";
+
+const schemaFusionClients = z.object({
+  sourceId: z.string().min(1, "Client doublon obligatoire"),
+  cibleId: z.string().min(1, "Client conserve obligatoire"),
+}).refine((valeur) => valeur.sourceId !== valeur.cibleId, {
+  path: ["cibleId"],
+  message: "Les deux clients doivent etre differents",
+});
 
 const MESSAGE_ERREUR_SERVEUR =
   "Une erreur est survenue. Reessayez ou contactez l'administrateur.";
@@ -413,5 +422,78 @@ export async function supprimerClientExterne(id: string): Promise<ResultatAction
     return resultat;
   } catch (erreur) {
     return erreurServeur(erreur, "suppression_externe");
+  }
+}
+
+export async function fusionnerClientsAdmin(entree: unknown): Promise<ResultatAction> {
+  const admin = await requireAdmin();
+  const validation = schemaFusionClients.safeParse(entree);
+
+  if (!validation.success) {
+    return { ok: false, erreurs: erreursParChamp(validation.error) };
+  }
+
+  const { sourceId, cibleId } = validation.data;
+
+  try {
+    const ip = await adresseIpRequete();
+
+    const resultat = await prisma.$transaction(async (tx) => {
+      const [source, cible] = await Promise.all([
+        tx.client.findFirst({
+          where: { id: sourceId, deleted_at: null },
+          select: { id: true, nom: true, commercial_id: true },
+        }),
+        tx.client.findFirst({
+          where: { id: cibleId, deleted_at: null },
+          select: { id: true, nom: true, commercial_id: true },
+        }),
+      ]);
+
+      if (!source || !cible) {
+        return { ok: false as const, message: "Client introuvable" };
+      }
+
+      const reassignees = await tx.commande.updateMany({
+        where: { client_id: source.id, deleted_at: null },
+        data: { client_id: cible.id },
+      });
+
+      await tx.client.update({
+        where: { id: source.id },
+        data: { actif: false, deleted_at: new Date() },
+      });
+
+      await ecrireAudit(
+        tx,
+        {
+          utilisateurId: admin.id,
+          action: "client.fusion",
+          entite: "clients",
+          entiteId: cible.id,
+          avant: {
+            source,
+            cible,
+            commandes_source: reassignees.count,
+          },
+          apres: {
+            client_conserve: cible.id,
+            client_supprime: source.id,
+          },
+        },
+        ip,
+      );
+
+      return { ok: true as const };
+    });
+
+    if (resultat.ok) {
+      revalidatePath("/admin/clients");
+      revalidatePath(`/admin/clients/${cibleId}`);
+    }
+
+    return resultat;
+  } catch (erreur) {
+    return erreurServeur(erreur, "fusion");
   }
 }
