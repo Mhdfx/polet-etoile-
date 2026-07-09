@@ -79,6 +79,8 @@ export default async function CommandesCommercialPage({
   const where: Prisma.CommandeWhereInput = {
     utilisateur_id: commercial.id,
     deleted_at: null,
+    // Periode invalide : aucun resultat plutot qu'une liste non filtree trompeuse.
+    ...(erreurPeriode ? { id: { in: [] } } : {}),
     ...(bornes ? { date_commande: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc } } : {}),
     ...(recherche
       ? {
@@ -143,7 +145,7 @@ export default async function CommandesCommercialPage({
       <div className="grid gap-4">
         <div className="grid gap-4 md:grid-cols-4">
           <CarteKPI label="Commandes filtrees" valeur={String(totauxListe.total)} tonalite="neutre" />
-          <CarteKPI label="Payees" valeur={String(totauxListe.payees)} tonalite="vert" />
+          <CarteKPI label="Réglées" valeur={String(totauxListe.payees)} tonalite="vert" />
           <CarteKPI label="CA filtre" valeur={formatMontant(totauxListe.ca)} tonalite="bleu" />
           <CarteKPI label="Reste filtre" valeur={formatMontant(totauxListe.reste)} tonalite="rouge" />
         </div>
@@ -173,8 +175,8 @@ export default async function CommandesCommercialPage({
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Tous statuts</option>
-              <option value="paye">Paye</option>
-              <option value="en_attente">En attente</option>
+              <option value="paye">Réglée</option>
+              <option value="en_attente">Non réglée</option>
             </select>
             <select
               name="taille"

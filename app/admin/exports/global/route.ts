@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { calculerTotauxCommande, libelleTypeCommande } from "@/lib/commandes-vue";
+import { calculerTotauxCommande, libelleStatutPaiement, libelleTypeCommande } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
 import { formatDateHeure, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -121,7 +121,7 @@ export async function GET() {
       total: formatMontant(totaux.total),
       paye: formatMontant(totaux.totalPaye),
       reste: formatMontant(totaux.resteDu),
-      statut: totaux.statutPaiement === "paye" ? "Paye" : "En attente",
+      statut: libelleStatutPaiement(totaux.statutPaiement),
     });
   });
 

@@ -1,4 +1,9 @@
+import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -8,12 +13,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RetourForm } from "@/app/retours/retour-form";
+import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
 
-export default async function RetoursCommercialPage() {
+type ParametresRecherche = Promise<{ debut?: string; fin?: string }>;
+
+export default async function RetoursCommercialPage({
+  searchParams,
+}: {
+  searchParams: ParametresRecherche;
+}) {
   const commercial = await requireCommercial();
+  const params = await searchParams;
+
+  let bornes: { debutUtc: Date; finExclusiveUtc: Date } | undefined;
+  let erreurPeriode: string | undefined;
+  if (params.debut && params.fin) {
+    try {
+      bornes = bornesJourneeInclusive(params.debut, params.fin);
+    } catch {
+      erreurPeriode = "La date fin doit etre egale ou posterieure a la date debut.";
+    }
+  }
+
+  const where: Prisma.RetourWhereInput = {
+    utilisateur_id: commercial.id,
+    // Periode invalide : aucun resultat plutot qu'une liste non filtree trompeuse.
+    ...(erreurPeriode ? { id: { in: [] } } : {}),
+    ...(bornes ? { created_at: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc } } : {}),
+  };
 
   const [produits, retours] = await Promise.all([
     prisma.produit.findMany({
@@ -22,9 +52,9 @@ export default async function RetoursCommercialPage() {
       select: { id: true, nom: true },
     }),
     prisma.retour.findMany({
-      where: { utilisateur_id: commercial.id },
+      where,
       orderBy: { created_at: "desc" },
-      take: 50,
+      take: 200,
       select: {
         id: true,
         quantite_kg: true,
@@ -41,10 +71,32 @@ export default async function RetoursCommercialPage() {
       espace="commercial"
       cheminActif="/commercial/retours"
       titre="Retours magasin"
-      description="Saisie non modifiable et historique recent des retours."
+      description="Saisie non modifiable et historique des retours par periode."
     >
       <div className="grid gap-4">
         <RetourForm produits={produits} />
+
+        <form className="flex flex-wrap items-end gap-3 rounded-lg bg-card p-3 shadow-sm ring-1 ring-border">
+          <div className="grid gap-1.5">
+            <Label htmlFor="retours-debut">Date debut</Label>
+            <Input id="retours-debut" name="debut" type="date" defaultValue={params.debut ?? ""} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="retours-fin">Date fin</Label>
+            <Input id="retours-fin" name="fin" type="date" defaultValue={params.fin ?? ""} />
+          </div>
+          <Button type="submit" variant="outline">
+            Filtrer
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/commercial/retours">Reset</Link>
+          </Button>
+          {erreurPeriode ? (
+            <p role="alert" className="w-full text-sm text-destructive">
+              {erreurPeriode}
+            </p>
+          ) : null}
+        </form>
 
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <Table>
@@ -60,7 +112,9 @@ export default async function RetoursCommercialPage() {
               {retours.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    Aucun retour saisi.
+                    {bornes || erreurPeriode
+                      ? "Aucun retour sur cette periode."
+                      : "Aucun retour saisi."}
                   </TableCell>
                 </TableRow>
               ) : (

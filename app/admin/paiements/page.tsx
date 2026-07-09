@@ -114,8 +114,8 @@ export default async function PaiementsAdminPage({
     >
       <div className="grid gap-4">
         <div className="grid gap-4 md:grid-cols-4">
-          <CarteKPI label="En attente" valeur={String(totaux.enAttente)} tonalite="rouge" />
-          <CarteKPI label="Payees" valeur={String(totaux.payees)} tonalite="vert" />
+          <CarteKPI label="Non réglées" valeur={String(totaux.enAttente)} tonalite="rouge" />
+          <CarteKPI label="Réglées" valeur={String(totaux.payees)} tonalite="vert" />
           <CarteKPI label="CA selection" valeur={formatMontant(totaux.ca)} tonalite="bleu" />
           <CarteKPI label="Reste du" valeur={formatMontant(totaux.reste)} tonalite="rouge" />
         </div>
@@ -133,8 +133,8 @@ export default async function PaiementsAdminPage({
               defaultValue={statut}
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
-              <option value="en_attente">En attente</option>
-              <option value="paye">Payees</option>
+              <option value="en_attente">Non réglées</option>
+              <option value="paye">Réglées</option>
             </select>
             <Button type="submit" variant="outline">
               <Search />

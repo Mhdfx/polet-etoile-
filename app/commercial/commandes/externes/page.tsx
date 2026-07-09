@@ -79,6 +79,8 @@ export default async function CommandesExternesCommercialPage({
     utilisateur_id: commercial.id,
     deleted_at: null,
     type_commande: "EXTERNE",
+    // Periode invalide : aucun resultat plutot qu'une liste non filtree trompeuse.
+    ...(erreurPeriode ? { id: { in: [] } } : {}),
     ...(clientsSelectionnes.length > 0
       ? { client_externe_id: { in: clientsSelectionnes } }
       : {}),
@@ -174,8 +176,8 @@ export default async function CommandesExternesCommercialPage({
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Tous statuts</option>
-              <option value="paye">Paye</option>
-              <option value="en_attente">En attente</option>
+              <option value="paye">Réglée</option>
+              <option value="en_attente">Non réglée</option>
             </select>
             <Button type="submit" variant="outline">
               Filtrer

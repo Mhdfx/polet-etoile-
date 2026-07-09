@@ -72,6 +72,8 @@ export default async function AuditPage({
   }
 
   const where: Prisma.AuditLogWhereInput = {
+    // Periode invalide : aucun resultat plutot qu'une liste non filtree trompeuse.
+    ...(erreurPeriode ? { id: { in: [] } } : {}),
     ...(params.utilisateur ? { utilisateur_id: params.utilisateur } : {}),
     ...(params.action ? { action: { contains: params.action } } : {}),
     ...(params.entite ? { entite: { contains: params.entite } } : {}),

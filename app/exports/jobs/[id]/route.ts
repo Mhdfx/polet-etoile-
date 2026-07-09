@@ -8,7 +8,7 @@ type RouteProps = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: RouteProps) {
   await requireSession();
   const { id } = await params;
-  const job = lireExportJob(id);
+  const job = await lireExportJob(id);
 
   if (!job) {
     return NextResponse.json({ message: "Export introuvable" }, { status: 404 });

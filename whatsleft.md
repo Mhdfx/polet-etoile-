@@ -387,3 +387,41 @@ Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test` (102/102),
 Non traites (hors code / decisions) : modele paiements partiels vs statut binaire,
 `date_echeance`, RELIQUAT dans KPI, epingler KPI, popup detail BL, table categories
 dediee, jobs export en memoire (a basculer sur stockage partage pour le multi-instance).
+
+## Passe P2/P3 + fermeture ecarts CDC - 09/07/2026
+
+Tous les points code P2/P3 de la revue sont traites et verifies en runtime :
+
+- **Listes + periode invalide (P2)** : commandes admin/commercial, externes, audit
+  et retours affichent l'erreur ET une liste vide (fini les resultats non filtres
+  trompeurs). Les 3 routes d'export Excel renvoient un **400** explicite au lieu
+  d'exporter tout silencieusement.
+- **Retours : filtre periode CDC 5.6** (manquait entierement) : Date debut/fin +
+  Filtrer + Reset sur `/commercial/retours` et `/admin/retours`.
+- **Jobs export (P2)** : metadonnees persistees en JSON sur disque -> survivent au
+  redemarrage (mono-instance). Fichiers deplaces de `public/exports` (servis sans
+  auth par Next) vers `exports-prive/` hors public — telechargement uniquement via
+  les routes authentifiees. `.gitignore` complete (exports-prive, public/uploads).
+- **Epingler KPI (CDC 6.5.3)** : icone epingle sur les 9 cartes de `/admin/kpi`
+  (action serveur + `parametres_systeme.kpi_epingles`), section « KPI epingles »
+  sur `/admin` calculee avec les memes formules (periode 01/01 -> aujourd'hui).
+- **Popup detail BL (CDC 6.6)** : clic sur un n° BL dans les fiches clients
+  (admin standard/externe + commercial) ouvre un dialogue avec les lignes produits,
+  total, statut et lien vers le detail complet (`components/dialogue-detail-bl.tsx`).
+- **Libelles CDC 7.5** : « Réglée / Non réglée » partout (badges, filtres, cartes,
+  exports Excel via `libelleStatutPaiement`) ; enum technique inchangee.
+- **PDF BL** : ajout du **statut de reglement** (contenu minimal CDC 9.1 complet).
+- **Rate limiting CDC 12.1** : Better Auth `rateLimit` actif — 5 tentatives/min
+  sur le sign-in puis 429 (verifie : 401 x5 puis 429).
+- **Note logo SVG** : le formulaire parametres precise que le SVG n'apparait pas
+  dans le PDF (PNG/JPG recommande).
+- **`.env.example`** : exemple `BETTER_AUTH_URL` port 3107 pour la recette locale.
+
+Verification complete : `tsc` OK, `lint` OK, `vitest` 102/102, `build` OK.
+Runtime verifie sur `next start` : listes vides + erreurs periode, export 400,
+retours filtres, libelles Réglée/Non réglée, 9 epingles rendues, dialogues BL
+SSR presents, rate limit 429 au 6e essai, pagination 1003 commandes en 0,1-0,2 s
+(CDC < 1 s), KPI admin 0,19 s.
+
+**`testplan.md` cree** : plan de recette navigateur complet (24 sections, ~120
+cas dont la matrice 16.2 integralement mappee).

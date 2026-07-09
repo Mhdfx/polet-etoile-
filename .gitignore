@@ -30,6 +30,13 @@ yarn-error.log*
 # config locale des agents (personnelle, non versionnée)
 .claude/settings.local.json
 
+# exports generes (donnees metier, servis uniquement via routes authentifiees)
+/exports-prive/
+/public/exports/
+
+# uploads runtime (logos televerses par l'admin)
+/public/uploads/
+
 # OS
 Thumbs.db
 .DS_Store

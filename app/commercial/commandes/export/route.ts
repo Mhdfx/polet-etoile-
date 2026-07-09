@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import type { Prisma } from "@prisma/client";
-import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { calculerTotauxCommande, libelleStatutPaiement } from "@/lib/commandes-vue";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { creerExportJob } from "@/lib/export-jobs";
@@ -49,7 +49,7 @@ function remplirWorkbook(commandes: CommandeExport[], statut: "paye" | "en_atten
       total: formatMontant(totaux.total),
       paye: formatMontant(totaux.totalPaye),
       reste: formatMontant(totaux.resteDu),
-      statut: totaux.statutPaiement === "paye" ? "Paye" : "En attente",
+      statut: libelleStatutPaiement(totaux.statutPaiement),
     });
   }
 
@@ -80,7 +80,10 @@ export async function GET(request: Request) {
     try {
       bornes = bornesJourneeInclusive(debut, fin);
     } catch {
-      bornes = undefined;
+      return new Response(
+        "Periode invalide : la date fin doit etre egale ou posterieure a la date debut.",
+        { status: 400 },
+      );
     }
   }
 
