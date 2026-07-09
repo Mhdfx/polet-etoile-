@@ -1,0 +1,57 @@
+import { AppShell } from "@/components/app-shell";
+import { prisma } from "@/lib/db";
+import { formatMontant } from "@/lib/format";
+import { requireCommercial } from "@/lib/session";
+import { CommandeForm } from "@/app/commandes/commande-form";
+
+export default async function NouvelleCommandeCommercialPage() {
+  const commercial = await requireCommercial();
+
+  const [produits, clients] = await Promise.all([
+    prisma.produit.findMany({
+      where: { actif: true, deleted_at: null },
+      orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+      select: {
+        id: true,
+        nom: true,
+        categorie: true,
+        prix_reference: true,
+      },
+    }),
+    prisma.client.findMany({
+      where: {
+        commercial_id: commercial.id,
+        actif: true,
+        deleted_at: null,
+      },
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true, region_ville: true },
+    }),
+  ]);
+
+  return (
+    <AppShell
+      utilisateur={commercial}
+      espace="commercial"
+      cheminActif="/commercial/commandes/nouvelle"
+      titre="Nouvelle commande"
+      description="Creation terrain avec prix catalogue figes, BL transactionnel et calcul serveur."
+    >
+      <CommandeForm
+        mode="commercial"
+        produits={produits.map((produit) => ({
+          id: produit.id,
+          nom: produit.nom,
+          categorie: produit.categorie,
+          prixReference: produit.prix_reference.toFixed(2),
+          prixReferenceLabel: formatMontant(produit.prix_reference),
+        }))}
+        clients={clients.map((client) => ({
+          id: client.id,
+          nom: client.nom,
+          ville: client.region_ville,
+        }))}
+      />
+    </AppShell>
+  );
+}

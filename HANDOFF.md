@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 08/07/2026 (soir).  
-Statut : **socle + auth + design system + CRUD produits/prix operationnels - schema a valider par Mehdi (G1) et direction visuelle a valider (G3)**.
+Derniere mise a jour : 09/07/2026.  
+Statut : **socle + auth + design system + phases 4-8 code-hardening operationnelles - schema a valider par Mehdi (G1), RELIQUAT KPI/CDC recette a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -125,8 +125,14 @@ rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
     etats vide + squelette de chargement integres.
   - `components/dialogue-confirmation.tsx` : `DialogueConfirmation` (AlertDialog
     avec etat en-cours). Pas encore exerce sur un ecran.
-  - `components/filtre-periode.tsx` : `FiltrePeriode` (du/au inclusif). Pas
+- `components/filtre-periode.tsx` : `FiltrePeriode` (du/au inclusif). Pas
     encore exerce sur un ecran.
+- `lib/villes.ts` : liste des villes Maroc depuis `parametres_systeme`
+  (`villes_maroc`) avec fallback local si le parametre est absent ou invalide.
+- `lib/commandes.ts` : calcul Decimal des lignes de commande, total, types de
+  detail/liste et erreurs metier (produit introuvable ou duplique).
+- `lib/kpi.ts` : calcul Decimal centralise des KPI commandes (CA, nombre,
+  impayes, top clients, top produits).
 - Ecran de reference : `/admin/produits` = liste lecture seule paginee serveur
   + recherche + formulaire de reference (validation Zod, creation reelle
   differee en Phase 4 apres gel du schema).
@@ -181,6 +187,106 @@ rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
   - Verifie de bout en bout contre MySQL : changement de prix ne touche pas
     les `lignes_commande` existantes ; lot avec produit manquant = rollback
     complet ; commercial bloque sur les actions (303 vers /403).
+- **Module Utilisateurs/Objectifs (Phase 4B) livre** :
+  - Ecrans : `/admin/utilisateurs` (liste paginee, recherche, creation,
+    activation/desactivation, reset mot de passe, suppression logique),
+    `/admin/utilisateurs/[id]/objectifs` (objectif mensuel commercial).
+  - Actions serveur : `creerUtilisateur`, `reinitialiserMotDePasse`,
+    `definirActivationUtilisateur`, `supprimerUtilisateur`, `definirObjectif`.
+    Toutes exigent `requireAdmin`, valident via Zod, ecrivent l'audit et
+    suppriment les sessions quand un compte est desactive/supprime ou qu'un mot
+    de passe est reinitialise.
+  - Protections metier : impossible de desactiver/supprimer son propre compte ;
+    impossible de supprimer/desactiver le dernier admin actif ; nom utilisateur
+    reserve meme si le compte est soft-delete.
+  - Helpers de validation communs ajoutes : `lib/validations/commun.ts`,
+    `lib/validations/utilisateur.ts`. `lib/validations/produit.ts` reutilise
+    maintenant `champMontantPositif` et `erreursParChamp`.
+  - Smoke verifie sur `:3107` : admin charge `/admin/utilisateurs` et la page
+    objectifs ; commercial redirige vers `/403`.
+- **Module Clients / Clients externes (Phase 4C) livre** :
+  - Ecrans : `/admin/clients` (clients standards + clients externes, recherche,
+    pagination serveur, creation, edition, suppression logique) et
+    `/commercial/clients` (portefeuille du commercial connecte uniquement).
+  - Actions serveur admin : `creerClientAdmin`, `modifierClientAdmin`,
+    `supprimerClientAdmin`, `creerClientExterne`, `modifierClientExterne`,
+    `supprimerClientExterne`. Toutes exigent `requireAdmin`, valident via Zod,
+    ecrivent l'audit et utilisent `deleted_at` + `actif = false` pour supprimer.
+  - Actions serveur commercial : `creerClientCommercial`,
+    `modifierClientCommercial`, `supprimerClientCommercial`. Toutes exigent
+    `requireCommercial`; modification/suppression d'un client appartenant a un
+    autre commercial redirige vers `/403`.
+  - Ville selectionnee depuis la liste `villes_maroc` en base via `lib/villes.ts`.
+  - Navigation active : `Clients` admin et `Mes clients` commercial pointent vers
+    les nouveaux modules.
+  - Tests ajoutes : CRUD admin, clients externes, portefeuille commercial, doublons,
+    soft-delete et protection `/403`.
+- **Creation de commandes (Phase 5A/5B) livree** :
+  - Contrats : `lib/validations/commande.ts` contient les schemas Zod de creation
+    commande commercial/admin et le schema d'ajout paiement (sans echeance, schema
+    courant uniquement).
+  - Calculs : `lib/commandes.ts` calcule `prix_net = quantite x prix_unitaire`,
+    arrondi Decimal, total commande, detection produit duplique/inactif.
+  - Actions serveur : `app/commandes/actions.ts` expose
+    `creerCommandeCommercial` et `creerCommandeAdmin`.
+  - Garanties : permissions serveur (`requireCommercial`/`requireAdmin`), client
+    standard rattache au commercial, client externe admin, produits relus depuis la
+    base avec `actif = true` et `deleted_at = null`, prix unitaires figes,
+    total client facultatif rejete s'il ne correspond pas au total serveur,
+    commande + lignes + BL + audit dans la meme transaction.
+  - Ecrans : `/commercial/commandes/nouvelle` et `/admin/commandes/nouvelle`
+    avec formulaire basique, anti double-clic et affichage du numero BL cree.
+  - Navigation : `Nouvelle commande` commercial et `Commandes` admin pointent vers
+    les nouveaux formulaires.
+  - Tests ajoutes : calculs Decimal, produit inactif, produit duplique, client d'un
+    autre commercial, total falsifie, commande externe admin.
+- **Detail commandes, paiements, listes, retours, PDF, Excel (Phase 5C/5D + Phase 6) livres** :
+  - Ecrans commandes : `/admin/commandes`, `/admin/commandes/[id]`,
+    `/commercial/commandes`, `/commercial/commandes/[id]`.
+  - Paiements admin : formulaire sur le detail admin, modes `ESPECES`, `CHEQUE`,
+    `TRAITE`, `AUTRE`, reference optionnelle. La commande est verrouillee
+    (`SELECT ... FOR UPDATE`) avant calcul du reste du ; paiement > reste refuse.
+  - Suppression commande : admin uniquement, soft delete de `commandes` +
+    `lignes_commande`, audit `commande.suppression`.
+  - Listes commandes : pagination serveur, filtres periode Casablanca inclusive,
+    recherche client/BL, commercial/type/statut cote admin, statut cote commercial.
+  - PDF BL : routes `/admin/commandes/[id]/pdf` et
+    `/commercial/commandes/[id]/pdf`, permission cote serveur, identite societe lue
+    depuis `parametres_systeme`, montants venant des lignes figees.
+  - Excel : routes `/admin/commandes/export` et `/commercial/commandes/export`,
+    colonnes francaises, filtres respectes, permission cote serveur.
+  - Retours : `/commercial/retours` avec creation non modifiable et
+    `/admin/retours` en lecture admin. Action `creerRetour` rattache le retour au
+    commercial connecte et ecrit l'audit.
+  - Tests ajoutes : paiement trop eleve, paiement audite, suppression logique
+    commande/lignes, retour commercial, compteur BL verrouille.
+- **KPI, Audit, Sessions (Phase 7) livres** :
+  - KPI : `/admin/kpi` et `/commercial/kpi`, filtre periode Casablanca inclusif,
+    objectif mensuel, chiffre d'affaires, nombre de commandes, impayes, tops
+    clients/produits. Calculs purs dans `lib/kpi.ts` avec tests.
+  - Audit : `/admin/audit`, pagination serveur, filtres utilisateur/action/entite/
+    periode, apercu avant/apres en JSON lisible.
+  - Sessions : `/admin/sessions`, liste sessions Better Auth actives, utilisateur,
+    role, IP, derniere activite, expiration, user-agent. Action admin
+    `supprimerSession` supprime immediatement la session en base et audite.
+  - Navigation active : `KPI`, `Audit`, `Sessions` admin et `Mes KPI` commercial.
+  - Tests ajoutes : formules KPI, periode vide, suppression session + audit.
+  - Limite connue : regle KPI de `RELIQUAT PAYEMENT` toujours non confirmee ; le
+    calcul actuel traite toutes les lignes produit comme chiffre d'affaires.
+- **Hardening (Phase 8) passe code + smoke livre** :
+  - Permission audit smoke : anonyme -> `/connexion`, mauvais role -> `/403`,
+    admin/commercial sur leurs espaces -> 200.
+  - 403/404 smoke verifies ; 500/error boundary compile dans le build.
+  - Empty states verifies par filtres impossibles sur commandes admin,
+    commandes commercial et audit.
+  - Tests de verrouillage : BL via `FOR UPDATE` dans `attribuerNumeroBL`, paiement
+    via verrou commande `FOR UPDATE` avant validation du reste du.
+  - Erreurs serveur : session force logout alignee sur le pattern generique
+    `(ref. xxxx)` sans fuite de stack.
+  - Verification complete : Prisma validate/generate, TypeScript, Vitest, lint,
+    build.
+  - Restent hors code ou non verifies visuellement : CDC section 16.2 non fourni,
+    QA mobile visuelle, QA grands volumes admin.
 - Verifications passees apres auth :
   - `npm run prisma:validate`
   - `npm run prisma:generate`
@@ -196,12 +302,10 @@ Ordre recommande :
 1. **Mehdi** : valider/freeze le schema (G1, questions paiement/KPI) et la
    direction visuelle sur `/admin/produits` (G3).
 2. Verifier le layout mobile (dernier item Phase 3 non coche).
-3. CRUD utilisateurs + objectifs (4B, Claude Code) ; clients (4C, Codex apres G3).
-4. Module commande + paiement, critique (rappel : le formulaire commande ne
-   doit proposer que les produits `actif = true` et non supprimes).
-5. Listes, retours, PDF BL, Excel.
-6. KPI, audit, sessions actives.
-7. Durcissement et recette.
+3. Confirmer et appliquer la regle KPI `RELIQUAT PAYEMENT`.
+4. Faire la QA mobile visuelle et le test grand volume admin.
+5. Lancer la recette CDC 16.2 des que le document est disponible.
+6. Phase 9 : deployment et livraison.
 
 Questions ouvertes a confirmer avant paiement/KPI :
 
@@ -227,7 +331,25 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | Primitives shadcn | `components/ui/*`, `components.json` |
 | Kit metier (Bouton, Champ, DataTable…) | `components/*.tsx` |
 | Module produits (ecrans + actions) | `app/admin/produits/` |
+| Module utilisateurs/objectifs | `app/admin/utilisateurs/` |
+| Module clients admin | `app/admin/clients/` |
+| Module clients commercial | `app/commercial/clients/` |
+| Creation commandes | `app/commandes/actions.ts`, `app/commandes/commande-form.tsx`, `app/admin/commandes/nouvelle/`, `app/commercial/commandes/nouvelle/` |
+| Listes/detail commandes | `app/admin/commandes/`, `app/commercial/commandes/` |
+| Paiements commandes | `app/commandes/actions.ts`, `app/commandes/paiement-form.tsx` |
+| PDF BL | `app/commandes/bon-livraison-pdf.tsx`, `app/commandes/document-data.ts`, routes `*/commandes/[id]/pdf` |
+| Exports Excel | `app/admin/commandes/export/route.ts`, `app/commercial/commandes/export/route.ts` |
+| Retours | `app/retours/`, `app/admin/retours/`, `app/commercial/retours/` |
+| KPI | `lib/kpi.ts`, `app/admin/kpi/`, `app/commercial/kpi/` |
+| Audit | `app/admin/audit/` |
+| Sessions actives | `app/admin/sessions/` |
 | Validations produit (Zod partage) | `lib/validations/produit.ts` |
+| Validations utilisateur/objectifs | `lib/validations/utilisateur.ts` |
+| Validations clients | `lib/validations/client.ts` |
+| Validations commandes/paiements | `lib/validations/commande.ts` |
+| Validations retours | `lib/validations/retour.ts` |
+| Validations communes actions | `lib/validations/commun.ts` |
+| Liste villes Maroc | `lib/villes.ts`, parametre `villes_maroc` |
 | Audit transactionnel | `lib/audit.ts` |
 | Normalisation saisies FR | `lib/saisie.ts` |
 | Decimal / format / dates | `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` |
