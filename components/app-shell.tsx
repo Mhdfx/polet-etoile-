@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Settings,
   ShoppingCart,
+  Target,
   UserCog,
   Users,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const navigationAdmin: NavigationItem[] = [
     href: "/admin/utilisateurs",
     groupe: "pilotage",
   },
+  { label: "Objectifs", icon: Target, href: "/admin/objectifs", groupe: "pilotage" },
   { label: "Audit", icon: FileText, href: "/admin/audit", groupe: "pilotage" },
   { label: "Sessions", icon: Settings, href: "/admin/sessions", groupe: "pilotage" },
   { label: "Parametrage", icon: Settings, href: "/admin/parametres", groupe: "pilotage" },

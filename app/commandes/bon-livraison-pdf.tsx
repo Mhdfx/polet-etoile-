@@ -1,5 +1,6 @@
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -10,6 +11,8 @@ import type { CommandeDocumentData } from "./document-data";
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 10, color: "#1f2937" },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
+  identite: { flexDirection: "row" },
+  logo: { width: 56, height: 56, marginRight: 12, objectFit: "contain" },
   title: { fontSize: 20, fontWeight: 700, color: "#0f66d5" },
   subtitle: { marginTop: 4, color: "#6b7280" },
   box: { border: "1 solid #d1d5db", padding: 10, marginBottom: 14 },
@@ -35,15 +38,21 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
     <Document title={`Bon de livraison ${commande.numeroBl}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{commande.societe.raisonSociale}</Text>
-            <Text style={styles.subtitle}>Bon de livraison</Text>
-            {commande.societe.ice ? (
-              <Text style={styles.subtitle}>ICE : {commande.societe.ice}</Text>
+          <View style={styles.identite}>
+            {commande.societe.logo ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={commande.societe.logo} style={styles.logo} />
             ) : null}
-            {commande.societe.rc ? (
-              <Text style={styles.subtitle}>{commande.societe.rc}</Text>
-            ) : null}
+            <View>
+              <Text style={styles.title}>{commande.societe.raisonSociale}</Text>
+              <Text style={styles.subtitle}>Bon de livraison</Text>
+              {commande.societe.ice ? (
+                <Text style={styles.subtitle}>ICE : {commande.societe.ice}</Text>
+              ) : null}
+              {commande.societe.rc ? (
+                <Text style={styles.subtitle}>{commande.societe.rc}</Text>
+              ) : null}
+            </View>
           </View>
           <View>
             <Text>{commande.numeroBl}</Text>

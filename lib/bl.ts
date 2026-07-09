@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-const CLE_COMPTEUR_BL = "numero_bl";
+export const CLE_COMPTEUR_BL = "numero_bl";
 const PREFIXE_BL_DEFAUT = "BL";
 
 export function formaterNumeroBl(compteur: number, prefixe = PREFIXE_BL_DEFAUT): string {

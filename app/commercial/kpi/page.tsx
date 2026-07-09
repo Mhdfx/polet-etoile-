@@ -40,7 +40,13 @@ export default async function KpiCommercialPage({
   const defaut = periodeParDefaut();
   const debut = params.debut ?? defaut.debut;
   const fin = params.fin ?? defaut.fin;
-  const bornes = bornesJourneeInclusive(debut, fin);
+  let erreurPeriode: string | undefined;
+  let bornes = bornesJourneeInclusive(defaut.debut, defaut.fin);
+  try {
+    bornes = bornesJourneeInclusive(debut, fin);
+  } catch {
+    erreurPeriode = "La date fin doit etre posterieure a la date debut.";
+  }
   const maintenant = DateTime.now().setZone(FUSEAU_APPLICATION);
   const bornesMois = bornesJourneeInclusive(
     maintenant.startOf("month").toISODate()!,
@@ -58,18 +64,20 @@ export default async function KpiCommercialPage({
   };
 
   const [commandes, commandesMois, commandesJour, objectif] = await Promise.all([
-    prisma.commande.findMany({
-      where,
-      select: {
-        client: { select: { nom: true } },
-        client_externe: { select: { nom: true } },
-        lignes: {
-          where: { deleted_at: null },
-          select: { quantite: true, prix_net: true, produit: { select: { nom: true } } },
-        },
-        paiements: { select: { montant: true } },
-      },
-    }),
+    erreurPeriode
+      ? Promise.resolve([])
+      : prisma.commande.findMany({
+          where,
+          select: {
+            client: { select: { nom: true } },
+            client_externe: { select: { nom: true } },
+            lignes: {
+              where: { deleted_at: null },
+              select: { quantite: true, prix_net: true, produit: { select: { nom: true } } },
+            },
+            paiements: { select: { montant: true } },
+          },
+        }),
     prisma.commande.findMany({
       where: {
         utilisateur_id: commercial.id,
@@ -151,6 +159,14 @@ export default async function KpiCommercialPage({
           <Bouton type="submit">Filtrer</Bouton>
         </form>
 
+        {erreurPeriode ? (
+          <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/30">
+            {erreurPeriode} Corrigez la periode pour afficher les indicateurs.
+          </p>
+        ) : null}
+
+        {erreurPeriode ? null : (
+          <>
         <div className="grid gap-4 md:grid-cols-6">
           <CarteKPI
             label="Ventes"
@@ -259,6 +275,8 @@ export default async function KpiCommercialPage({
           </Table>
         </div>
         </div>
+          </>
+        )}
       </div>
     </AppShell>
   );

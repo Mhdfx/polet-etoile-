@@ -129,19 +129,23 @@ export default async function KpiAdminPage({
   } satisfies Prisma.CommandeSelect;
 
   const [commandes, commandesCumulees, commerciaux, clients, clientsExternes] = await Promise.all([
-    prisma.commande.findMany({
-      where: {
-        ...whereCommun,
-        date_commande: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc },
-      },
-      orderBy: { date_commande: "asc" },
-      select: selectCommande,
-    }),
-    prisma.commande.findMany({
-      where: whereCommun,
-      orderBy: { date_commande: "asc" },
-      select: selectCommande,
-    }),
+    erreurPeriode
+      ? Promise.resolve([])
+      : prisma.commande.findMany({
+          where: {
+            ...whereCommun,
+            date_commande: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc },
+          },
+          orderBy: { date_commande: "asc" },
+          select: selectCommande,
+        }),
+    erreurPeriode
+      ? Promise.resolve([])
+      : prisma.commande.findMany({
+          where: whereCommun,
+          orderBy: { date_commande: "asc" },
+          select: selectCommande,
+        }),
     prisma.user.findMany({
       where: { role: "COMMERCIAL", deleted_at: null },
       orderBy: { nom_complet: "asc" },
@@ -294,8 +298,14 @@ export default async function KpiAdminPage({
           </div>
           <Bouton type="submit">Filtrer</Bouton>
         </form>
-        {erreurPeriode ? <p className="text-sm text-destructive">{erreurPeriode}</p> : null}
+        {erreurPeriode ? (
+          <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/30">
+            {erreurPeriode} Corrigez la periode pour afficher les indicateurs.
+          </p>
+        ) : null}
 
+        {erreurPeriode ? null : (
+          <>
         <p className="rounded-lg bg-card p-3 text-xs text-muted-foreground ring-1 ring-border">
           Formules : CA = somme des prix nets lignes commande. Regle = somme des paiements. Non regle = max(CA - paiements, 0). Prix moyen = CA / quantite KG. Les filtres de dates sont inclusifs jusqu&apos;a la fin de journee Casablanca.
         </p>
@@ -370,6 +380,8 @@ export default async function KpiAdminPage({
             ))}</TableBody>
           </Table>
         </Bloc>
+          </>
+        )}
       </div>
     </AppShell>
   );
