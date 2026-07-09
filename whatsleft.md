@@ -346,3 +346,44 @@ reprise sur le conteneur Docker : aligner `DATABASE_URL` sur `3307` puis relance
 
 Reste : uniquement decisions metier (RELIQUAT/date echeance/paiement global),
 QA mobile reelle et deploiement recette. Aucune section code en attente.
+
+## Passe correction bugs recette navigateur - 09/07/2026
+
+Bugs reels remontes par recette navigateur, tous corriges et verifies en runtime :
+
+- **Compteur BL affiche a 0** : `/admin/parametres` lisait `cle: "principal"` alors
+  que la numerotation utilise `numero_bl`. Corrige via constante partagee
+  `CLE_COMPTEUR_BL` exportee de `lib/bl.ts`. Verifie : affiche 1003.
+- **KPI dates invalides (fin < debut)** : admin ET commercial affichaient/gardaient
+  des chiffres trompeuses (et le commercial pouvait meme planter en 500 car aucun
+  try/catch). Corrige : `app/admin/kpi/page.tsx` et `app/commercial/kpi/page.tsx`
+  n'executent plus les requetes commandes et masquent tous les blocs resultats quand
+  la periode est invalide ; seul le formulaire + message d'erreur restent. Verifie :
+  0 chiffre affiche + message sur periode invalide, 200 (plus de 500) cote commercial.
+- **Logo absent du PDF BL** : le logo etait uploade mais jamais rendu. `document-data.ts`
+  charge desormais `logo_url` et l'encode en data URI (PNG/JPG ; SVG ignore car non
+  supporte par `@react-pdf`), `bon-livraison-pdf.tsx` l'affiche dans l'en-tete.
+  Verifie : PDF 3418 o sans logo -> 4027 o avec logo embarque, toujours valide.
+- **next dev instable sous Windows** : Turbopack retire du script `dev`
+  (`next dev`), meme cause que la fiabilisation du build.
+- **Categories seed "Decoupe"/"Découpe"** : tableau `produits` mort (non seede,
+  `void`) supprime ; `produitsCdc` normalise en francais accentue
+  (Decoupe->Découpe, Elabore->Élaboré, Reglement->Règlement). Base locale 3306
+  normalisee au passage.
+- **`.env.example` / ports** : commentaires ajoutes (Docker 3307 vs Laragon 3306,
+  `BETTER_AUTH_URL` doit correspondre au port servi).
+
+Fonctionnalite CDC manquante ajoutee :
+
+- **Ecran objectifs consolide** (CDC 6.8) : `/admin/objectifs`, une ligne par
+  commercial pour le mois choisi avec objectif, CA realise, taux d'atteinte, ecart,
+  ligne TOTAL. Edition rapide inline pour le mois courant/futur (reutilise l'action
+  testee `definirObjectif`), lecture seule + lien historique pour les mois clos.
+  Nouvelle entree de navigation admin "Objectifs".
+
+Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test` (102/102),
+`npm run build` (35 routes) verts ; fixes verifies en runtime sur `next start`.
+
+Non traites (hors code / decisions) : modele paiements partiels vs statut binaire,
+`date_echeance`, RELIQUAT dans KPI, epingler KPI, popup detail BL, table categories
+dediee, jobs export en memoire (a basculer sur stockage partage pour le multi-instance).

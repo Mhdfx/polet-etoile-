@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { notFound, redirect } from "next/navigation";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
@@ -8,6 +10,7 @@ export type CommandeDocumentData = {
     raisonSociale: string;
     ice?: string;
     rc?: string;
+    logo?: string;
   };
   id: string;
   numeroBl: string;
@@ -62,7 +65,7 @@ export async function chargerCommandeDocument(
   }
 
   const parametres = await prisma.parametreSysteme.findMany({
-    where: { cle: { in: ["raison_sociale", "ice", "rc"] } },
+    where: { cle: { in: ["raison_sociale", "ice", "rc", "logo_url"] } },
     select: { cle: true, valeur: true },
   });
   const params = new Map(parametres.map((parametre) => [parametre.cle, parametre.valeur]));
@@ -74,6 +77,7 @@ export async function chargerCommandeDocument(
       raisonSociale: params.get("raison_sociale") ?? "Poulet Etoile",
       ice: params.get("ice"),
       rc: params.get("rc"),
+      logo: await chargerLogoDataUri(params.get("logo_url")),
     },
     id: commande.id,
     numeroBl: commande.numero_bl,
@@ -91,4 +95,33 @@ export async function chargerCommandeDocument(
       prixNet: formatMontant(ligne.prix_net),
     })),
   };
+}
+
+// @react-pdf/renderer n'accepte que PNG/JPG en <Image> ; les logos SVG sont
+// ignores (le PDF retombe alors sur la raison sociale texte). Le fichier est lu
+// depuis public/ et encode en data URI pour eviter toute dependance reseau.
+const TYPES_LOGO_PDF: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+};
+
+async function chargerLogoDataUri(cheminPublic?: string): Promise<string | undefined> {
+  if (!cheminPublic) {
+    return undefined;
+  }
+
+  const mime = TYPES_LOGO_PDF[path.extname(cheminPublic).toLowerCase()];
+  if (!mime) {
+    return undefined;
+  }
+
+  try {
+    const relatif = cheminPublic.replace(/^\/+/, "").split("/");
+    const cheminDisque = path.join(process.cwd(), "public", ...relatif);
+    const contenu = await readFile(cheminDisque);
+    return `data:${mime};base64,${contenu.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
 }

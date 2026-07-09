@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CLE_COMPTEUR_BL } from "@/lib/bl";
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -47,7 +48,7 @@ export default async function ParametresPage() {
       where: { cle: { in: Object.keys(mapCles) } },
       select: { cle: true, valeur: true },
     }),
-    prisma.compteurBl.findUnique({ where: { cle: "principal" }, select: { valeur: true } }),
+    prisma.compteurBl.findUnique({ where: { cle: CLE_COMPTEUR_BL }, select: { valeur: true } }),
     prisma.auditLog.findMany({
       where: { entite: "parametres_systeme" },
       orderBy: { created_at: "desc" },
