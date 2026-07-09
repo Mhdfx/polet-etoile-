@@ -1,133 +1,280 @@
+import Link from "next/link";
+import type { Prisma } from "@prisma/client";
+import { DateTime } from "luxon";
+import {
+  BarChart3,
+  ClipboardList,
+  FileText,
+  Settings,
+  Target,
+  UserCog,
+} from "lucide-react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { CarteKPI } from "@/components/carte-kpi";
+import { bornesJourneeInclusive, FUSEAU_APPLICATION } from "@/lib/dates";
+import { prisma } from "@/lib/db";
+import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
+import {
+  calculerImpayeTotal,
+  calculerKpiPeriode,
+  filtrerCommandesPeriode,
+} from "@/lib/kpi";
 import { requireAdmin } from "@/lib/session";
 
-const ventes = [
-  { label: "Lun", value: 46 },
-  { label: "Mar", value: 72 },
-  { label: "Mer", value: 58 },
-  { label: "Jeu", value: 86 },
-  { label: "Ven", value: 64 },
-  { label: "Sam", value: 92 },
+const raccourcisAdmin = [
+  { label: "Paramétrage", href: "/admin/parametres", icon: Settings },
+  { label: "Objectifs commerciaux", href: "/admin/utilisateurs", icon: Target },
+  { label: "Journal d'audit", href: "/admin/audit", icon: FileText },
+  { label: "Sessions actives", href: "/admin/sessions", icon: UserCog },
+  { label: "Toutes les commandes", href: "/admin/commandes", icon: ClipboardList },
+  { label: "Audit KPIs", href: "/admin/kpi", icon: BarChart3 },
 ];
 
-const modules = [
-  { nom: "Produits et prix", etat: "A construire" },
-  { nom: "Commandes", etat: "A construire" },
-  { nom: "Paiements", etat: "A construire" },
-  { nom: "Utilisateurs", etat: "A construire" },
-];
+type ParametresRecherche = Promise<{
+  debut?: string;
+  fin?: string;
+  commercial?: string;
+}>;
 
-const soldes = [
-  { label: "Cash", value: "537 848,20 DH", ratio: "72%" },
-  { label: "Cheques", value: "8 955,00 DH", ratio: "28%" },
-  { label: "Total", value: "546 803,20 DH", ratio: "100%" },
-];
-
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: ParametresRecherche;
+}) {
   const utilisateur = await requireAdmin();
+  const params = await searchParams;
+
+  const maintenant = DateTime.now().setZone(FUSEAU_APPLICATION);
+  const aujourdhuiIso = maintenant.toISODate()!;
+  const debutMoisIso = maintenant.startOf("month").toISODate()!;
+  const debutAnneeIso = maintenant.startOf("year").toISODate()!;
+
+  const commercial = params.commercial || undefined;
+  const debutPeriode = params.debut ?? debutAnneeIso;
+  const finPeriode = params.fin ?? aujourdhuiIso;
+
+  let erreurPeriode: string | null = null;
+  let bornesPeriode: { debutUtc: Date; finExclusiveUtc: Date } | null = null;
+  try {
+    bornesPeriode = bornesJourneeInclusive(debutPeriode, finPeriode);
+  } catch {
+    erreurPeriode =
+      "La date de fin doit être égale ou postérieure à la date de début.";
+  }
+
+  const bornesMois = bornesJourneeInclusive(debutMoisIso, aujourdhuiIso);
+  const bornesJour = bornesJourneeInclusive(aujourdhuiIso, aujourdhuiIso);
+
+  const filtreCommercial: Prisma.CommandeWhereInput = commercial
+    ? { utilisateur_id: commercial }
+    : {};
+
+  const [commandesMois, commandesPeriode, commandesImpaye, commerciaux] =
+    await Promise.all([
+      prisma.commande.findMany({
+        where: {
+          deleted_at: null,
+          ...filtreCommercial,
+          date_commande: {
+            gte: bornesMois.debutUtc,
+            lt: bornesMois.finExclusiveUtc,
+          },
+        },
+        select: {
+          date_commande: true,
+          lignes: {
+            where: { deleted_at: null },
+            select: { prix_net: true, quantite: true },
+          },
+        },
+      }),
+      bornesPeriode
+        ? prisma.commande.findMany({
+            where: {
+              deleted_at: null,
+              ...filtreCommercial,
+              date_commande: {
+                gte: bornesPeriode.debutUtc,
+                lt: bornesPeriode.finExclusiveUtc,
+              },
+            },
+            select: {
+              date_commande: true,
+              lignes: {
+                where: { deleted_at: null },
+                select: { prix_net: true, quantite: true },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      prisma.commande.findMany({
+        where: { deleted_at: null, ...filtreCommercial },
+        select: {
+          lignes: { where: { deleted_at: null }, select: { prix_net: true } },
+          paiements: { select: { montant: true } },
+        },
+      }),
+      prisma.user.findMany({
+        where: { role: "COMMERCIAL", deleted_at: null },
+        orderBy: { nom_complet: "asc" },
+        select: { id: true, nom_complet: true },
+      }),
+    ]);
+
+  const kpiMois = calculerKpiPeriode(commandesMois);
+  const kpiJour = calculerKpiPeriode(
+    filtrerCommandesPeriode(
+      commandesMois,
+      bornesJour.debutUtc,
+      bornesJour.finExclusiveUtc,
+    ),
+  );
+  const kpiPeriode = calculerKpiPeriode(commandesPeriode);
+  const impaye = calculerImpayeTotal(commandesImpaye);
+
+  const periodeMois = `Du ${formatDate(bornesMois.debutUtc)} au ${formatDate(maintenant.toJSDate())}`;
+  const nomCommercial = commercial
+    ? commerciaux.find((item) => item.id === commercial)?.nom_complet ?? null
+    : null;
 
   return (
     <AppShell
       utilisateur={utilisateur}
       espace="admin"
       cheminActif="/admin"
-      titre="Summary Dashboard"
-      description="Vue pilote pour les ventes, encaissements et modules admin."
+      titre="Tableau de bord consolidé"
+      description={`Connecté : ${utilisateur.nom_complet} · Rôle : ADMINISTRATEUR${nomCommercial ? ` · Filtre : ${nomCommercial}` : " · Tous les commerciaux"}`}
     >
-      <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <CarteKPI label="Ventes du mois" valeur="28" tonalite="rouge" />
-            <CarteKPI label="Clients actifs" valeur="146" tonalite="bleu" />
-            <CarteKPI label="Reste du" valeur="18K" tonalite="vert" />
-          </div>
-
-          <Panel title="Ventes par jour" eyebrow="Month to Date">
-            <div className="flex h-52 items-end gap-4 border-b border-slate-100 px-2">
-              {ventes.map((item) => (
-                <div key={item.label} className="flex flex-1 flex-col items-center gap-2">
-                  <div
-                    className="w-full rounded-t-md bg-[#8ab6f4]"
-                    style={{ height: `${item.value}%` }}
-                  />
-                  <span className="text-xs text-slate-500">{item.label}</span>
-                </div>
+      <div className="grid gap-4">
+        <form className="flex flex-wrap items-end gap-2">
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Date début
+            <input
+              name="debut"
+              type="date"
+              defaultValue={debutPeriode}
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Date fin
+            <input
+              name="fin"
+              type="date"
+              defaultValue={finPeriode}
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Commercial
+            <select
+              name="commercial"
+              defaultValue={commercial ?? ""}
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+            >
+              <option value="">Tous les commerciaux</option>
+              {commerciaux.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nom_complet}
+                </option>
               ))}
-            </div>
-          </Panel>
+            </select>
+          </label>
+          <button className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
+            Filtrer
+          </button>
+        </form>
 
-          <Panel title="Modules admin" eyebrow="Roadmap">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {modules.map((module) => (
-                <div
-                  key={module.nom}
-                  className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-3"
-                >
-                  <span className="text-sm font-medium text-slate-700">
-                    {module.nom}
-                  </span>
-                  <span className="rounded-full bg-[#f05d68]/10 px-3 py-1 text-xs font-semibold text-[#f05d68]">
-                    {module.etat}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Panel>
+        {erreurPeriode ? (
+          <p className="rounded-md border border-alerte/40 bg-alerte/10 px-3 py-2 text-sm text-alerte">
+            {erreurPeriode}
+          </p>
+        ) : null}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <CarteKPI
+            label="Chiffre d'affaires du mois"
+            valeur={formatMontant(kpiMois.chiffreAffaires)}
+            detail={periodeMois}
+            tonalite="bleu"
+          />
+          <CarteKPI
+            label="Quantité du mois"
+            valeur={formatQuantite(kpiMois.quantite)}
+            detail={periodeMois}
+            tonalite="neutre"
+          />
+          <CarteKPI
+            label="Chiffre d'affaires du jour"
+            valeur={formatMontant(kpiJour.chiffreAffaires)}
+            detail={formatDate(maintenant.toJSDate())}
+            tonalite="vert"
+          />
+          <CarteKPI
+            label="Quantité du jour"
+            valeur={formatQuantite(kpiJour.quantite)}
+            detail={formatDate(maintenant.toJSDate())}
+            tonalite="neutre"
+          />
+          <CarteKPI
+            label="Chiffre non réglé"
+            valeur={formatMontant(impaye)}
+            detail="Toutes commandes confondues"
+            tonalite="rouge"
+          />
         </div>
 
-        <div className="grid gap-4">
-          <Panel title="AR & Cash Balance" className="bg-[#0f66d5] text-white">
-            <div className="space-y-4">
-              {soldes.map((item) => (
-                <div key={item.label}>
-                  <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-white/75">{item.label}</span>
-                    <span className="font-semibold">{item.value}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/20">
-                    <div
-                      className="h-2 rounded-full bg-[#ffcf55]"
-                      style={{ width: item.ratio }}
-                    />
-                  </div>
-                </div>
-              ))}
+        <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
+          <Panel
+            title="Période personnalisée"
+            eyebrow={
+              bornesPeriode
+                ? `Du ${formatDate(bornesPeriode.debutUtc)} au ${formatDate(finPeriode)}`
+                : "Période invalide"
+            }
+          >
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Chiffre d&apos;affaires</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">
+                  {formatMontant(kpiPeriode.chiffreAffaires)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Quantité</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">
+                  {formatQuantite(kpiPeriode.quantite)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Commandes</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">
+                  {kpiPeriode.nombreCommandes}
+                </p>
+              </div>
             </div>
+            {bornesPeriode && kpiPeriode.nombreCommandes === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Aucune commande sur cette période.
+              </p>
+            ) : null}
           </Panel>
 
-          <Panel title="Production & Supply Chain" className="bg-[#f05d68] text-white">
-            <div className="grid gap-3 text-sm">
-              {["Poulet entier", "Cuisse", "Blanc", "Aile"].map((label, index) => (
-                <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3">
-                  <span className="text-white/80">{label}</span>
-                  <span className="font-semibold">{[345, 270, 198, 120][index]} kg</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-5 rounded-md bg-white/15 p-3 text-sm font-semibold">
-              Out of Stock : 696 SKU of 1,500
-            </p>
-          </Panel>
-
-          <Panel title="Canal de distribution">
-            <div className="space-y-3">
-              {[
-                ["Boucheries", "82%"],
-                ["Restaurants", "68%"],
-                ["Traiteurs", "54%"],
-                ["Externes", "34%"],
-              ].map(([label, ratio]) => (
-                <div key={label}>
-                  <div className="mb-1 flex justify-between text-xs text-slate-500">
-                    <span>{label}</span>
-                    <span>{ratio}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100">
-                    <div className="h-2 rounded-full bg-[#0f66d5]" style={{ width: ratio }} />
-                  </div>
-                </div>
-              ))}
+          <Panel title="Pilotage" eyebrow="Raccourcis admin">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {raccourcisAdmin.map((raccourci) => {
+                const Icon = raccourci.icon;
+                return (
+                  <Link
+                    key={raccourci.href}
+                    href={raccourci.href}
+                    className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:bg-primary/5"
+                  >
+                    <Icon className="h-4 w-4 text-primary" />
+                    {raccourci.label}
+                  </Link>
+                );
+              })}
             </div>
           </Panel>
         </div>

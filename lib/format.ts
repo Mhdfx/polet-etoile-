@@ -1,11 +1,18 @@
 import { DateTime } from "luxon";
-import { arrondirMontant, type EntreeDecimal } from "@/lib/decimal";
+import { arrondirMontant, arrondirQuantite, type EntreeDecimal } from "@/lib/decimal";
 
 export function formatMontant(valeur: EntreeDecimal): string {
   const [entier, decimales] = arrondirMontant(valeur).toFixed(2).split(".");
   const entierFormate = entier.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
   return `${entierFormate},${decimales} DH`;
+}
+
+export function formatQuantite(valeur: EntreeDecimal): string {
+  const [entier, decimales] = arrondirQuantite(valeur).toFixed(3).split(".");
+  const entierFormate = entier.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+  return `${entierFormate},${decimales} kg`;
 }
 
 export function formatDate(date: Date | string): string {

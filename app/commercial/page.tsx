@@ -1,137 +1,204 @@
+import Link from "next/link";
+import { DateTime } from "luxon";
+import {
+  BarChart3,
+  ClipboardList,
+  ExternalLink,
+  RotateCcw,
+  ShoppingCart,
+} from "lucide-react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { CarteKPI } from "@/components/carte-kpi";
+import { bornesJourneeInclusive, FUSEAU_APPLICATION } from "@/lib/dates";
+import { prisma } from "@/lib/db";
+import { decimal } from "@/lib/decimal";
+import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
+import {
+  calculerImpayeTotal,
+  calculerKpiPeriode,
+  filtrerCommandesPeriode,
+} from "@/lib/kpi";
 import { requireCommercial } from "@/lib/session";
 
-const commandes = [
-  { client: "Boucherie Atlas", montant: "4 524 DH", statut: "Payee" },
-  { client: "Restaurant Sud", montant: "2 240 DH", statut: "En attente" },
-  { client: "Traiteur Externe", montant: "1 050 DH", statut: "En attente" },
-];
-
-const progression = [
-  ["Objectif", "60 000 DH", "72%"],
-  ["Encaisse", "43 200 DH", "72%"],
-  ["Reste", "16 800 DH", "28%"],
+const raccourcisVentes = [
+  {
+    label: "Passer une commande",
+    href: "/commercial/commandes/nouvelle",
+    icon: ShoppingCart,
+  },
+  { label: "Voir les commandes", href: "/commercial/commandes", icon: ClipboardList },
+  {
+    label: "Voir les commandes externes",
+    href: "/commercial/commandes/externes",
+    icon: ExternalLink,
+  },
+  { label: "Retours magasin", href: "/commercial/retours", icon: RotateCcw },
+  { label: "Audit KPIs", href: "/commercial/kpi", icon: BarChart3 },
 ];
 
 export default async function CommercialPage() {
   const utilisateur = await requireCommercial();
+
+  const maintenant = DateTime.now().setZone(FUSEAU_APPLICATION);
+  const aujourdhuiIso = maintenant.toISODate()!;
+  const debutMoisIso = maintenant.startOf("month").toISODate()!;
+  const bornesMois = bornesJourneeInclusive(debutMoisIso, aujourdhuiIso);
+  const bornesJour = bornesJourneeInclusive(aujourdhuiIso, aujourdhuiIso);
+
+  const [commandesMois, commandesImpaye, objectif] = await Promise.all([
+    prisma.commande.findMany({
+      where: {
+        deleted_at: null,
+        utilisateur_id: utilisateur.id,
+        date_commande: {
+          gte: bornesMois.debutUtc,
+          lt: bornesMois.finExclusiveUtc,
+        },
+      },
+      select: {
+        date_commande: true,
+        lignes: {
+          where: { deleted_at: null },
+          select: { prix_net: true, quantite: true },
+        },
+      },
+    }),
+    prisma.commande.findMany({
+      where: { deleted_at: null, utilisateur_id: utilisateur.id },
+      select: {
+        lignes: { where: { deleted_at: null }, select: { prix_net: true } },
+        paiements: { select: { montant: true } },
+      },
+    }),
+    prisma.objectif.findUnique({
+      where: {
+        utilisateur_id_mois: {
+          utilisateur_id: utilisateur.id,
+          mois: aujourdhuiIso.slice(0, 7),
+        },
+      },
+      select: { montant_objectif: true },
+    }),
+  ]);
+
+  const kpiMois = calculerKpiPeriode(commandesMois);
+  const kpiJour = calculerKpiPeriode(
+    filtrerCommandesPeriode(
+      commandesMois,
+      bornesJour.debutUtc,
+      bornesJour.finExclusiveUtc,
+    ),
+  );
+  const impaye = calculerImpayeTotal(commandesImpaye);
+
+  const montantObjectif = objectif ? decimal(objectif.montant_objectif) : null;
+  const tauxAtteinte =
+    montantObjectif && montantObjectif.gt(0)
+      ? kpiMois.chiffreAffaires.mul(100).div(montantObjectif)
+      : null;
+  const largeurJauge = tauxAtteinte
+    ? Math.min(100, Math.max(0, tauxAtteinte.toNumber()))
+    : 0;
+
+  const periodeMois = `Du ${formatDate(bornesMois.debutUtc)} au ${formatDate(maintenant.toJSDate())}`;
 
   return (
     <AppShell
       utilisateur={utilisateur}
       espace="commercial"
       cheminActif="/commercial"
-      titre="Selling Dashboard"
-      description="Espace terrain pour suivre les commandes, clients et objectifs."
+      titre="Tableau de bord"
+      description={`Connecté : ${utilisateur.nom_complet} · Rôle : COMMERCIAL`}
     >
-      <div className="grid gap-4 md:grid-cols-[0.85fr_1.15fr]">
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <CarteKPI label="Commandes du jour" valeur="12" tonalite="bleu" />
-            <CarteKPI label="Retours saisis" valeur="3" tonalite="rouge" />
-          </div>
-
-          <Panel title="Profil commercial" eyebrow="Session">
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-[#0f66d5] text-xl font-bold text-white">
-                {utilisateur.nom_complet.slice(0, 1)}
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">
-                  {utilisateur.nom_complet}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {utilisateur.nom_utilisateur}
-                </p>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Objectif mensuel">
-            <div className="space-y-4">
-              {progression.map(([label, value, ratio]) => (
-                <div key={label}>
-                  <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-slate-500">{label}</span>
-                    <span className="font-semibold text-slate-800">{value}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100">
-                    <div className="h-2 rounded-full bg-[#0f66d5]" style={{ width: ratio }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Panel>
+      <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <CarteKPI
+            label="Chiffre d'affaires du mois"
+            valeur={formatMontant(kpiMois.chiffreAffaires)}
+            detail={periodeMois}
+            tonalite="bleu"
+          />
+          <CarteKPI
+            label="Quantité du mois"
+            valeur={formatQuantite(kpiMois.quantite)}
+            detail={periodeMois}
+            tonalite="neutre"
+          />
+          <CarteKPI
+            label="Chiffre d'affaires du jour"
+            valeur={formatMontant(kpiJour.chiffreAffaires)}
+            detail={formatDate(maintenant.toJSDate())}
+            tonalite="vert"
+          />
+          <CarteKPI
+            label="Quantité du jour"
+            valeur={formatQuantite(kpiJour.quantite)}
+            detail={formatDate(maintenant.toJSDate())}
+            tonalite="neutre"
+          />
+          <CarteKPI
+            label="Chiffre non réglé"
+            valeur={formatMontant(impaye)}
+            detail="Toutes commandes confondues"
+            tonalite="rouge"
+          />
         </div>
 
-        <div className="grid gap-4">
-          <Panel title="Actions rapides" eyebrow="Terrain">
+        <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
+          <Panel title="Ventes" eyebrow="Raccourcis">
             <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                "Nouvelle commande",
-                "Ajouter client",
-                "Saisir retour",
-                "Voir mes KPI",
-              ].map((action) => (
-                <button
-                  key={action}
-                  type="button"
-                  className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-left text-sm font-semibold text-slate-800 transition hover:border-[#0f66d5] hover:bg-[#eff6ff]"
-                >
-                  {action}
-                </button>
-              ))}
+              {raccourcisVentes.map((raccourci) => {
+                const Icon = raccourci.icon;
+                return (
+                  <Link
+                    key={raccourci.href}
+                    href={raccourci.href}
+                    className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-4 text-sm font-semibold text-foreground transition hover:border-primary hover:bg-primary/5"
+                  >
+                    <Icon className="h-4 w-4 text-primary" />
+                    {raccourci.label}
+                  </Link>
+                );
+              })}
             </div>
           </Panel>
 
-          <Panel title="Commandes recentes" eyebrow="Month to Date">
-            <div className="overflow-hidden rounded-md border border-slate-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-3 py-3 font-semibold">Client</th>
-                    <th className="px-3 py-3 font-semibold">Montant</th>
-                    <th className="px-3 py-3 font-semibold">Statut</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {commandes.map((commande) => (
-                    <tr key={commande.client}>
-                      <td className="px-3 py-3 font-medium text-slate-800">
-                        {commande.client}
-                      </td>
-                      <td className="px-3 py-3 text-slate-600">{commande.montant}</td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            commande.statut === "Payee"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-rose-50 text-rose-700"
-                          }`}
-                        >
-                          {commande.statut}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-
-          <Panel title="Carte de couverture">
-            <div className="relative h-64 overflow-hidden rounded-md bg-[#e8eef3]">
-              <div className="absolute left-[14%] top-[28%] h-16 w-16 rounded-full bg-[#f05d68]/75" />
-              <div className="absolute left-[34%] top-[48%] h-12 w-12 rounded-full bg-[#0f66d5]/55" />
-              <div className="absolute left-[58%] top-[22%] h-20 w-20 rounded-full bg-[#f05d68]/60" />
-              <div className="absolute left-[72%] top-[58%] h-14 w-14 rounded-full bg-[#0f66d5]/60" />
-              <div className="absolute inset-x-6 top-1/2 h-px bg-white" />
-              <div className="absolute inset-y-6 left-1/2 w-px bg-white" />
-              <p className="absolute bottom-4 left-4 text-sm font-semibold text-slate-600">
-                Zones commerciales a connecter aux donnees reelles.
+          <Panel title="Objectif mensuel" eyebrow={aujourdhuiIso.slice(0, 7)}>
+            {montantObjectif ? (
+              <div className="space-y-4">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Objectif</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatMontant(montantObjectif)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Réalisé</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatMontant(kpiMois.chiffreAffaires)}
+                  </span>
+                </div>
+                <div>
+                  <div className="mb-2 flex justify-between text-xs text-muted-foreground">
+                    <span>Taux d&apos;atteinte</span>
+                    <span className="font-semibold text-foreground">
+                      {tauxAtteinte ? `${tauxAtteinte.toFixed(1)} %` : "—"}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${largeurJauge}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucun objectif défini pour ce mois. L&apos;administrateur peut en
+                fixer un depuis la fiche utilisateur.
               </p>
-            </div>
+            )}
           </Panel>
         </div>
       </div>

@@ -89,3 +89,73 @@ export function formaterEntreesTop(entrees: EntreeTop[]) {
     montant: formatMontant(entree.montant),
   }));
 }
+
+export type LigneDashboard = {
+  prix_net: EntreeDecimal;
+  quantite: EntreeDecimal;
+};
+
+export type CommandeDashboard = {
+  date_commande: Date;
+  lignes: LigneDashboard[];
+};
+
+export type KpiPeriode = {
+  chiffreAffaires: Decimal;
+  quantite: Decimal;
+  nombreCommandes: number;
+};
+
+/** CA + quantite (KG) + nombre de commandes sur un lot de commandes. */
+export function calculerKpiPeriode(commandes: CommandeDashboard[]): KpiPeriode {
+  let chiffreAffaires = new Decimal(0);
+  let quantite = new Decimal(0);
+
+  for (const commande of commandes) {
+    for (const ligne of commande.lignes) {
+      chiffreAffaires = chiffreAffaires.plus(ligne.prix_net);
+      quantite = quantite.plus(ligne.quantite);
+    }
+  }
+
+  return {
+    chiffreAffaires,
+    quantite,
+    nombreCommandes: commandes.length,
+  };
+}
+
+/** Ne garde que les commandes dont la date est dans [debut, finExclusive[. */
+export function filtrerCommandesPeriode<T extends { date_commande: Date }>(
+  commandes: T[],
+  debutUtc: Date,
+  finExclusiveUtc: Date,
+): T[] {
+  return commandes.filter(
+    (commande) =>
+      commande.date_commande >= debutUtc && commande.date_commande < finExclusiveUtc,
+  );
+}
+
+export type CommandeImpaye = {
+  lignes: Array<{ prix_net: EntreeDecimal }>;
+  paiements: PaiementKpi[];
+};
+
+/** Somme des restes dus (> 0) — le "chiffre non regle" du CDC. */
+export function calculerImpayeTotal(commandes: CommandeImpaye[]): Decimal {
+  let impaye = new Decimal(0);
+
+  for (const commande of commandes) {
+    const total = sommerMontants(commande.lignes.map((ligne) => ligne.prix_net));
+    const reste = calculerResteDu(
+      total,
+      commande.paiements.map((paiement) => paiement.montant),
+    );
+    if (reste.gt(0)) {
+      impaye = impaye.plus(reste);
+    }
+  }
+
+  return impaye;
+}

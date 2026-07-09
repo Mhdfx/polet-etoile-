@@ -123,12 +123,9 @@ export function AppShell({
             })}
           </nav>
 
-          <div className="border-t border-sidebar-border p-4">
-            <p className="text-[11px] uppercase text-sidebar-foreground/60">Filtre</p>
-            <div className="mt-3 rounded-md bg-sidebar-accent p-3 text-xs text-sidebar-accent-foreground">
-              <p className="opacity-65">Annee</p>
-              <p className="mt-1 font-semibold">2026</p>
-            </div>
+          <div className="border-t border-sidebar-border p-4 text-[11px] text-sidebar-foreground/60">
+            <p className="font-semibold uppercase">Poulet Étoilé</p>
+            <p className="mt-1">Gestion commerciale — Naomedia</p>
           </div>
         </aside>
 
@@ -149,9 +146,11 @@ export function AppShell({
             <div className="flex items-center gap-3">
               <div className="hidden text-right text-xs text-muted-foreground sm:block">
                 <p className="font-semibold text-foreground">
-                  Hello, {utilisateur.nom_complet}
+                  Connecté : {utilisateur.nom_complet}
                 </p>
-                <p>Aujourd&apos;hui</p>
+                <p>
+                  Rôle : {utilisateur.role === "ADMIN" ? "ADMINISTRATEUR" : "COMMERCIAL"}
+                </p>
               </div>
               <DeconnexionButton />
             </div>
