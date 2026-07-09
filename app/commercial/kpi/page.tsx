@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { DateTime } from "luxon";
 import { AppShell } from "@/components/app-shell";
+import { Bouton } from "@/components/bouton";
 import { CarteKPI } from "@/components/carte-kpi";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -82,25 +85,19 @@ export default async function KpiCommercialPage({
       espace="commercial"
       cheminActif="/commercial/kpi"
       titre="Mes KPI"
-      description="Suivi commercial : ventes, objectif, impayes et meilleurs clients."
+      description="Suivi commercial : ventes, objectif, impayés et meilleurs clients."
     >
       <div className="grid gap-5">
-        <form className="flex flex-wrap items-end gap-2">
-          <input
-            name="debut"
-            type="date"
-            defaultValue={debut}
-            className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-          />
-          <input
-            name="fin"
-            type="date"
-            defaultValue={fin}
-            className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-          />
-          <button className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
-            Filtrer
-          </button>
+        <form className="flex flex-wrap items-end gap-3 rounded-lg bg-card p-3 shadow-sm ring-1 ring-border">
+          <div className="grid gap-1.5">
+            <Label htmlFor="kpi-debut">Date début</Label>
+            <Input id="kpi-debut" name="debut" type="date" defaultValue={debut} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="kpi-fin">Date fin</Label>
+            <Input id="kpi-fin" name="fin" type="date" defaultValue={fin} />
+          </div>
+          <Bouton type="submit">Filtrer</Bouton>
         </form>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -115,7 +112,7 @@ export default async function KpiCommercialPage({
             tonalite="neutre"
           />
           <CarteKPI
-            label="Impayes"
+            label="Impayés"
             valeur={formatMontant(kpi.montantImpaye)}
             tonalite="rouge"
           />
@@ -142,7 +139,7 @@ export default async function KpiCommercialPage({
               {kpi.topClients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={2} className="h-20 text-center text-muted-foreground">
-                    Aucune donnee.
+                    Aucune donnée sur cette période.
                   </TableCell>
                 </TableRow>
               ) : (

@@ -10,16 +10,63 @@ export default async function ConnexionPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f6f5] px-6 py-10 text-[#1f241f]">
-      <section className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col justify-center">
-        <div className="rounded-md border border-[#cfd8d3] bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase text-[#2f6f57]">
-            Poulet Etoile
+    <main className="grid min-h-dvh bg-background lg:grid-cols-[1.1fr_1fr]">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/5"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/5"
+        />
+
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-md bg-white text-xl font-black text-primary">
+            P
+          </div>
+          <div className="leading-tight">
+            <p className="text-base font-bold">Poulet Étoilé</p>
+            <p className="text-xs text-white/70">Gestion commerciale</p>
+          </div>
+        </div>
+
+        <div className="max-w-md">
+          <h2 className="text-3xl font-semibold leading-tight tracking-tight">
+            Pilotez vos ventes, vos clients et vos encaissements en un seul
+            endroit.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-white/75">
+            Commandes terrain, bons de livraison séquentiels, paiements suivis
+            au centime et indicateurs consolidés — la commande reste la source
+            de vérité unique.
           </p>
-          <h1 className="mt-3 text-2xl font-semibold">Connexion</h1>
-          <p className="mt-2 text-sm leading-6 text-[#596052]">
-            Acces reserve aux administrateurs et commerciaux.
+        </div>
+
+        <p className="text-xs text-white/60">
+          © {new Date().getFullYear()} Poulet Étoilé — Naomedia
+        </p>
+      </section>
+
+      <section className="flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-xl font-black text-primary-foreground">
+              P
+            </div>
+            <div className="leading-tight">
+              <p className="text-base font-bold text-foreground">Poulet Étoilé</p>
+              <p className="text-xs text-muted-foreground">Gestion commerciale</p>
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Connexion
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Accès réservé aux administrateurs et aux commerciaux.
           </p>
+
           <ConnexionForm />
         </div>
       </section>
