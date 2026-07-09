@@ -32,7 +32,7 @@ import { requireAdmin } from "@/lib/session";
 
 const raccourcisAdmin = [
   { label: "Paramétrage", href: "/admin/parametres", icon: Settings },
-  { label: "Objectifs commerciaux", href: "/admin/utilisateurs", icon: Target },
+  { label: "Objectifs commerciaux", href: "/admin/objectifs", icon: Target },
   { label: "Journal d'audit", href: "/admin/audit", icon: FileText },
   { label: "Sessions actives", href: "/admin/sessions", icon: UserCog },
   { label: "Toutes les commandes", href: "/admin/commandes", icon: ClipboardList },
