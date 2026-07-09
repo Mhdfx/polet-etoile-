@@ -34,37 +34,33 @@ Ces points divergent du CDC mais sont **actés** dans `CLAUDE.md` / `HANDOFF.md`
 
 ## 2. Bloquant recette CDC — priorité 1
 
-### 2.1 Tableaux de bord (§5.2, §6.4)
+### 2.1 Tableaux de bord (§5.2, §6.4) — ✅ FAIT (09/07/2026)
 
-**État actuel (vérifié) :** `app/admin/page.tsx` et `app/commercial/page.tsx` sont des
-**maquettes en dur** : valeurs figées (28 ventes, 146 clients, 12 commandes du jour),
-panneaux « Modules admin : À construire », titres en anglais (« Summary Dashboard »,
-« AR & Cash Balance »), boutons d'actions rapides sans `href`. Les vraies données
-existent sur `/admin/kpi` et `/commercial/kpi` mais pas sur l'accueil.
+**Livré :** les deux accueils sont branchés sur les vraies données
+(`calculerKpiPeriode`, `calculerImpayeTotal`, `filtrerCommandesPeriode` dans
+`lib/kpi.ts`, testés Vitest).
 
-**À faire :**
-
-- [ ] Brancher `/admin` sur `lib/kpi.ts` + agrégation tous commerciaux
-- [ ] Brancher `/commercial` sur `lib/kpi.ts` + filtre `utilisateur_id` connecté
-- [ ] Cartes CDC §5.2 / §6.4 :
-  - [ ] Chiffre d'affaires du mois (avec période affichée)
-  - [ ] Quantité du mois (somme KG)
-  - [ ] Chiffre d'affaires du jour (avec date du jour)
-  - [ ] Quantité du jour
-  - [ ] Chiffre non réglé (impayés, mise en évidence visuelle)
-- [ ] Raccourcis navigation CDC sur le dashboard commercial (actuellement boutons
-  décoratifs sans lien) :
-  - [ ] Passer une commande
-  - [ ] Voir les commandes
-  - [ ] **Voir les commandes externes** (lien dédié — voir §2.3)
-  - [ ] Retours magasin
-  - [ ] Audit KPIs
-- [ ] Jauge objectif mensuel branchée sur les vrais objectifs (actuellement 72 % en dur)
-- [ ] Dashboard admin : sélecteur commercial + période personnalisée (§6.4)
-- [ ] Dashboard admin : raccourcis vers Paramétrage, Objectifs, Audit, Sessions
-- [ ] Titres/textes 100 % français (règle §13 CDC — l'accueil actuel est en anglais)
-
-**Fichiers concernés :** `app/admin/page.tsx`, `app/commercial/page.tsx`, `lib/kpi.ts`
+- [x] Brancher `/admin` sur `lib/kpi.ts` + agrégation tous commerciaux
+- [x] Brancher `/commercial` sur `lib/kpi.ts` + filtre `utilisateur_id` connecté
+- [x] Cartes CDC §5.2 / §6.4 :
+  - [x] Chiffre d'affaires du mois (avec période affichée)
+  - [x] Quantité du mois (somme KG, `formatQuantite`)
+  - [x] Chiffre d'affaires du jour (avec date du jour)
+  - [x] Quantité du jour
+  - [x] Chiffre non réglé (toutes commandes, carte rouge)
+- [x] Raccourcis navigation CDC sur le dashboard commercial :
+  - [x] Passer une commande
+  - [x] Voir les commandes
+  - [x] Voir les commandes externes (→ §2.3)
+  - [x] Retours magasin
+  - [x] Audit KPIs
+- [x] Jauge objectif mensuel branchée sur `objectifs` (taux d'atteinte réel,
+  message explicite si aucun objectif)
+- [x] Dashboard admin : sélecteur commercial + période personnalisée
+  (défaut 1er janvier → aujourd'hui, erreur explicite si fin < début)
+- [x] Dashboard admin : raccourcis Paramétrage, Objectifs, Audit, Sessions
+- [x] Titres/textes 100 % français + bandeau « Connecté : {nom} · Rôle : … »
+  dans le shell (remplace « Hello »)
 
 ---
 
