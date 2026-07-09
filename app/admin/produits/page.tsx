@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+import { listerCategoriesProduits } from "@/lib/categories";
 import { formatDate, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { ProduitsTable } from "./produits-table";
@@ -30,7 +33,7 @@ export default async function ProduitsPage({
       : {}),
   };
 
-  const [totalLignes, produits, categories] = await prisma.$transaction([
+  const [totalLignes, produits, categories] = await Promise.all([
     prisma.produit.count({ where }),
     prisma.produit.findMany({
       where,
@@ -38,12 +41,7 @@ export default async function ProduitsPage({
       skip: (page - 1) * TAILLE_PAGE,
       take: TAILLE_PAGE,
     }),
-    prisma.produit.findMany({
-      where: { deleted_at: null },
-      select: { categorie: true },
-      distinct: ["categorie"],
-      orderBy: { categorie: "asc" },
-    }),
+    listerCategoriesProduits(),
   ]);
 
   const lignes = produits.map((produit) => ({
@@ -64,13 +62,21 @@ export default async function ProduitsPage({
       titre="Produits et prix"
       description="Catalogue avicole : création, modification, changement de prix tracé, activation et suppression logique."
     >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button variant="outline" asChild>
+          <Link href="/admin/produits/categories">Categories</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/produits/prix">Prix en masse</Link>
+        </Button>
+      </div>
       <ProduitsTable
         lignes={lignes}
         page={page}
         taillePage={TAILLE_PAGE}
         totalLignes={totalLignes}
         recherche={recherche}
-        categories={categories.map((c) => c.categorie)}
+        categories={categories}
       />
     </AppShell>
   );

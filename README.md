@@ -62,3 +62,9 @@ dispose des privileges necessaires dans l'environnement de developpement.
 - Les permissions se verifient cote serveur sur chaque action.
 
 Voir `CLAUDE.md`, `AGENTS.md`, `PLAN.md` et `HANDOFF.md` avant toute modification.
+
+## Livraison
+
+- Choix techniques / ecarts CDC : `docs/CDC_DEVIATIONS.md`
+- Notes de deploiement recette / production : `docs/DEPLOYMENT.md`
+- Dockerfile production inclus a la racine.

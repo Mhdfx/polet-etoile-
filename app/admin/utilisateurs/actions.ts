@@ -3,7 +3,9 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { hashPassword } from "better-auth/crypto";
+import { DateTime } from "luxon";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
+import { FUSEAU_APPLICATION } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { erreursParChamp, type ResultatAction } from "@/lib/validations/commun";
@@ -25,6 +27,10 @@ function erreurServeur(erreur: unknown, action: string): ResultatAction {
 
 function emailTechnique(nomUtilisateur: string): string {
   return `${nomUtilisateur}@poulet-etoile.local`;
+}
+
+function moisCourantApplication(): string {
+  return DateTime.now().setZone(FUSEAU_APPLICATION).toFormat("yyyy-MM");
 }
 
 export async function creerUtilisateur(entree: unknown): Promise<ResultatAction> {
@@ -330,6 +336,15 @@ export async function definirObjectif(entree: unknown): Promise<ResultatAction> 
   }
 
   const { utilisateurId, mois, montant } = validation.data;
+
+  if (mois < moisCourantApplication()) {
+    return {
+      ok: false,
+      erreurs: {
+        mois: "Un objectif d'un mois deja clos ne peut plus etre modifie.",
+      },
+    };
+  }
 
   try {
     const ip = await adresseIpRequete();

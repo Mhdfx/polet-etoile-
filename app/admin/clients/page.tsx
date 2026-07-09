@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -116,6 +118,11 @@ export default async function ClientsAdminPage({
       titre="Clients"
       description="Clients commerciaux et clients externes : affectation, ville, telephone, suppression logique et audit."
     >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button variant="outline" asChild>
+          <Link href="/admin/clients/fusion">Fusion clients</Link>
+        </Button>
+      </div>
       <AdminClientsTable
         lignes={clients.map((client) => ({
           id: client.id,

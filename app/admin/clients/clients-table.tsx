@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
@@ -140,7 +141,12 @@ export function AdminClientsTable({
         accessorKey: "nom",
         header: "Client",
         cell: ({ row }) => (
-          <span className="font-medium text-foreground">{row.original.nom}</span>
+          <Link
+            href={`/admin/clients/${row.original.id}`}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {row.original.nom}
+          </Link>
         ),
       },
       { accessorKey: "regionVille", header: "Ville" },
@@ -213,7 +219,12 @@ export function AdminClientsTable({
         accessorKey: "nom",
         header: "Client externe",
         cell: ({ row }) => (
-          <span className="font-medium text-foreground">{row.original.nom}</span>
+          <Link
+            href={`/admin/clients/externes/${row.original.id}`}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {row.original.nom}
+          </Link>
         ),
       },
       { accessorKey: "regionVille", header: "Ville" },

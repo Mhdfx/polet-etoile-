@@ -10,7 +10,10 @@ import {
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
-import { SupprimerSessionButton } from "./session-actions";
+import {
+  SupprimerSessionButton,
+  SupprimerSessionsUtilisateurButton,
+} from "./session-actions";
 
 export default async function SessionsPage() {
   const admin = await requireAdmin();
@@ -21,8 +24,9 @@ export default async function SessionsPage() {
     orderBy: { updatedAt: "desc" },
     take: 200,
     select: {
-      id: true,
-      token: true,
+          id: true,
+          userId: true,
+          token: true,
       ipAddress: true,
       userAgent: true,
       createdAt: true,
@@ -84,7 +88,10 @@ export default async function SessionsPage() {
                     {session.userAgent ?? "-"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <SupprimerSessionButton sessionId={session.id} />
+                    <div className="flex justify-end gap-2">
+                      <SupprimerSessionButton sessionId={session.id} />
+                      <SupprimerSessionsUtilisateurButton userId={session.userId} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
