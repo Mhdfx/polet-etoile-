@@ -5,18 +5,37 @@
 >
 > **Référence d'analyse :** audit code complet du 09/07/2026 — chaque affirmation
 > ci-dessous a été vérifiée contre le code (routes, schéma Prisma, seed, composants).
-> 98/98 tests Vitest verts (16 fichiers), build OK.
+> 102/102 tests Vitest verts, build OK (revérifié après le module Dashboards).
 >
 > **Périmètre :** fonctionnalités uniquement — la stack technique (Laravel/Vue vs
 > Next.js) est ignorée, dérogation actée avec Naomedia (voir `CLAUDE.md` §1).
 
-**Conformité CDC estimée : ~65 %**
+**Conformité CDC estimée : ~70 %**
 
 | Zone | Couverture |
 |---|---|
 | Cœur métier (commande, BL, paiements, permissions) | ~85 % |
-| Tableaux de bord & KPI avancés | ~30 % |
+| Tableaux de bord & KPI avancés | ~50 % (dashboards faits, KPI §6.5 restant) |
 | Paramétrage & pilotage admin avancé | ~40 % |
+
+## Avancement de l'implémentation (session du 09/07/2026)
+
+| Module (ordre §8) | Statut | Commit |
+|---|---|---|
+| Baseline (travail sessions précédentes committé) | ✅ | `b1658c0` |
+| 1. Dashboards réels `/admin` + `/commercial` (§2.1) | ✅ **FAIT** | `11dc355` |
+| 2. Paramétrage système `/admin/parametres` (§2.2) | ⏳ Prochain | — |
+| 3. Vue commandes externes commercial (§2.3) | À faire | — |
+| 4. KPI consolidé + graphiques (§2.5) | À faire | — |
+| 5. Fiche client détaillée (§2.4) | À faire | — |
+| 6. Fusion clients + doublons (§3.1) | À faire | — |
+| 7. Exports audit/global (§3.6) | À faire | — |
+| 8. Seed catalogue + 1 000 commandes (§4) | À faire | — |
+| 9. Finitions UX (§3.2, §3.3, §3.4, §3.5, §3.7) | Partiel (bandeau identité fait) | — |
+| 10. QA finale + doc écarts | À faire | — |
+
+> ⚠️ Le lien « Voir les commandes externes » du dashboard commercial pointe vers
+> `/commercial/commandes/externes`, route livrée au module 3 (404 en attendant).
 
 ---
 
@@ -267,8 +286,8 @@ Vérifié absent de `app/connexion/connexion-form.tsx` :
 
 - [ ] Bouton afficher / masquer le mot de passe
 - [ ] Mention réassurance (« Connexion chiffrée et protégée »)
-- [ ] Bandeau identité post-connexion : « Connecté : {nom} · Rôle : COMMERCIAL/ADMIN »
-  (le shell affiche « Hello, {nom} » — pas au format CDC, et en anglais)
+- [x] Bandeau identité post-connexion : « Connecté : {nom} · Rôle : COMMERCIAL /
+  ADMINISTRATEUR » — fait au module 1 (shell + description des deux dashboards)
 
 ---
 
@@ -412,5 +431,5 @@ Pour éviter les doublons — modules opérationnels **vérifiés dans le code**
 
 ---
 
-*Dernière mise à jour : 09/07/2026 (audit code complet, 98/98 tests verts) — à tenir
-à jour après chaque module livré.*
+*Dernière mise à jour : 09/07/2026 — module 1 (Dashboards) livré, 102/102 tests
+verts, build OK. À tenir à jour après chaque module livré.*
