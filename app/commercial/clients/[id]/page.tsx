@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
+import { DialogueDetailBl } from "@/components/dialogue-detail-bl";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -13,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { calculerTotauxCommande, libelleStatutPaiement } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
 import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
@@ -118,7 +119,21 @@ export default async function ClientCommercialDetailPage({ params }: PageProps) 
               ) : (
                 lignes.map(({ commande, totaux }) => (
                   <TableRow key={commande.id}>
-                    <TableCell><Link className="font-medium text-primary hover:underline" href={`/commercial/commandes/${commande.id}`}>{commande.numero_bl}</Link></TableCell>
+                    <TableCell>
+                      <DialogueDetailBl
+                        numeroBl={commande.numero_bl}
+                        date={formatDate(commande.date_commande)}
+                        statut={libelleStatutPaiement(totaux.statutPaiement)}
+                        total={formatMontant(totaux.total)}
+                        lienDetail={`/commercial/commandes/${commande.id}`}
+                        lignes={commande.lignes.map((ligne) => ({
+                          produit: ligne.produit.nom,
+                          quantite: formatQuantite(ligne.quantite),
+                          prixUnitaire: formatMontant(ligne.prix_unitaire),
+                          prixNet: formatMontant(ligne.prix_net),
+                        }))}
+                      />
+                    </TableCell>
                     <TableCell>{formatDate(commande.date_commande)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatMontant(totaux.total)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatMontant(totaux.resteDu)}</TableCell>

@@ -96,6 +96,10 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
             <Text>Reste</Text>
             <Text>{commande.resteDu}</Text>
           </View>
+          <View style={styles.totalLine}>
+            <Text>Statut</Text>
+            <Text>{commande.statut}</Text>
+          </View>
         </View>
 
         <Text style={styles.footer}>

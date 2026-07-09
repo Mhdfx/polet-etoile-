@@ -140,7 +140,7 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
         id="logo"
         label="Fichier logo"
         erreur={erreursLogo.logo}
-        description="Formats acceptes : PNG, JPG, SVG. Taille maximum : 2 Mo."
+        description="Formats acceptes : PNG, JPG, SVG. Taille maximum : 2 Mo. PNG ou JPG recommande : un logo SVG n'apparait pas dans le PDF du bon de livraison."
       >
         <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/svg+xml" />
       </Champ>

@@ -33,6 +33,12 @@ export function formaterTotauxCommande(totaux: TotauxCommande) {
   };
 }
 
+// Libelles CDC 7.5 : le statut d'une commande s'affiche « Réglée » / « Non réglée »
+// partout (ecran, PDF, Excel) meme si l'enum technique reste paye / en_attente.
+export function libelleStatutPaiement(statut: "paye" | "en_attente"): string {
+  return statut === "paye" ? "Réglée" : "Non réglée";
+}
+
 export function libelleModePaiement(mode: string): string {
   switch (mode) {
     case "ESPECES":

@@ -27,6 +27,7 @@ import {
   calculerKpiPeriode,
   filtrerCommandesPeriode,
 } from "@/lib/kpi";
+import { calculerCartesEpinglees, lireEpinglesKpi } from "@/lib/kpi-epingles";
 import { requireAdmin } from "@/lib/session";
 
 const raccourcisAdmin = [
@@ -128,6 +129,8 @@ export default async function AdminPage({
         select: { id: true, nom_complet: true },
       }),
     ]);
+
+  const cartesEpinglees = await calculerCartesEpinglees(await lireEpinglesKpi());
 
   const kpiMois = calculerKpiPeriode(commandesMois);
   const kpiJour = calculerKpiPeriode(
@@ -236,6 +239,25 @@ export default async function AdminPage({
             icon={AlertTriangle}
           />
         </div>
+
+        {cartesEpinglees.length > 0 ? (
+          <section className="grid gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              KPI épinglés
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {cartesEpinglees.map((carte) => (
+                <CarteKPI
+                  key={carte.cle}
+                  label={carte.label}
+                  valeur={carte.valeur}
+                  detail={carte.detail}
+                  tonalite={carte.tonalite}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
           <Panel

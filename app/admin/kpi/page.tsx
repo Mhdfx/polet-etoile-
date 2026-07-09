@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import { DateTime } from "luxon";
 import { AppShell } from "@/components/app-shell";
 import { Bouton } from "@/components/bouton";
-import { CarteKPI } from "@/components/carte-kpi";
+import { CarteKpiEpinglable } from "./carte-kpi-epinglable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
@@ -19,6 +19,7 @@ import {
 import { bornesJourneeInclusive, FUSEAU_APPLICATION } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatMontant, formatQuantite } from "@/lib/format";
+import { lireEpinglesKpi } from "@/lib/kpi-epingles";
 import { requireAdmin } from "@/lib/session";
 import {
   GraphiqueAireCA,
@@ -128,6 +129,7 @@ export default async function KpiAdminPage({
     paiements: { select: { montant: true } },
   } satisfies Prisma.CommandeSelect;
 
+  const epingles = await lireEpinglesKpi();
   const [commandes, commandesCumulees, commerciaux, clients, clientsExternes] = await Promise.all([
     erreurPeriode
       ? Promise.resolve([])
@@ -311,18 +313,18 @@ export default async function KpiAdminPage({
         </p>
 
         <div className="grid gap-4 md:grid-cols-5">
-          <CarteKPI label="CA periode" valeur={formatMontant(caPeriode)} tonalite="bleu" />
-          <CarteKPI label="Regle periode" valeur={formatMontant(reglePeriode)} tonalite="vert" />
-          <CarteKPI label="Non regle periode" valeur={formatMontant(nonReglePeriode)} tonalite="rouge" />
-          <CarteKPI label="Clients" valeur={String(clientsDistincts.size)} tonalite="neutre" />
-          <CarteKPI label="Prix moyen" valeur={prixMoyen ? formatMontant(prixMoyen) : "-"} tonalite="neutre" />
+          <CarteKpiEpinglable cle="ca_periode" epingle={epingles.includes("ca_periode")} label="CA periode" valeur={formatMontant(caPeriode)} tonalite="bleu" />
+          <CarteKpiEpinglable cle="regle_periode" epingle={epingles.includes("regle_periode")} label="Regle periode" valeur={formatMontant(reglePeriode)} tonalite="vert" />
+          <CarteKpiEpinglable cle="non_regle_periode" epingle={epingles.includes("non_regle_periode")} label="Non regle periode" valeur={formatMontant(nonReglePeriode)} tonalite="rouge" />
+          <CarteKpiEpinglable cle="clients_periode" epingle={epingles.includes("clients_periode")} label="Clients" valeur={String(clientsDistincts.size)} tonalite="neutre" />
+          <CarteKpiEpinglable cle="prix_moyen" epingle={epingles.includes("prix_moyen")} label="Prix moyen" valeur={prixMoyen ? formatMontant(prixMoyen) : "-"} tonalite="neutre" />
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <CarteKPI label="Quantite periode" valeur={formatQuantite(quantitePeriode)} tonalite="bleu" />
-          <CarteKPI label="CA cumule" valeur={formatMontant(caCumule)} tonalite="bleu" />
-          <CarteKPI label="Regle cumule" valeur={formatMontant(regleCumule)} tonalite="vert" />
-          <CarteKPI label="Non regle cumule" valeur={formatMontant(nonRegleCumule)} tonalite="rouge" />
+          <CarteKpiEpinglable cle="quantite_periode" epingle={epingles.includes("quantite_periode")} label="Quantite periode" valeur={formatQuantite(quantitePeriode)} tonalite="bleu" />
+          <CarteKpiEpinglable cle="ca_cumule" epingle={epingles.includes("ca_cumule")} label="CA cumule" valeur={formatMontant(caCumule)} tonalite="bleu" />
+          <CarteKpiEpinglable cle="regle_cumule" epingle={epingles.includes("regle_cumule")} label="Regle cumule" valeur={formatMontant(regleCumule)} tonalite="vert" />
+          <CarteKpiEpinglable cle="non_regle_cumule" epingle={epingles.includes("non_regle_cumule")} label="Non regle cumule" valeur={formatMontant(nonRegleCumule)} tonalite="rouge" />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-3">

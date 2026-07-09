@@ -73,7 +73,10 @@ export async function GET(request: Request) {
     try {
       bornes = bornesJourneeInclusive(debut, fin);
     } catch {
-      bornes = undefined;
+      return new Response(
+        "Periode invalide : la date fin doit etre egale ou posterieure a la date debut.",
+        { status: 400 },
+      );
     }
   }
 

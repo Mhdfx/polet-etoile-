@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { notFound, redirect } from "next/navigation";
-import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { calculerTotauxCommande, libelleStatutPaiement } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
 import { formatDateHeure, formatMontant } from "@/lib/format";
 
@@ -21,6 +21,7 @@ export type CommandeDocumentData = {
   total: string;
   totalPaye: string;
   resteDu: string;
+  statut: string;
   lignes: Array<{
     produit: string;
     quantite: string;
@@ -88,6 +89,7 @@ export async function chargerCommandeDocument(
     total: formatMontant(totaux.total),
     totalPaye: formatMontant(totaux.totalPaye),
     resteDu: formatMontant(totaux.resteDu),
+    statut: libelleStatutPaiement(totaux.statutPaiement),
     lignes: commande.lignes.map((ligne) => ({
       produit: ligne.produit.nom,
       quantite: `${ligne.quantite.toFixed(3)} kg`,
