@@ -62,6 +62,21 @@ export default async function ExportsAdminPage() {
                 </Link>
               </Button>
             </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background/50 p-3">
+              <div>
+                <p className="text-sm font-semibold">Bons de charge</p>
+                <p className="text-xs text-muted-foreground">
+                  Quantites chargees par tournee (une ligne par produit).
+                </p>
+              </div>
+              <Button asChild>
+                <Link href="/admin/charges/export">
+                  <Download />
+                  Telecharger
+                </Link>
+              </Button>
+            </div>
           </div>
         </Panel>
 
