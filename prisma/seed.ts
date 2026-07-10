@@ -40,9 +40,9 @@ function motDePasseSeed(
     return configure || valeurLocale;
   }
 
-  if (!configure || configure.length < 12) {
+  if (!configure || configure.length < 8) {
     throw new Error(
-      `${variable} est obligatoire en production et doit contenir au moins 12 caracteres`,
+      `${variable} est obligatoire en production et doit contenir au moins 8 caracteres`,
     );
   }
 
@@ -79,6 +79,21 @@ const produitsCdc = [
 ];
 
 async function upsertUtilisateur(seed: SeedUtilisateur) {
+  const existantParNom = await prisma.user.findUnique({
+    where: { nom_utilisateur: seed.nom_utilisateur },
+  });
+
+  if (existantParNom && existantParNom.email !== seed.email) {
+    await prisma.user.update({
+      where: { id: existantParNom.id },
+      data: {
+        nom_utilisateur: `${seed.nom_utilisateur}.archive.${existantParNom.id.slice(0, 8)}`,
+        actif: false,
+        deleted_at: new Date(),
+      },
+    });
+  }
+
   const utilisateur = await prisma.user.upsert({
     where: { email: seed.email },
     create: {
@@ -121,10 +136,7 @@ async function upsertUtilisateur(seed: SeedUtilisateur) {
 
 async function main() {
   const motDePasseAdmin = motDePasseSeed("SEED_ADMIN_PASSWORD", "password");
-  const motDePasseCommercial = motDePasseSeed(
-    "SEED_COMMERCIAL_PASSWORD",
-    "commercial123",
-  );
+  const motDePasseCommercial = motDePasseSeed("SEED_COMMERCIAL_PASSWORD", "password");
 
   await prisma.compteurBl.upsert({
     where: { cle: "numero_bl" },
@@ -140,17 +152,17 @@ async function main() {
     role: "ADMIN",
   });
 
-  const commercialNord = await upsertUtilisateur({
-    nom_utilisateur: "commercial.nord",
-    nom_complet: "Commercial Nord",
+  const commercialCom1 = await upsertUtilisateur({
+    nom_utilisateur: "com1",
+    nom_complet: "Commercial 1",
     email: "commercial.nord@poulet-etoile.local",
     mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
   });
 
-  const commercialSud = await upsertUtilisateur({
-    nom_utilisateur: "commercial.sud",
-    nom_complet: "Commercial Sud",
+  const commercialCom2 = await upsertUtilisateur({
+    nom_utilisateur: "com2",
+    nom_complet: "Commercial 2",
     email: "commercial.sud@poulet-etoile.local",
     mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
@@ -215,10 +227,10 @@ async function main() {
       nom: "Client sans commande",
       region_ville: "Casablanca",
       telephone: "0600000000",
-      commercial_id: commercialNord.id,
+      commercial_id: commercialCom1.id,
     },
     update: {
-      commercial_id: commercialNord.id,
+      commercial_id: commercialCom1.id,
       actif: true,
       deleted_at: null,
     },
@@ -231,10 +243,10 @@ async function main() {
       nom: "Boucherie Atlas",
       region_ville: "Casablanca",
       telephone: "0611111111",
-      commercial_id: commercialNord.id,
+      commercial_id: commercialCom1.id,
     },
     update: {
-      commercial_id: commercialNord.id,
+      commercial_id: commercialCom1.id,
       actif: true,
       deleted_at: null,
     },
@@ -247,10 +259,10 @@ async function main() {
       nom: "Restaurant Sud",
       region_ville: "Marrakech",
       telephone: "0622222222",
-      commercial_id: commercialSud.id,
+      commercial_id: commercialCom2.id,
     },
     update: {
-      commercial_id: commercialSud.id,
+      commercial_id: commercialCom2.id,
       actif: true,
       deleted_at: null,
     },
@@ -271,9 +283,9 @@ async function main() {
   });
 
   await prisma.objectif.upsert({
-    where: { utilisateur_id_mois: { utilisateur_id: commercialNord.id, mois: "2026-07" } },
+    where: { utilisateur_id_mois: { utilisateur_id: commercialCom1.id, mois: "2026-07" } },
     create: {
-      utilisateur_id: commercialNord.id,
+      utilisateur_id: commercialCom1.id,
       mois: "2026-07",
       montant_objectif: "60000.00",
       created_by: admin.id,
@@ -285,9 +297,9 @@ async function main() {
   });
 
   await prisma.objectif.upsert({
-    where: { utilisateur_id_mois: { utilisateur_id: commercialSud.id, mois: "2026-07" } },
+    where: { utilisateur_id_mois: { utilisateur_id: commercialCom2.id, mois: "2026-07" } },
     create: {
-      utilisateur_id: commercialSud.id,
+      utilisateur_id: commercialCom2.id,
       mois: "2026-07",
       montant_objectif: "45000.00",
       created_by: admin.id,
@@ -313,7 +325,7 @@ async function main() {
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
           client_id: clientBoucherie.id,
-          utilisateur_id: commercialNord.id,
+          utilisateur_id: commercialCom1.id,
           date_commande: new Date("2026-07-08T10:00:00.000Z"),
           lignes: {
             create: [
@@ -357,7 +369,7 @@ async function main() {
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
           client_id: clientRestaurant.id,
-          utilisateur_id: commercialSud.id,
+          utilisateur_id: commercialCom2.id,
           date_commande: new Date("2026-07-08T18:30:00.000Z"),
           lignes: {
             create: {
@@ -394,7 +406,7 @@ async function main() {
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
           client_externe_id: clientExterne.id,
-          utilisateur_id: commercialNord.id,
+          utilisateur_id: commercialCom1.id,
           type_commande: "EXTERNE",
           date_commande: new Date("2026-07-09T09:00:00.000Z"),
           lignes: {
@@ -421,7 +433,7 @@ async function main() {
       select: { id: true, prix_reference: true },
     });
     const clientsVolume = [clientBoucherie, clientRestaurant];
-    const commerciauxVolume = [commercialNord, commercialSud];
+    const commerciauxVolume = [commercialCom1, commercialCom2];
 
     for (let index = volumeExistant; index < 1000; index += 1) {
       const produit = produitsVolume[index % produitsVolume.length];
@@ -491,7 +503,7 @@ async function main() {
       produit_id: "seed-produit-10",
       quantite_kg: "4.500",
       commentaire: "Retour magasin test",
-      utilisateur_id: commercialNord.id,
+      utilisateur_id: commercialCom1.id,
     },
   });
 

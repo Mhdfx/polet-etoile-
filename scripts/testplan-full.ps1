@@ -34,8 +34,8 @@ foreach ($p in @("/admin", "/commercial", "/admin/commandes")) {
 
 # --- Sessions ---
 try { $admin = New-Session "admin" "password" } catch { Test-Case "AUTH-01" "FAIL" "login admin"; exit 1 }
-try { $nord = New-Session "commercial.nord" "commercial123" } catch { Test-Case "AUTH-02" "FAIL" "login nord" }
-try { $sud = New-Session "commercial.sud" "commercial123" } catch { Test-Case "AUTH-02b" "FAIL" "login sud" }
+try { $nord = New-Session "com1" "password" } catch { Test-Case "AUTH-02" "FAIL" "login com1" }
+try { $sud = New-Session "com2" "password" } catch { Test-Case "AUTH-02b" "FAIL" "login com2" }
 
 # AUTH pages
 $r = Invoke-WebRequest -Uri "$Base/admin" -WebSession $admin -UseBasicParsing

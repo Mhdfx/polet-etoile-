@@ -32,8 +32,8 @@ qui utilise souvent `3306`.
 ## Comptes seed
 
 - Admin : `admin` / `password`
-- Commercial : `commercial.nord` / `commercial123`
-- Commercial : `commercial.sud` / `commercial123`
+- Commercial : `com1` / `password`
+- Commercial : `com2` / `password`
 
 Avant production, remplacer `BETTER_AUTH_SECRET` par une valeur aleatoire longue
 de 32 caracteres minimum.

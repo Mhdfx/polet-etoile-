@@ -38,7 +38,7 @@ foreach ($p in $adminPages) {
 Test-Case "AUTH-01/admin-pages" ($ok -eq $adminPages.Count) "$ok/$($adminPages.Count) OK"
 
 # PERM-02 commercial -> admin
-$nord = New-Session "commercial.nord" "commercial123"
+$nord = New-Session "com1" "password"
 $r = Invoke-WebRequest -Uri "$Base/admin" -WebSession $nord -UseBasicParsing
 Test-Case "PERM-02" ($r.Content -match "403|Acces refuse|Accès refusé") "admin blocked"
 
