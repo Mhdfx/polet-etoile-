@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,11 +90,24 @@ export default async function ChargesAdminPage({
             ) : null}
           </form>
 
-          <Button asChild>
-            <Link href="/admin/charges/nouveau">
-              <Plus className="h-4 w-4" /> Nouveau bon de charge
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link
+                href={`/admin/charges/export${
+                  params.debut && params.fin && !erreurPeriode
+                    ? `?debut=${params.debut}&fin=${params.fin}`
+                    : ""
+                }`}
+              >
+                <Download className="h-4 w-4" /> Export Excel
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/admin/charges/nouveau">
+                <Plus className="h-4 w-4" /> Nouveau bon de charge
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-border bg-card">

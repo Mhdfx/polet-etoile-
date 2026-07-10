@@ -3,24 +3,10 @@ import { hashPassword } from "better-auth/crypto";
 import { calculerPrixNet } from "@/lib/decimal";
 import { prisma } from "@/lib/db";
 import { attribuerNumeroBL } from "@/lib/bl";
+import { VILLES_MAROC_DEFAUT } from "@/lib/villes";
 
-const villesMaroc = [
-  "Casablanca",
-  "Rabat",
-  "Marrakech",
-  "Fès",
-  "Tanger",
-  "Agadir",
-  "Meknès",
-  "Oujda",
-  "Kénitra",
-  "Tétouan",
-  "Safi",
-  "Mohammedia",
-  "El Jadida",
-  "Béni Mellal",
-  "Nador",
-];
+// Source unique : liste complète des villes du Maroc dans lib/villes.ts.
+const villesMaroc = VILLES_MAROC_DEFAUT;
 
 type SeedUtilisateur = {
   nom_utilisateur: string;
@@ -193,9 +179,16 @@ async function main() {
       { cle: "prefixe_bc", valeur: "BC", updated_by: admin.id },
       { cle: "fuseau_horaire", valeur: "Africa/Casablanca", updated_by: admin.id },
       { cle: "taux_tva", valeur: "0", updated_by: admin.id },
-      { cle: "villes_maroc", valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
     ],
     skipDuplicates: true,
+  });
+
+  // Villes : upsert (pas skipDuplicates) pour que la liste complète s'applique
+  // aussi aux bases déjà seedées. L'admin peut ensuite la personnaliser.
+  await prisma.parametreSysteme.upsert({
+    where: { cle: "villes_maroc" },
+    create: { cle: "villes_maroc", valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
+    update: { valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
   });
 
   for (const produit of produitsCdc) {
