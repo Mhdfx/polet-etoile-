@@ -34,19 +34,19 @@ function motDePasseSeed(
   variable: "SEED_ADMIN_PASSWORD" | "SEED_COMMERCIAL_PASSWORD",
   valeurLocale: string,
 ): string {
-  const configure = process.env[variable];
+  const configure = process.env[variable]?.trim();
 
-  if (process.env.NODE_ENV !== "production") {
-    return configure || valeurLocale;
+  if (configure) {
+    if (configure.length < 8) {
+      throw new Error(`${variable} doit contenir au moins 8 caracteres`);
+    }
+    return configure;
   }
 
-  if (!configure || configure.length < 8) {
-    throw new Error(
-      `${variable} est obligatoire en production et doit contenir au moins 8 caracteres`,
-    );
-  }
-
-  return configure;
+  console.warn(
+    `[seed] ${variable} non defini — utilisation du mot de passe seed par defaut.`,
+  );
+  return valeurLocale;
 }
 
 const produitsCdc = [
