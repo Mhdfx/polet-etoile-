@@ -1,0 +1,18 @@
+[Unit]
+Description=Poulet Etoile — stack Docker Compose
+Documentation=file://@WORK_DIR@/docs/CONTABO.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@WORK_DIR@
+# Demarrer la stack au boot VPS (meme apres un arret propre ou un crash).
+ExecStart=/usr/bin/docker compose -f @COMPOSE_FILE@ up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f @COMPOSE_FILE@ stop
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
