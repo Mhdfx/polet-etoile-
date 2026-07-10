@@ -80,7 +80,7 @@ describe("creerUtilisateur", () => {
       expect(resultat.erreurs?.nomComplet).toContain("au moins 2 caractères");
       expect(resultat.erreurs?.nomUtilisateur).toContain("3 à 50 caractères");
       expect(resultat.erreurs?.role).toContain("Administrateur ou Commercial");
-      expect(resultat.erreurs?.motDePasse).toContain("au moins 8 caractères");
+      expect(resultat.erreurs?.motDePasse).toContain("au moins 12 caractères");
     }
   });
 

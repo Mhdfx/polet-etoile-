@@ -6,6 +6,7 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
+import { extensionLogoValide } from "@/lib/logo-upload";
 import { requireAdmin } from "@/lib/session";
 import { erreursParChamp, type ResultatAction } from "@/lib/validations/commun";
 import { schemaParametresSysteme } from "@/lib/validations/parametres";
@@ -34,12 +35,6 @@ function erreurServeur(erreur: unknown): ResultatAction {
   return { ok: false, message: `${MESSAGE_ERREUR_SERVEUR} (ref. ${idErreur})` };
 }
 
-const typesLogoAutorises = new Map([
-  ["image/png", "png"],
-  ["image/jpeg", "jpg"],
-  ["image/svg+xml", "svg"],
-]);
-
 export async function televerserLogoSociete(formData: FormData): Promise<ResultatAction> {
   const admin = await requireAdmin();
   const fichier = formData.get("logo");
@@ -48,24 +43,27 @@ export async function televerserLogoSociete(formData: FormData): Promise<Resulta
     return { ok: false, erreurs: { logo: "Choisissez un fichier logo" } };
   }
 
-  const extension = typesLogoAutorises.get(fichier.type);
-  if (!extension) {
-    return { ok: false, erreurs: { logo: "Logo PNG, JPG ou SVG uniquement" } };
-  }
-
   if (fichier.size > 2 * 1024 * 1024) {
     return { ok: false, erreurs: { logo: "Le logo ne doit pas depasser 2 Mo" } };
   }
 
   try {
     const ip = await adresseIpRequete();
+    const contenu = Buffer.from(await fichier.arrayBuffer());
+    const extension = extensionLogoValide(fichier.type, contenu);
+    if (!extension) {
+      return {
+        ok: false,
+        erreurs: { logo: "Le fichier doit etre une image PNG ou JPG valide" },
+      };
+    }
     const nomFichier = `logo-${randomUUID()}.${extension}`;
     const dossier = path.join(process.cwd(), "public", "uploads", "logos");
     const cheminDisque = path.join(dossier, nomFichier);
     const cheminPublic = `/uploads/logos/${nomFichier}`;
 
     await mkdir(dossier, { recursive: true });
-    await writeFile(cheminDisque, Buffer.from(await fichier.arrayBuffer()));
+    await writeFile(cheminDisque, contenu, { flag: "wx" });
 
     await prisma.$transaction(async (tx) => {
       const avant = await tx.parametreSysteme.findUnique({

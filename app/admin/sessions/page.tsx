@@ -24,9 +24,8 @@ export default async function SessionsPage() {
     orderBy: { updatedAt: "desc" },
     take: 200,
     select: {
-          id: true,
-          userId: true,
-          token: true,
+      id: true,
+      userId: true,
       ipAddress: true,
       userAgent: true,
       createdAt: true,

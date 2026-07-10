@@ -437,3 +437,23 @@ npm run build
 npx next start -p 3107
 powershell -ExecutionPolicy Bypass -File scripts/testplan-full.ps1
 ```
+
+---
+
+## Resultats campagne securite 10/07/2026 - build production localhost:3112
+
+Revue statique complete puis smoke HTTP sur le build production durci :
+
+- [x] Connexion admin et commercial : HTTP 200 ; espace admin accessible a l'admin.
+- [x] Requete login navigateur cross-site (`Origin` externe + `Sec-Fetch-Site: cross-site`) : HTTP 403.
+- [x] Script de recette sans en-tetes navigateur : login conserve, HTTP 200.
+- [x] Commercial sur espace/route export admin : page 403 ou redirection 307, aucune donnee.
+- [x] Job export commercial reel : createur HTTP 200 ; autre commercial HTTP 404.
+- [x] PDF prive : HTTP 200 avec `Cache-Control: private, no-store`.
+- [x] Route runtime d'un logo SVG : HTTP 404.
+- [x] CSP, anti-framing, `nosniff` actifs et `X-Powered-By` absent.
+- [x] Cookie de session non persistant quand `rememberMe=false`.
+- [x] Tests securite ajoutes : IP audit, isolation exports, signatures/path logos.
+
+Verification : Prisma OK, TypeScript OK, lint OK, build OK, **110/110 tests**.
+Rapport et risques residuels : `docs/SECURITY.md`.

@@ -26,7 +26,7 @@ export function ConnexionForm() {
     const resultat = await signIn.username({
       username,
       password,
-      rememberMe: true,
+      rememberMe: false,
     });
 
     setChargement(false);

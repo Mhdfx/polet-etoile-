@@ -4,8 +4,8 @@
 > `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
 > rules. Keep all three aligned after each meaningful change.
 
-Current date: 09/07/2026  
-Current status: **foundation + auth + design system + phases 4-7 implemented (through KPI, audit, sessions)**  
+Current date: 10/07/2026
+Current status: **code fonctionnel + passe securite applicative terminee ; QA appareil et deploiement restent separes**
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -433,6 +433,14 @@ Goal: make the app reliable outside the happy path.
 - [x] Empty states on key lists.
 - [x] Loading states on async forms/actions.
 - [x] Anti double-submit on mutations.
+- [x] Security audit of auth, authorization, validation, files, exports and dependencies.
+- [x] Same-origin guard on all mutating Better Auth API methods.
+- [x] Production auth config hardened: origin allowlist, 32-char secret, 12-hour sessions.
+- [x] Async exports isolated by owner/admin scope, validated and expired after 24 hours.
+- [x] Logo upload restricted to signature-checked PNG/JPG; runtime serving confined to generated logo paths.
+- [x] Security headers and private no-store headers on PDF/Excel responses.
+- [x] Forwarded audit IP validation and production seed-password gate.
+- [x] Security regression tests and `docs/SECURITY.md` added.
 - [ ] Mobile visual QA for commercial workflow.
 - [ ] Admin table QA with large row counts.
 - [ ] Run CDC section 16.2 acceptance tests once CDC is available.
@@ -546,6 +554,7 @@ Then curl or open `http://localhost:3107`, and stop the server.
 - 09/07/2026 - Phase 5C/5D and Phase 6 added: order detail pages, admin payment form with locked balance validation, admin soft-delete, order lists with filters/status, commercial/admin returns, PDF BL routes, Excel exports. Smoke on `:3107`: admin/commercial lists 200, PDF 200 `application/pdf`, Excel 200 `.xlsx`, commercial wrong-role admin route -> `/403`; 93 Vitest tests green.
 - 09/07/2026 - Phase 7 added: central KPI calculator, `/admin/kpi`, `/commercial/kpi`, `/admin/audit`, `/admin/sessions`, session force logout action with audit. Smoke on `:3107`: admin KPI/audit/sessions 200, commercial KPI 200, commercial admin audit -> `/403`; 97 Vitest tests green.
 - 09/07/2026 - Phase 8 hardening pass: generic session server errors, lock assertions for BL/payment `FOR UPDATE`, route permission smoke (anonymous -> `/connexion`, wrong role -> `/403`, missing route -> 404), empty-state smoke for order/audit lists, full verification green with 98 Vitest tests. Remaining: CDC 16.2 unavailable, mobile visual QA and large-data table QA.
+- 10/07/2026 - Security review completed: auth origin/session hardening, explicit login-CSRF guard, export owner/admin isolation with 24h retention, PNG/JPG signature validation, restricted runtime upload serving, audit IP validation, security/no-cache headers, production seed credential gate, dependency review and 110 Vitest tests. Residual risks documented in `docs/SECURITY.md`.
 ## Mise a jour Codex - reconciliation whatsleft - 09/07/2026
 
 - [x] `whatsleft.md` remplace par un etat final propre : toutes les phases code

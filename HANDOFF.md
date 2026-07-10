@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 09/07/2026.  
-Statut : **code CDC pret pour tests locaux hors deploiement - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
+Derniere mise a jour : 10/07/2026.
+Statut : **code CDC pret pour tests locaux, passe securite applicative terminee - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -351,6 +351,10 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | Validations communes actions | `lib/validations/commun.ts` |
 | Liste villes Maroc | `lib/villes.ts`, parametre `villes_maroc` |
 | Audit transactionnel | `lib/audit.ts` |
+| Configuration et garde auth | `lib/auth.ts`, `app/api/auth/[...all]/route.ts` |
+| Securite uploads logo | `lib/logo-upload.ts`, `app/uploads/[...chemin]/route.ts` |
+| Jobs exports prives | `lib/export-jobs.ts`, `lib/http.ts` |
+| Rapport securite | `docs/SECURITY.md` |
 | Normalisation saisies FR | `lib/saisie.ts` |
 | Decimal / format / dates | `lib/decimal.ts`, `lib/format.ts`, `lib/dates.ts` |
 | Numerotation BL | `lib/bl.ts` |
@@ -397,6 +401,25 @@ Verification finale :
 - `npx tsc --noEmit` OK
 - `npm run lint` OK
 - `npm run build` OK
+
+## Mise a jour Codex - securite applicative - 10/07/2026
+
+Revue complete des frontieres de confiance et corrections appliquees :
+
+- Auth Better Auth : origines locales conditionnelles, garde same-origin explicite
+  sur les mutations API, secret production >= 32 caracteres, session 12 h et cookie
+  de connexion non persistant.
+- Autorisation exports : chaque job porte son createur et son niveau d'acces ; un
+  commercial ne peut plus telecharger le job d'un autre utilisateur ni un export admin.
+- Fichiers : jobs expires apres 24 h ; PDF/XLSX `private, no-store`; logos PNG/JPG
+  verifies par signature, SVG refuse, route runtime limitee aux noms generes.
+- Audit : en-tete IP valide avant insertion pour eviter usurpation grossiere et echec
+  transactionnel par depassement de colonne.
+- Configuration : CSP/anti-frame/nosniff/HSTS, aucun fallback `DATABASE_URL`, seed
+  production sans mot de passe par defaut, minimum 12 caracteres pour nouveaux MDP.
+- Verification : Prisma OK, TypeScript OK, lint OK, build OK, 110/110 tests.
+
+Risques residuels et contraintes de deploiement : `docs/SECURITY.md`.
 - `npm run test` OK (102/102)
 
 Restes hors code/freeze : QA mobile reelle, QA volume chronometree, decisions
@@ -466,3 +489,93 @@ Verification de cette passe :
 - `npm run test` OK (102/102)
 - `npm run lint` OK
 - `npm run build` OK
+
+## Mise a jour Claude Code - readiness deploiement Contabo - 10/07/2026
+
+Passe complete de preparation au deploiement VPS Contabo, avec verification
+reelle de l'image Docker de production (build + stack compose + smoke HTTP).
+
+Bugs de deploiement trouves et corriges :
+
+- **Build Docker impossible (bloquant)** : `next build` echouait dans le
+  conteneur (`DATABASE_URL est obligatoire pour initialiser Prisma` a la
+  collecte des pages) car `.env` n'est pas dans l'image. Corrige : variables
+  factices build-only dans l'etape `builder` du `Dockerfile` (aucune connexion
+  ouverte au build, adapter MariaDB paresseux). Jamais vu en local car `.env`
+  Laragon existe.
+- **Logo uploade au runtime -> 404 en production (bloquant fonctionnel)** :
+  `next start` ne sert que les fichiers `public/` presents AU BUILD. Corrige :
+  route `app/uploads/[...chemin]/route.ts` qui sert `public/uploads/*` depuis
+  le disque (confinement chemin + extensions whitelist ; durcie ensuite avec
+  controle magic bytes). Verifie : 200 sur l'image de prod, traversee -> 404.
+- **Volume exports errone** : compose montait `/app/public/exports` alors que
+  les exports vivent dans `/app/exports-prive` depuis la passe P2/P3 ; en prod
+  les jobs d'export auraient echoue (dossier root) et les fichiers perdus au
+  redemarrage. Corrige dans `docker-compose.prod.yml`, `docker-compose.ip.yml`
+  et `Dockerfile` (mkdir + chown `exports-prive`). Verifie : volume inscriptible
+  par l'utilisateur `nextjs`.
+- **CSP `upgrade-insecure-requests` retire** de `next.config.ts` : cassait le
+  mode sans domaine (`docker-compose.ip.yml`, HTTP sur IP publique) en forcant
+  https sur tous les assets. En mode domaine, Caddy redirige deja http->https.
+- **Entrypoint durci** : refuse de demarrer si `DATABASE_URL`,
+  `BETTER_AUTH_SECRET` (absent, < 32 caracteres ou placeholder) ou
+  `BETTER_AUTH_URL` manquent. Verifie : exit 1 + message clair.
+- **`docs/CONTABO.md`** : commande mysqldump corrigee (le mot de passe est lu
+  dans le conteneur, pas sur l'hote), cron quotidien pret a coller, seed
+  production exige `SEED_ADMIN_PASSWORD`/`SEED_COMMERCIAL_PASSWORD` (12+ car.).
+- **`.env.production.example`** : `DATABASE_URL` retire (construit par compose
+  depuis `MYSQL_*`, une seule source de verite).
+- **Retours (RET-02 recette)** : `router.refresh()` apres creation pour que
+  l'historique se mette a jour sans reload manuel.
+- Healthchecks app ajoutes aux deux compose ; `.dockerignore` complete
+  (uploads/exports locaux, env prod, compose) pour ne rien baker dans l'image.
+
+Verification de cette passe (image `poulet-etoile:test` + stack compose locale
+MySQL 8.4 vierge, app port 8189) :
+
+- `docker build` OK ; `prisma migrate deploy` applique les 2 migrations sur
+  base vierge au premier demarrage ; healthchecks `healthy`.
+- `/connexion` 200 (~0,18 s) ; `/admin` anonyme -> redirection `/connexion`
+  sans AUCUNE donnee metier dans le corps ; `/api/auth/sign-in/email` 404.
+- Logo runtime 200, traversee `/uploads/../package.json` 404.
+- Garde-fous entrypoint verifies (placeholder secret -> exit 1).
+- Suite locale : `tsc`, `lint`, `vitest` (110/110), `next build` verts.
+
+Deploiement : suivre `docs/CONTABO.md` (mode domaine = `docker-compose.prod.yml`
++ Caddy HTTPS ; mode IP nue = `docker-compose.ip.yml`).
+
+## Addendum Claude Code - verification finale image production - 10/07/2026
+
+Apres la passe securite Codex, verification complete de bout en bout sur
+l'image Docker finale (`docker-compose` local : MySQL 8.4 vierge + app, port 8189).
+
+Deux derniers bugs de conteneur trouves et corriges dans le `Dockerfile` :
+
+- **`npm run seed` echouait dans le conteneur** (`Cannot find module '@/lib/decimal'`) :
+  l'image runner n'embarquait ni `lib/` ni `tsconfig.json` (alias `@/*` de
+  `prisma/seed.ts`). Copies ajoutees. Verifie : seed production OK avec
+  `SEED_ADMIN_PASSWORD`/`SEED_COMMERCIAL_PASSWORD`.
+- **`next.config.ts` absent du runner** : `next start` relit ce fichier au
+  demarrage pour les options runtime — sans lui, `poweredByHeader: false`
+  etait ignore (`X-Powered-By: Next.js` reapparaissait). Les en-tetes custom
+  (CSP...) etaient eux appliques car figes au build dans le routes-manifest.
+  Copie ajoutee. Verifie : X-Powered-By absent.
+
+Smoke final complet sur l'image `poulet-etoile:final` (base vierge -> migrations
+-> seed production -> tests HTTP) :
+
+- Migrations auto au demarrage : OK (2/2).
+- Seed production avec mots de passe env 12+ : OK.
+- Sign-in cross-site (`Origin: http://evil.example`) : **403**.
+- Sign-in admin legitime : 200 ; mauvais mot de passe : 401.
+- Rate limit CDC 12.1 : 429 des le depassement des 5 essais/min.
+- `/admin` admin connecte : 200 ; commercial connecte -> redirection `/403`,
+  0 donnee metier dans le corps ; `/commercial` : 200.
+- PDF BL : 200 `application/pdf` + `cache-control: private, no-store` ;
+  export Excel : 200 `.xlsx`.
+- Logo runtime `logo-<uuid>.png` : 200 ; nom hors pattern : 404 ; traversee
+  `/uploads/../package.json` : 404.
+- En-tetes : CSP sans `upgrade-insecure-requests`, HSTS, X-Frame-Options DENY,
+  X-Powered-By absent.
+
+L'application est prete pour le deploiement Contabo via `docs/CONTABO.md`.

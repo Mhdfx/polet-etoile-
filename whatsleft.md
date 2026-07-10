@@ -1,6 +1,6 @@
 # whatsleft.md - Etat final des ecarts CDC
 
-Derniere mise a jour : 09/07/2026.
+Derniere mise a jour : 10/07/2026.
 
 Objectif de ce fichier : montrer clairement ce qui reste pour la livraison code
 par rapport au `cdc.md`. Les anciennes sections "a faire" ont ete reconciliees
@@ -16,7 +16,7 @@ Verification finale :
 - `npx tsc --noEmit` : OK
 - `npm run lint` : OK
 - `npm run build` : OK
-- `npm run test` : OK, 102/102 tests
+- `npm run test` : OK, 110/110 tests
 - `npm run seed` : OK lors de la passe precedente
 
 Base de demonstration locale apres seed :
@@ -40,6 +40,7 @@ Base de demonstration locale apres seed :
 | 9. Finitions UX | Fait code | inline client commande, listes enrichies, categories, sessions bulk logout |
 | 10. QA finale + documentation ecarts | Fait cote repo | `docs/CDC_DEVIATIONS.md`, `docs/DEPLOYMENT.md`, Dockerfile |
 | 11. Hardening CDC local hors deploiement | Fait code | `/admin/paiements`, `/admin/exports`, brouillon commande, audit auth, erreurs dates |
+| 12. Securite applicative | Fait code | auth/CSRF, exports prives isoles, uploads signes, headers HTTP, seed production, `docs/SECURITY.md` |
 
 ## Details par zone CDC
 
@@ -50,7 +51,7 @@ Fait :
 - Route admin `/admin/parametres`
 - `requireAdmin`
 - Raison sociale, ICE, RC, IF, patente, adresse, telephone
-- Logo upload PNG/JPG/SVG, 2 Mo max, renommage, stockage `public/uploads/logos`
+- Logo upload PNG/JPG, 2 Mo max, signature binaire verifiee, SVG refuse, stockage `public/uploads/logos`
 - Taux TVA
 - Prefixe BL
 - Compteur BL courant en lecture seule
@@ -413,8 +414,8 @@ Tous les points code P2/P3 de la revue sont traites et verifies en runtime :
 - **PDF BL** : ajout du **statut de reglement** (contenu minimal CDC 9.1 complet).
 - **Rate limiting CDC 12.1** : Better Auth `rateLimit` actif — 5 tentatives/min
   sur le sign-in puis 429 (verifie : 401 x5 puis 429).
-- **Note logo SVG** : le formulaire parametres precise que le SVG n'apparait pas
-  dans le PDF (PNG/JPG recommande).
+- **Securite logo** : SVG refuse ; PNG/JPG verifies par signature et route runtime
+  confinee aux chemins generes sous `/uploads/logos`.
 - **`.env.example`** : exemple `BETTER_AUTH_URL` port 3107 pour la recette locale.
 
 Verification complete : `tsc` OK, `lint` OK, `vitest` 102/102, `build` OK.

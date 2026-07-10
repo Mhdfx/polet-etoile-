@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { estCheminLogoPublic } from "@/lib/logo-upload";
 import { normaliserSaisieMontant } from "@/lib/saisie";
 
 const champTexteCourt = (nom: string, max = 180) =>
@@ -53,10 +54,10 @@ export const schemaParametresSysteme = z.object({
       if (!texte) {
         return "";
       }
-      if (!/^\/|^https?:\/\//i.test(texte)) {
+      if (!estCheminLogoPublic(texte)) {
         contexte.addIssue({
           code: "custom",
-          message: "Le logo doit etre un chemin public ou une URL valide",
+          message: "Le logo doit provenir de l'outil de televersement securise",
         });
         return z.NEVER;
       }
@@ -71,4 +72,3 @@ export const schemaParametresSysteme = z.object({
 });
 
 export type ParametresSystemeInput = z.infer<typeof schemaParametresSysteme>;
-

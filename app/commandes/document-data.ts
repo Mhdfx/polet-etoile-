@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { calculerTotauxCommande, libelleStatutPaiement } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
 import { formatDateHeure, formatMontant } from "@/lib/format";
+import { estCheminLogoPublic } from "@/lib/logo-upload";
 
 export type CommandeDocumentData = {
   societe: {
@@ -109,7 +110,7 @@ const TYPES_LOGO_PDF: Record<string, string> = {
 };
 
 async function chargerLogoDataUri(cheminPublic?: string): Promise<string | undefined> {
-  if (!cheminPublic) {
+  if (!cheminPublic || !estCheminLogoPublic(cheminPublic)) {
     return undefined;
   }
 

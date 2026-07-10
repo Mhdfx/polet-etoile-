@@ -30,6 +30,13 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+# next.config.ts est relu par `next start` au demarrage : sans lui les options
+# runtime (poweredByHeader: false, etc.) retombent sur les defauts Next.
+COPY --from=builder /app/next.config.ts ./next.config.ts
+# tsconfig.json + lib/ requis par `npm run seed` (tsx resout l'alias @/lib/*
+# de prisma/seed.ts via tsconfig) — sans eux le seed echoue dans le conteneur.
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
 RUN mkdir -p public/uploads/logos exports-prive && chown -R nextjs:nextjs /app \
