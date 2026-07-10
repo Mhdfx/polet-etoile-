@@ -37,17 +37,19 @@ model User {
   updated_at            DateTime        @updatedAt @db.DateTime(3)
   deleted_at            DateTime?       @db.DateTime(3)
 
-  objectifs_crees     Objectif[]         @relation("ObjectifCreateur")
-  objectifs_assignes  Objectif[]         @relation("ObjectifCommercial")
-  produits_modifies   HistoriquePrix[]
-  clients             Client[]           @relation("ClientCommercial")
-  commandes           Commande[]         @relation("CommandeCommercial")
-  paiements_encaisses Paiement[]         @relation("PaiementEncaissement")
-  retours             Retour[]
-  parametres_modifies ParametreSysteme[]
-  audit_logs          AuditLog[]
-  sessions            Session[]
-  accounts            Account[]
+  objectifs_crees        Objectif[]         @relation("ObjectifCreateur")
+  objectifs_assignes     Objectif[]         @relation("ObjectifCommercial")
+  produits_modifies      HistoriquePrix[]
+  clients                Client[]           @relation("ClientCommercial")
+  commandes              Commande[]         @relation("CommandeCommercial")
+  bons_charge_commercial BonCharge[]        @relation("BonChargeCommercial")
+  bons_charge_crees      BonCharge[]        @relation("BonChargeCreateur")
+  paiements_encaisses    Paiement[]         @relation("PaiementEncaissement")
+  retours                Retour[]
+  parametres_modifies    ParametreSysteme[]
+  audit_logs             AuditLog[]
+  sessions               Session[]
+  accounts               Account[]
 
   @@index([role, actif])
   @@map("users")
@@ -128,14 +130,18 @@ model Produit {
   unite           String    @default("kg") @db.VarChar(10)
   prix_reference  Decimal   @db.Decimal(10, 2)
   actif           Boolean   @default(true)
+  // Faux si le produit n'est pas du stock physique (ex. RELIQUAT PAYEMENT) :
+  // il est alors exclu des bons de charge et du rapprochement de tournee.
+  suivi_stock     Boolean   @default(true)
   ordre_affichage Int       @default(0)
   created_at      DateTime  @default(now()) @db.DateTime(3)
   updated_at      DateTime  @updatedAt @db.DateTime(3)
   deleted_at      DateTime? @db.DateTime(3)
 
-  historique_prix HistoriquePrix[]
-  lignes_commande LigneCommande[]
-  retours         Retour[]
+  historique_prix   HistoriquePrix[]
+  lignes_commande   LigneCommande[]
+  lignes_bon_charge LigneBonCharge[]
+  retours           Retour[]
 
   @@index([actif, ordre_affichage])
   @@index([categorie])
@@ -234,6 +240,48 @@ model LigneCommande {
   @@index([commande_id])
   @@index([produit_id])
   @@map("lignes_commande")
+}
+
+// Bon de charge : quantites physiques chargees sur la tournee d'un commercial
+// (sortie de depot). Source de verite du "charge", distincte de la commande
+// (source de verite du "vendu"). Le rapprochement charge - vendu - retourne est
+// une projection calculee, jamais un total stocke. Numerotation via compteur
+// verrouille (cle "numero_bc"), jamais max+1. Fige apres creation (soft delete
+// admin uniquement, trace a l'audit).
+model BonCharge {
+  id                 String    @id @default(cuid())
+  numero_bc          String    @unique @db.VarChar(40)
+  numero_bc_compteur Int       @unique
+  commercial_id      String
+  cree_par           String
+  date_charge        DateTime  @default(now()) @db.DateTime(3)
+  commentaire        String?   @db.Text
+  created_at         DateTime  @default(now()) @db.DateTime(3)
+  deleted_at         DateTime? @db.DateTime(3)
+
+  commercial User             @relation("BonChargeCommercial", fields: [commercial_id], references: [id])
+  createur   User             @relation("BonChargeCreateur", fields: [cree_par], references: [id])
+  lignes     LigneBonCharge[]
+
+  @@index([commercial_id, date_charge])
+  @@index([date_charge])
+  @@map("bons_charge")
+}
+
+model LigneBonCharge {
+  id            String    @id @default(cuid())
+  bon_charge_id String
+  produit_id    String
+  quantite_kg   Decimal   @db.Decimal(10, 3)
+  created_at    DateTime  @default(now()) @db.DateTime(3)
+  deleted_at    DateTime? @db.DateTime(3)
+
+  bon_charge BonCharge @relation(fields: [bon_charge_id], references: [id])
+  produit    Produit   @relation(fields: [produit_id], references: [id])
+
+  @@index([bon_charge_id])
+  @@index([produit_id])
+  @@map("lignes_bon_charge")
 }
 
 model Paiement {

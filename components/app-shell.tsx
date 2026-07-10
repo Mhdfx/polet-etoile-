@@ -6,11 +6,14 @@ import {
   CreditCard,
   FileText,
   Home,
+  History,
   Package,
   RotateCcw,
+  Scale,
   Settings,
   ShoppingCart,
   Target,
+  Truck,
   UserCog,
   Users,
 } from "lucide-react";
@@ -31,10 +34,12 @@ const navigationAdmin: NavigationItem[] = [
   { label: "Accueil", icon: Home, href: "/admin", groupe: "menu" },
   { label: "Produits", icon: Package, href: "/admin/produits", groupe: "menu" },
   { label: "Commandes", icon: ClipboardList, href: "/admin/commandes", groupe: "menu" },
+  { label: "Bons de charge", icon: Truck, href: "/admin/charges", groupe: "menu" },
   { label: "Paiements", icon: CreditCard, href: "/admin/paiements", groupe: "menu" },
   { label: "Clients", icon: Users, href: "/admin/clients", groupe: "menu" },
   { label: "Retours", icon: RotateCcw, href: "/admin/retours", groupe: "menu" },
   { label: "KPI", icon: BarChart3, href: "/admin/kpi", groupe: "pilotage" },
+  { label: "Rapprochement", icon: Scale, href: "/admin/rapprochement", groupe: "pilotage" },
   {
     label: "Utilisateurs",
     icon: UserCog,
@@ -43,6 +48,12 @@ const navigationAdmin: NavigationItem[] = [
   },
   { label: "Objectifs", icon: Target, href: "/admin/objectifs", groupe: "pilotage" },
   { label: "Audit", icon: FileText, href: "/admin/audit", groupe: "pilotage" },
+  {
+    label: "Historique admins",
+    icon: History,
+    href: "/admin/historique-admins",
+    groupe: "pilotage",
+  },
   { label: "Sessions", icon: Settings, href: "/admin/sessions", groupe: "pilotage" },
   { label: "Parametrage", icon: Settings, href: "/admin/parametres", groupe: "pilotage" },
   { label: "Exports", icon: FileText, href: "/admin/exports", groupe: "pilotage" },
@@ -309,7 +320,9 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <article className={cn("rounded-lg p-4 shadow-sm ring-1 ring-border", className)}>
+    <article
+      className={cn("min-w-0 rounded-lg p-4 shadow-sm ring-1 ring-border", className)}
+    >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           {eyebrow ? (

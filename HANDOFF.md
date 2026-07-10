@@ -97,8 +97,8 @@ Implementation actuelle :
 Comptes seed :
 
 - Admin : `admin` / `password`
-- Commercial Nord : `commercial.nord` / `commercial123`
-- Commercial Sud : `commercial.sud` / `commercial123`
+- Commercial 1 : `com1` / `password`
+- Commercial 2 : `com2` / `password`
 
 Direction visuelle : dashboard type image WhatsApp fournie (sidebar bleue,
 workspace gris clair, topbar compacte, panels blancs arrondis, cartes KPI
@@ -121,8 +121,8 @@ rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
     chaine, normalisation via `lib/saisie.ts` (jamais `number`).
   - `components/carte-kpi.tsx` : `CarteKPI` tonalites bleu/rouge/vert/neutre.
   - `components/badge-statut.tsx` : `BadgeStatut` (paye, en_attente, actif…).
-  - `components/data-table.tsx` : `DataTable` TanStack, pagination serveur,
-    etats vide + squelette de chargement integres.
+  - `components/data-table.tsx` : `DataTable` TanStack, pagination serveur ou
+    mode liste complete explicite, etats vide + squelette de chargement integres.
   - `components/dialogue-confirmation.tsx` : `DialogueConfirmation` (AlertDialog
     avec etat en-cours). Pas encore exerce sur un ecran.
 - `components/filtre-periode.tsx` : `FiltrePeriode` (du/au inclusif). Pas
@@ -133,9 +133,8 @@ rouges/bleues). Implementee dans `components/app-shell.tsx` + pages `/admin`,
   detail/liste et erreurs metier (produit introuvable ou duplique).
 - `lib/kpi.ts` : calcul Decimal centralise des KPI commandes (CA, nombre,
   impayes, top clients, top produits).
-- Ecran de reference : `/admin/produits` = liste lecture seule paginee serveur
-  + recherche + formulaire de reference (validation Zod, creation reelle
-  differee en Phase 4 apres gel du schema).
+- Ecran de reference : `/admin/produits` = catalogue complet sur une seule page
+  + recherche + CRUD, sans boutons de pagination (demande client 10/07/2026).
 - La nav sidebar est en vrais liens ; les modules non construits sont
   desactives avec l'infobulle « Module à venir ». `AppShell` prend maintenant
   une prop `cheminActif`.
@@ -340,6 +339,11 @@ Questions ouvertes a confirmer avant paiement/KPI :
 | PDF BL | `app/commandes/bon-livraison-pdf.tsx`, `app/commandes/document-data.ts`, routes `*/commandes/[id]/pdf` |
 | Exports Excel | `app/admin/exports/`, `app/admin/commandes/export/route.ts`, `app/commercial/commandes/export/route.ts` |
 | Retours | `app/retours/`, `app/admin/retours/`, `app/commercial/retours/` |
+| Bons de charge (actions) | `app/charges/actions.ts` |
+| Bons de charge (ecrans admin) | `app/admin/charges/` |
+| Rapprochement de tournee | `app/admin/rapprochement/`, `lib/charge.ts` |
+| Numerotation BC | `lib/bc.ts` (compteur cle `numero_bc`), param `prefixe_bc` |
+| Validations bon de charge | `lib/validations/charge.ts` |
 | KPI | `lib/kpi.ts`, `app/admin/kpi/`, `app/commercial/kpi/` |
 | Audit | `app/admin/audit/` |
 | Sessions actives | `app/admin/sessions/` |
@@ -579,3 +583,20 @@ Smoke final complet sur l'image `poulet-etoile:final` (base vierge -> migrations
   X-Powered-By absent.
 
 L'application est prete pour le deploiement Contabo via `docs/CONTABO.md`.
+
+## Mise a jour Codex - historique admins, catalogue et QA responsive - 10/07/2026
+
+- Nouvelle section `/admin/historique-admins` dans la navigation et le dashboard.
+  Elle reutilise `audit_log` et filtre cote Prisma les auteurs de role `ADMIN`.
+- Filtres, pagination et export Excel sont partages avec le journal global ;
+  l'export admin-only transmet et reapplique le filtre serveur `roleAuteur=ADMIN`.
+- Catalogue `/admin/produits` affiche les 26 produits filtres sur une seule page,
+  sans controles Precedent/Suivant. Recherche et CRUD restent inchanges.
+- Permissions verifiees en navigateur : admin 200, commercial 403 sans donnee,
+  anonyme redirige vers `/connexion`.
+- QA responsive a 375 px : 16 routes admin et 7 routes commercial parcourues.
+  Les overflows trouves sur produits, commandes admin/commercial, paiements,
+  clients admin/commercial et utilisateurs ont ete corriges. Les tableaux larges
+  gardent un scroll horizontal interne.
+- Verification finale : `npx tsc --noEmit`, lint, build production et 113/113
+  tests Vitest verts. Serveur local actif sur `http://localhost:3107`.
