@@ -4,7 +4,12 @@ node_modules
 npm-debug.log
 Dockerfile
 docker-compose.yml
+docker-compose.prod.yml
+docker-compose.ip.yml
 .env
 .env.local
+.env.production
 public/exports
-
+public/uploads
+exports-prive
+graphify-out

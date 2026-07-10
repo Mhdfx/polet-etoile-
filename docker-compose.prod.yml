@@ -1,0 +1,89 @@
+# Production — Contabo / VPS Ubuntu
+# Usage : cp .env.production.example .env  puis editer .env  puis :
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: poulet_etoile_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-poulet_etoile}
+      MYSQL_USER: ${MYSQL_USER:-poulet}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD requis}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD requis}
+      TZ: Africa/Casablanca
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u${MYSQL_USER:-poulet}",
+          "-p${MYSQL_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - poulet
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: poulet_etoile_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-poulet}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-poulet_etoile}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/public/uploads
+      # Exports Excel prives (hors public/, servis via routes authentifiees)
+      - exports_data:/app/exports-prive
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/connexion"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    networks:
+      - poulet
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: poulet_etoile_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN requis ex. app.poulet-etoile.ma}
+      APP_EMAIL: ${APP_EMAIL:-admin@example.com}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - poulet
+
+volumes:
+  mysql_data:
+  uploads_data:
+  exports_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  poulet:
+    driver: bridge

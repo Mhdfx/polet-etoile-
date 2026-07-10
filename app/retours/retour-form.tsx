@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ChampQuantite } from "@/components/champ-quantite";
@@ -28,6 +29,7 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
   const [message, setMessage] = useState<string>();
   const [succes, setSucces] = useState<string>();
   const [enCours, startTransition] = useTransition();
+  const router = useRouter();
 
   function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
@@ -43,6 +45,8 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
         setQuantiteKg("");
         setCommentaire("");
         setSucces("Retour enregistre.");
+        // L'historique sous le formulaire doit refleter le retour sans reload manuel.
+        router.refresh();
         return;
       }
 
