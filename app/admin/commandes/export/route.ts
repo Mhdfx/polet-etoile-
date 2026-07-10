@@ -5,6 +5,7 @@ import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { creerExportJob } from "@/lib/export-jobs";
 import { formatDateHeure, formatMontant } from "@/lib/format";
+import { entetesFichierPrive, entetesReponsePrivee } from "@/lib/http";
 import { requireAdmin } from "@/lib/session";
 
 type CommandeExport = Awaited<ReturnType<typeof chargerCommandesExport>>[number];
@@ -64,7 +65,7 @@ function remplirWorkbook(commandes: CommandeExport[], statut: "paye" | "en_atten
 }
 
 export async function GET(request: Request) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const url = new URL(request.url);
   const recherche = (url.searchParams.get("q") ?? "").trim();
   const commercial = url.searchParams.get("commercial") || undefined;
@@ -113,11 +114,15 @@ export async function GET(request: Request) {
 
   const totalBrut = await prisma.commande.count({ where });
   if (totalBrut > 5000) {
-    const job = await creerExportJob(filename, async (filePath) => {
-      const commandes = await chargerCommandesExport(where);
-      const workbook = remplirWorkbook(commandes, statut);
-      await workbook.xlsx.writeFile(filePath);
-    });
+    const job = await creerExportJob(
+      filename,
+      { utilisateurId: admin.id, access: "ADMIN" },
+      async (filePath) => {
+        const commandes = await chargerCommandesExport(where);
+        const workbook = remplirWorkbook(commandes, statut);
+        await workbook.xlsx.writeFile(filePath);
+      },
+    );
 
     return Response.json(
       {
@@ -125,7 +130,7 @@ export async function GET(request: Request) {
         message: "Export volumineux lance en arriere-plan.",
         downloadUrl: job.url,
       },
-      { status: 202 },
+      { status: 202, headers: entetesReponsePrivee },
     );
   }
 
@@ -134,10 +139,9 @@ export async function GET(request: Request) {
   const buffer = await workbook.xlsx.writeBuffer();
 
   return new Response(buffer as BodyInit, {
-    headers: {
-      "content-type":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="${filename}"`,
-    },
+    headers: entetesFichierPrive(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      `attachment; filename="${filename}"`,
+    ),
   });
 }

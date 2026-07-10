@@ -12,6 +12,11 @@ if [ -z "$BETTER_AUTH_SECRET" ]; then
   exit 1
 fi
 
+if [ "${#BETTER_AUTH_SECRET}" -lt 32 ]; then
+  echo "ERREUR : BETTER_AUTH_SECRET doit contenir au moins 32 caracteres." >&2
+  exit 1
+fi
+
 case "$BETTER_AUTH_SECRET" in
   *REMPLACER*|*changeme*|*secret*)
     echo "ERREUR : BETTER_AUTH_SECRET est encore un placeholder. Generer avec : openssl rand -base64 32" >&2

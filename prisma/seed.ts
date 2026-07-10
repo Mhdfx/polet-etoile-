@@ -30,6 +30,25 @@ type SeedUtilisateur = {
   role: "ADMIN" | "COMMERCIAL";
 };
 
+function motDePasseSeed(
+  variable: "SEED_ADMIN_PASSWORD" | "SEED_COMMERCIAL_PASSWORD",
+  valeurLocale: string,
+): string {
+  const configure = process.env[variable];
+
+  if (process.env.NODE_ENV !== "production") {
+    return configure || valeurLocale;
+  }
+
+  if (!configure || configure.length < 12) {
+    throw new Error(
+      `${variable} est obligatoire en production et doit contenir au moins 12 caracteres`,
+    );
+  }
+
+  return configure;
+}
+
 const produitsCdc = [
   { nom: "Abats de poulet", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 10 },
   { nom: "Ailes", categorie: "Découpe", prix_reference: "21.00", ordre_affichage: 20 },
@@ -101,6 +120,12 @@ async function upsertUtilisateur(seed: SeedUtilisateur) {
 }
 
 async function main() {
+  const motDePasseAdmin = motDePasseSeed("SEED_ADMIN_PASSWORD", "password");
+  const motDePasseCommercial = motDePasseSeed(
+    "SEED_COMMERCIAL_PASSWORD",
+    "commercial123",
+  );
+
   await prisma.compteurBl.upsert({
     where: { cle: "numero_bl" },
     create: { cle: "numero_bl", valeur: 0 },
@@ -111,7 +136,7 @@ async function main() {
     nom_utilisateur: "admin",
     nom_complet: "Administrateur",
     email: "admin@poulet-etoile.local",
-    mot_de_passe: "password",
+    mot_de_passe: motDePasseAdmin,
     role: "ADMIN",
   });
 
@@ -119,7 +144,7 @@ async function main() {
     nom_utilisateur: "commercial.nord",
     nom_complet: "Commercial Nord",
     email: "commercial.nord@poulet-etoile.local",
-    mot_de_passe: "commercial123",
+    mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
   });
 
@@ -127,7 +152,7 @@ async function main() {
     nom_utilisateur: "commercial.sud",
     nom_complet: "Commercial Sud",
     email: "commercial.sud@poulet-etoile.local",
-    mot_de_passe: "commercial123",
+    mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
   });
 

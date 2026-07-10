@@ -18,7 +18,7 @@ const champNomUtilisateur = z
 
 const champMotDePasse = z
   .string()
-  .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+  .min(12, "Le mot de passe doit contenir au moins 12 caractères")
   .max(128, "Le mot de passe ne doit pas dépasser 128 caractères");
 
 const champRole = z.enum(["ADMIN", "COMMERCIAL"], {

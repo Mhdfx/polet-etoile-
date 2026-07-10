@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { isIP } from "node:net";
 import { headers } from "next/headers";
 
 type EntreeAudit = {
@@ -12,9 +13,19 @@ type EntreeAudit = {
 
 export async function adresseIpRequete(): Promise<string | null> {
   const entetes = await headers();
-  const transmis = entetes.get("x-forwarded-for");
+  const candidats = [
+    ...(entetes.get("x-forwarded-for")?.split(",") ?? []),
+    entetes.get("x-real-ip"),
+  ];
 
-  return transmis?.split(",")[0]?.trim() || null;
+  for (const candidat of candidats) {
+    const ip = candidat?.trim();
+    if (ip && isIP(ip) !== 0) {
+      return ip;
+    }
+  }
+
+  return null;
 }
 
 /**

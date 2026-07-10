@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { calculerTotauxCommande, libelleStatutPaiement, libelleTypeCommande } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
 import { formatDateHeure, formatMontant } from "@/lib/format";
+import { entetesFichierPrive } from "@/lib/http";
 import { requireAdmin } from "@/lib/session";
 
 export async function GET() {
@@ -131,11 +132,9 @@ export async function GET() {
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new Response(buffer as BodyInit, {
-    headers: {
-      "content-type":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="export_global_${new Date().toISOString().slice(0, 10)}.xlsx"`,
-    },
+    headers: entetesFichierPrive(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      `attachment; filename="export_global_${new Date().toISOString().slice(0, 10)}.xlsx"`,
+    ),
   });
 }
-

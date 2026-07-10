@@ -85,10 +85,10 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
           id="logoUrl"
           label="Logo"
           erreur={erreurs.logoUrl}
-          description="Chemin public, ex. /uploads/logos/logo.png, alimente par l'upload ci-dessous."
+          description="Chemin genere automatiquement par l'upload securise ci-dessous."
           className="md:col-span-2"
         >
-          <Input id="logoUrl" name="logoUrl" defaultValue={valeurs.logoUrl} />
+          <Input id="logoUrl" name="logoUrl" defaultValue={valeurs.logoUrl} readOnly />
         </Champ>
       </section>
 
@@ -140,9 +140,9 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
         id="logo"
         label="Fichier logo"
         erreur={erreursLogo.logo}
-        description="Formats acceptes : PNG, JPG, SVG. Taille maximum : 2 Mo. PNG ou JPG recommande : un logo SVG n'apparait pas dans le PDF du bon de livraison."
+        description="Formats acceptes : PNG ou JPG valide. Taille maximum : 2 Mo."
       >
-        <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/svg+xml" />
+        <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg" />
       </Champ>
       <div className="flex flex-wrap items-center gap-3">
         <Bouton type="submit" chargement={uploadPending}>

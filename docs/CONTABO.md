@@ -154,14 +154,18 @@ Au premier demarrage le conteneur `app` :
 
 ## Etape 8 — Seed recette (optionnel)
 
-**Recette / demo uniquement** — pas en production client final :
+**Recette / demo uniquement** — pas en production client final.
+
+Le conteneur tourne en `NODE_ENV=production` : le seed **exige** des mots de
+passe forts via `.env` (12 caracteres minimum), sinon il refuse de s'executer :
 
 ```bash
+# Dans .env : SEED_ADMIN_PASSWORD=... et SEED_COMMERCIAL_PASSWORD=...
 docker compose -f docker-compose.prod.yml exec app npm run seed
 ```
 
-Comptes seed : `admin` / `password` — **changer le mot de passe admin
-immediatement** apres le seed.
+Comptes seed : `admin`, `commercial.nord`, `commercial.sud` avec les mots de
+passe definis dans `.env` (jamais les valeurs de demo locales).
 
 ---
 
