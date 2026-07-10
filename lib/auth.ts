@@ -8,6 +8,13 @@ const authBaseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 const authBaseUrlIsLocal =
   authBaseUrl.includes("localhost") || authBaseUrl.includes("127.0.0.1");
 
+const originesProduction = [
+  process.env.BETTER_AUTH_URL,
+  process.env.NEXT_PUBLIC_APP_URL,
+]
+  .filter((url): url is string => Boolean(url))
+  .map((url) => url.replace(/\/$/, ""));
+
 export const auth = betterAuth({
   appName: "Poulet Etoile",
   baseURL: authBaseUrlIsLocal
@@ -27,8 +34,20 @@ export const auth = betterAuth({
     "http://127.0.0.1:3000",
     "http://localhost:3107",
     "http://127.0.0.1:3107",
+    ...originesProduction,
   ],
   secret: process.env.BETTER_AUTH_SECRET,
+  // CDC 12.1 : limitation du taux de tentatives de connexion.
+  // 5 essais par minute et par IP sur le sign-in, puis blocage temporaire.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/username": { window: 60, max: 5 },
+      "/sign-in/email": { window: 60, max: 5 },
+    },
+  },
   database: prismaAdapter(prisma, {
     provider: "mysql",
     transaction: true,

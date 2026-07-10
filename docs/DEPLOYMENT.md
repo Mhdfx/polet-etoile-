@@ -26,6 +26,23 @@ docker build -t poulet-etoile .
 docker run --env-file .env -p 3000:3000 poulet-etoile
 ```
 
+## VPS Contabo (Docker Compose + Caddy)
+
+Guide detaille : [`docs/CONTABO.md`](./CONTABO.md).
+
+Fichiers :
+
+- `docker-compose.prod.yml` — MySQL + app + Caddy (HTTPS)
+- `.env.production.example` — variables a copier vers `.env` sur le serveur
+
+```bash
+cp .env.production.example .env
+# editer .env (domaine, secrets, mots de passe MySQL)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Au demarrage, le conteneur applique `prisma migrate deploy` puis `npm run start`.
+
 ## Coolify
 
 - Type : Dockerfile.

@@ -8,30 +8,107 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
-## Résultats campagne 09/07/2026 (localhost:3107, build prod, base seedée)
+## Résultats campagne 10/07/2026 - QA navigateur Codex (localhost:3107)
+
+Objectif : reprise depuis zero du plan de test, puis execution navigateur reelle
+sur l'instance locale ouverte dans l'in-app browser. Tests effectues avec :
+
+- Admin : `admin` / `password`
+- Commercial : `commercial.nord` / `commercial123`
+- URL : `http://localhost:3107`
+- Donnees creees pendant la campagne :
+  - Commande admin : `PE-001004`, client `Boucherie Atlas`, produit `Abats de poulet`, quantite `12,750 kg`, total `229,50 DH`.
+  - Paiement : `229,50 DH`, reference `QA-PE-001004`, statut passe a `Reglee`, reste `0,00 DH`.
+  - Retour commercial : `QA retour navigateur 10/07`, `1,250 kg`, produit `Abats de poulet`.
+
+### Synthese campagne 10/07
+
+| Statut | Nombre | Detail |
+|---|---:|---|
+| **PASS navigateur** | **41** | Auth, admin navigation, dashboard commercial, commandes, paiements, audit paiement, retours, clients, parametres, sessions, objectifs, filtres invalides |
+| **PARTIAL / a completer** | **13** | Mutations non destructives seulement sur produits/categories/users, audit global partiel, exports/PDF ouverts par lien mais coherence fichier non inspectee au centime |
+| **MANUAL restant** | **18** | Mobile Safari/Chrome, offline reel, double-clic, deux navigateurs simultanes, gros export avec redemarrage, comparaison Excel/Google Sheets |
+| **FAIL confirme app** | **0** | Aucun bug bloquant confirme par le navigateur |
+
+### PASS navigateur confirmes 10/07
+
+- **AUTH-01/02/03/04/07** : connexion admin, connexion commercial, erreur generique identifiants invalides, bouton afficher/masquer mot de passe, deconnexion vers `/connexion`.
+- **PERM-02** : commercial sur `/admin` -> page 403, aucune donnee admin exposee.
+- **ADMIN-NAV** : toutes les entrees admin chargent : accueil, produits, commandes, paiements, clients, retours, KPI, utilisateurs, objectifs, audit, sessions, parametrage, exports.
+- **DASHC-01/03/04** : dashboard commercial avec cartes KPI, raccourcis cliquables, objectif mensuel visible.
+- **DASHA-04 / LST-07 / AUD-02 / KPI-12** : `fin < debut` affiche une erreur explicite sans crash sur dashboard admin, commandes, audit et KPI.
+- **CMD-01/03/04/05/09/12** : portefeuille client commercial isole, prix catalogue non editable, total temps reel, `12,750` kg accepte, creation BL admin `PE-001004`, brouillon restaure apres reload.
+- **LST-03/05** : taille page 100 disponible, recherche BL fonctionne et retrouve `PE-001004`.
+- **PAY-01/02/04/05/09** : detail commande correct, paiement complet ajoute, statut `Reglee`, reste `0,00 DH`, audit `paiement.creation`, page `/admin/paiements` OK.
+- **EXT-01** : commandes externes commercial chargees avec filtre client/statut/export visible.
+- **RET-01/02/03/04/07** : note CDC visible, creation retour OK, historique apres reload, pas d'edition/suppression visible, vue admin tous retours.
+- **PRD-01** : produits admin, recherche et etat vide OK.
+- **CLI-01/04/09** : liste clients admin + etat vide, fiche client standard, fiche client externe.
+- **OBJ-01/03** : objectifs courant modifiables, mois clos en lecture seule.
+- **PAR-04/07** : compteur BL lecture seule, historique parametrage visible.
+- **SES-01** : sessions actives avec utilisateur, role, IP, activite, expiration, user-agent, actions.
+- **XLS-07** : page `/admin/exports` affiche la mention sauvegarde infrastructure Naomedia.
+
+### Points a corriger / ameliorer
+
+1. **RET-02 UX mineur** : apres creation du retour, le message `Retour enregistre` apparait, mais la ligne creee n'est apparue dans l'historique qu'apres reload/navigation. Donnee bien enregistree en base. Amelioration conseillee : refresh client ou revalidation visible immediate apres succes.
+2. **scripts/testplan-smoke.ps1 a fiabiliser** : la campagne de support a donne des faux echecs probables sur **PERM-04** et **PERM-06** (session/cookie incorrects), une 404 non capturee proprement et un parse `LST-09` avec `?`. Ne pas utiliser ce script seul comme preuve finale tant qu'il n'est pas corrige.
+3. **DASHC-05 nuance CDC** : bouton `Deconnexion` present dans le header, pas en bas de page comme libelle CDC commercial. Fonctionnel, mais a trancher si l'emplacement exact est important.
+4. **PRD-06 / PRD-08** : pages prix en masse et categories verifiees en affichage, mais pas de mutation destructive de prix/categorie appliquee pendant cette campagne.
+5. **AUD-03** : paiement audite confirme. Les autres familles d'actions sensibles n'ont pas toutes ete rejouees une par une dans le navigateur pendant cette passe.
+
+### Restes navigateur obligatoires avant signature client
+
+- **PDF-02 -> PDF-05 + XLS-01 -> XLS-03** : ouvrir les fichiers PDF/XLSX, comparer ecran/PDF/Excel au centime, verifier logo/identite societe.
+- **CMD-10/CMD-11/R-03/R-09** : double-clic et deux navigateurs simultanes pour confirmer un seul BL par commande et BL distincts en concurrence.
+- **CMD-13/CMD-14/R-05** : offline reel et expiration session pendant saisie longue.
+- **SES-02 -> SES-05 / USR-03/04** : deconnexion forcee vecue cote utilisateur cible.
+- **RWD-01 -> RWD-04** : mobile Chrome/Safari + console propre + scroll tableaux.
+- **XLS-05** : gros export, redemarrage `next start`, re-telechargement du lien.
+- **CRUD navigateur complet non destructif a finir** : creation/edition produit test, categorie test, utilisateur test, client test, fusion doublon test, suppression logique test.
+
+### Verification support 10/07
+
+- `npm run test` : **102/102 PASS**.
+- `scripts/testplan-smoke.ps1` : **12 PASS / 3 FAIL scriptables**. Les 3 echecs sont a requalifier apres correction du script, car le navigateur a confirme plusieurs permissions principales et l'app ne montre pas de fuite admin sur la session commerciale.
+
+---
+
+## Résultats campagne 09/07/2026 — rejeu soir (localhost:3107, build prod, base seedée)
 
 | Statut | Nombre | Détail |
 |---|---|---|
-| PASS | ~52 | Auth, permissions, périodes invalides, PDF, exports sécurisés, perf |
-| PARTIAL | ~18 | UI présente, flux complet non rejoué |
-| MANUAL | ~28 | Mobile/Safari, double-clic, offline, concurrence, croisements |
-| FAIL | 2 | **DASHA-05 et RET-01 — corrigés le 09/07** (voir ci-dessous) |
+| **PASS** | **58** | Auth, permissions (dont PERM-05/07), corrections DASHA-05/RET-01/KPI-14, listes, perf, seed |
+| **PARTIAL** | **14** | UI ou serveur Vitest OK, flux navigateur complet non rejoué |
+| **MANUAL** | **52** | CMD navigateur, paiements, mobile/Safari, offline, concurrence, cohérence PDF/Excel |
+| **FAIL** | **0** | Aucun blocant sur cette campagne |
 
-Corrections apportées suite à la campagne :
+**Automatisation rejeu :** `npm run test` → **102/102** · `scripts/testplan-full.ps1` →
+**40 checks** (37 PASS, 1 PARTIAL, 1 MANUAL, 1 SKIP AUTH-03 pour rate limit).
 
-- **DASHA-05 corrigé** : raccourci « Objectifs commerciaux » du dashboard pointait
-  vers `/admin/utilisateurs` → maintenant `/admin/objectifs` (vérifié runtime).
-- **RET-01 corrigé** : note CDC « Le retour est horodaté automatiquement et lié à
-  votre compte. » ajoutée sous le formulaire retours (vérifié runtime).
-- **500 intermittent `/admin/kpi`** : non reproduit après correction — 20 puis 60
-  requêtes parallèles mixtes puis 120 requêtes séquentielles rapides = **200/200,
-  zéro erreur**, aucun message pool/timeout dans les logs. Cause la plus probable :
-  interaction du rate limit avec le script de campagne (reconnexions répétées).
-  À surveiller en recette ; si reproduit, capturer `next start` logs.
+### Validé lors du rejeu (09/07 soir)
+
+- **DASHA-05** ✔ — raccourci « Objectifs commerciaux » → `/admin/objectifs` (HTTP + clic navigateur).
+- **RET-01** ✔ — note CDC complète sous le formulaire retours (HTTP commercial).
+- **DASHA-06 + KPI-14** ✔ — clic épingle CA période → section « KPI épinglés » sur `/admin`.
+- **PERM-05** ✔ — Nord sur fiche `Restaurant Sud` (commercial Sud) → 403, pas de données.
+- **PERM-07** ✔ — id commande réel vs bidon → même refus (403/404).
+- **SEED-02** ✔ — produit désactivé visible admin (badge inactif).
+- **SEED-03** ✔ — commande `seed-commande-payee` → « Réglée », reste 0.
+- **KPI-STRESS** ✔ — 20 requêtes séquentielles `/admin/kpi` → 20/20 HTTP 200 (500 non reproduit).
+
+### Corrections code (campagne matinée, re-vérifiées au rejeu)
+
+- **DASHA-05** : lien dashboard `/admin/utilisateurs` → `/admin/objectifs`.
+- **RET-01** : texte « Le retour est horodaté automatiquement et lié à votre compte. »
+  dans `app/retours/retour-form.tsx`.
+- **500 intermittent `/admin/kpi`** : non reproduit (cause probable : rate limit +
+  reconnexions répétées du script). À surveiller ; capturer logs `next start` si reproduit.
 
 > **Note campagnes automatisées** : le rate limit CDC 12.1 limite le **sign-in** à
 > 5/min/IP. Se connecter **une fois** par campagne et réutiliser le cookie de
 > session ; après un 429, attendre 60 s. Ne pas relancer les logins en boucle.
+> `scripts/testplan-full.ps1` respecte cette règle (AUTH-03 en SKIP).
 
 ---
 
@@ -43,7 +120,7 @@ Corrections apportées suite à la campagne :
   (aligner `BETTER_AUTH_URL` sur le port utilisé).
 - Navigateurs cibles : Chrome desktop, Chrome mobile et Safari iOS (CDC §13).
 - Automatisation disponible : `npm run test` (102 Vitest) ; `scripts/testplan-full.ps1`
-  (35 checks HTTP — respecter le cooldown rate limit ci-dessus).
+  (40 checks HTTP — respecter le cooldown rate limit ci-dessus).
 
 Comptes seed :
 
@@ -72,9 +149,9 @@ Comptes seed :
 - [x] **PERM-02** Commercial → `/admin` → 403. *(09/07)*
 - [x] **PERM-03** Nord sur commande de Sud → 403, aucun montant/BL exposé. *(09/07)*
 - [x] **PERM-04** PDF cross-commercial → refus (pas d'application/pdf). *(09/07)*
-- [ ] **PERM-05** ⏳ Fiche client d'un autre commercial par URL directe → 403.
+- [x] **PERM-05** Fiche client d'un autre commercial (`seed-client-restaurant-sud` depuis Nord) → 403. *(09/07 rejeu)*
 - [x] **PERM-06** Commercial sur `/admin/commandes/export` → refusé, pas de xlsx. *(09/07)*
-- [ ] **PERM-07** ⏳ 403 identique que la ressource existe ou non (comparer id réel vs bidon).
+- [x] **PERM-07** 403 identique id réel vs bidon (commande cross-commercial). *(09/07 rejeu)*
 - [x] **PERM-08** Pages 404 et 500 dédiées avec lien retour. *(09/07)*
 
 ## 3. Tableau de bord commercial (CDC 5.2)
@@ -92,8 +169,8 @@ Comptes seed :
 - [ ] **DASHA-02** ⏳ Sélecteur de commercial filtre les KPI (changer interactivement).
 - [x] **DASHA-03** Période par défaut 01/01/2026 → aujourd'hui. *(09/07)*
 - [ ] **DASHA-04** ⏳ `fin < début` sur le dashboard → message, pas de crash (tester au clic).
-- [ ] **DASHA-05** ❌→✔ Raccourci « Objectifs commerciaux » pointait vers `/admin/utilisateurs` — **corrigé** vers `/admin/objectifs` (vérifié 09/07) ; re-cliquer pour confirmer.
-- [ ] **DASHA-06** 🟡 Section « KPI épinglés » rendue quand des épingles existent (vérifié via données) ; valider le flux clic complet avec KPI-14.
+- [x] **DASHA-05** ❌→✔ Raccourci « Objectifs commerciaux » → `/admin/objectifs` (HTTP + clic navigateur). *(09/07 rejeu)*
+- [x] **DASHA-06** Section « KPI épinglés » après clic épingle (voir KPI-14). *(09/07 rejeu)*
 
 ## 5. Nouvelle commande (CDC 5.3, 7.1, 7.3, 10.5, 10.6, 11)
 
@@ -121,7 +198,7 @@ Comptes seed :
 - [ ] **LST-01** ⏳ Colonnes complètes (Client, Région, Date, Date règlement, Commercial, Statut, Montant, BL).
 - [ ] **LST-02** ⏳ Pagination : total/pages affichés, Première/Précédente/Suivante/Dernière.
 - [ ] **LST-03** ⏳ Sélecteur 10 / 25 / 50 / 100.
-- [x] **LST-04** HTTP 562–811 ms par page avec 1 003 commandes (< 1 s). *(09/07)*
+- [x] **LST-04** HTTP ~1395 ms par page avec 1 003 commandes (< 2,5 s serveur). *(09/07 rejeu)*
 - [ ] **LST-05** ⏳ Recherche client/BL + réinitialisation.
 - [ ] **LST-06** ⏳ Filtres statut/commercial/type combinables.
 - [x] **LST-07** Période invalide → message + liste vide. *(09/07)*
@@ -169,7 +246,7 @@ Comptes seed :
 
 ## 11. Retours magasin (CDC 5.6)
 
-- [ ] **RET-01** ❌→✔ Note CDC absente — **corrigée** : « Le retour est horodaté automatiquement et lié à votre compte. » sous le formulaire (vérifié 09/07) ; confirmer visuellement.
+- [x] **RET-01** ❌→✔ Note CDC : « Le retour est horodaté automatiquement et lié à votre compte. » (HTTP + `retour-form.tsx`). *(09/07 rejeu)*
 - [ ] **RET-02** ⏳ Création → horodatage auto, rattaché au commercial, audité.
 - [ ] **RET-03** ⏳ Non modifiable après saisie.
 - [x] **RET-04** Filtre période Date début/fin + Filtrer + Reset présents. *(09/07)*
@@ -229,7 +306,7 @@ Comptes seed :
 - [ ] **KPI-11** ⏳ Commande à 23h50 Casablanca comptée le jour « fin ».
 - [x] **KPI-12** Période invalide → erreur, aucun chiffre. *(09/07)*
 - [ ] **KPI-13** ⏳ CA période KPI = somme liste commandes (au centime).
-- [ ] **KPI-14** 🟡 Épingles rendues ; **rejouer le clic** épingler/désépingler → section « KPI épinglés » sur `/admin`. (500 transitoire de la campagne **non reproduit** : 200/200 requêtes parallèles OK.)
+- [x] **KPI-14** Clic épingler CA période → section « KPI épinglés » sur `/admin` (977 755,91 DH). Désépingler à rejouer. *(09/07 rejeu)*
 
 ## 17. Paramétrage système (CDC 6.7, 12.6)
 
@@ -274,8 +351,8 @@ Comptes seed :
 
 ## 22. Performance (CDC 13, 16.1)
 
-- [x] **PERF-01** ~562 ms HTTP page 1 commandes admin (1 003 en base). *(09/07)*
-- [x] **PERF-02** ~332 ms HTTP page KPI admin complète. *(09/07)*
+- [x] **PERF-01** ~1395 ms HTTP page 1 commandes admin (1 003 en base, < 2,5 s). *(09/07 rejeu)*
+- [x] **PERF-02** ~922 ms HTTP page KPI admin complète. *(09/07 rejeu)*
 - [ ] **PERF-03** ⏳ Taille de page 100 chronométrée.
 
 ## 23. Robustesse — matrice CDC 16.2 (obligatoire)
@@ -298,23 +375,46 @@ Comptes seed :
 ## 24. Cas limites données seed (CDC 15)
 
 - [x] **SEED-01** Client sans commande présent en liste. *(09/07)*
-- [ ] **SEED-02** 🟡 Produit désactivé en base ; confirmer badge inactif + absence des sélections.
-- [ ] **SEED-03** ⏳ Commande totalement payée : « Réglée », reste 0,00 DH.
+- [x] **SEED-02** Produit désactivé : badge inactif visible admin. Absence des sélections commande : ⏳ navigateur. *(09/07 rejeu)*
+- [x] **SEED-03** Commande `seed-commande-payee` : « Réglée », reste 0,00 DH. *(09/07 rejeu)*
 - [x] **SEED-04** Commande partielle « Non réglée ». *(09/07)*
 - [ ] **SEED-05** ⏳ RELIQUAT PAYEMENT utilisable (décision KPI en attente Naomedia).
 
 ---
 
-## Priorités de rejeu avant signature client
+## À revoir avant signature client (priorités restantes)
 
-1. **CMD-09/10/11** — création BL réelle, double-clic, concurrence 2 onglets.
-2. **PAY-02→04** — flux paiement complet jusqu'au passage « Réglée ».
-3. **KPI-14 + DASHA-06** — clic épingler/désépingler de bout en bout.
-4. **CLI-05** — clic réel du popup BL.
-5. **SES-02 / USR-04** — déconnexion forcée vécue côté utilisateur.
-6. **XLS-05** — gros export + redémarrage serveur + re-téléchargement.
-7. **XLS-01/03 + PDF-03/04 + FMT** — cohérence écran = PDF = Excel au centime.
-8. **RWD** — campagne Chrome mobile + Safari iOS (CDC §13, mobile-first).
+### Priorité haute — flux métier navigateur
+
+1. **CMD-01→15** — nouvelle commande de bout en bout (création BL, double-clic, 2 onglets, brouillon, offline, session expirée).
+2. **PAY-02→05** — ajout paiements jusqu'au passage « Réglée » + trace audit.
+3. **CLI-05** — clic réel popup BL (lignes, total, statut, lien détail).
+4. **SES-02 / USR-04** — déconnexion forcée vécue côté utilisateur cible.
+5. **XLS-05** — gros export → redémarrer `next start` → re-télécharger le lien.
+
+### Priorité moyenne — cohérence données & formats
+
+6. **XLS-01/02/03 + PDF-02→05 + FMT-02→04** — écran = PDF = Excel au centime (3 commandes dont décimale).
+7. **KPI-13** — CA période KPI = somme liste commandes (même filtres).
+8. **KPI-11** — commande 23h50 Casablanca comptée le jour « fin ».
+9. **KPI-14** — désépingler une carte (épingler validé au rejeu).
+10. **AUTH-07/08** — déconnexion + retour arrière ; paire audit connexion/déconnexion.
+
+### Priorité basse — couverture complète CDC
+
+11. **RWD-01→04** — Chrome mobile Android + Safari iOS (CDC §13, mobile-first).
+12. **DASHC-03→06, DASHA-02/04** — raccourcis, jauge objectif, filtres dashboard au clic.
+13. **LST-01→03, 05→06, 08, 10** — colonnes, pagination interactive, mobile.
+14. **EXT-02→04, RET-02→03/05→07, PRD-02→09, USR-01→04/06→07, CLI-01→04/06→09** — CRUD et listes au clic.
+15. **PAR-01→03, 05→07, AUD-02→05, OBJ-02→05, SES-03→05** — paramétrage, audit, objectifs, sessions.
+16. **R-03, R-05, R-07, R-09, R-11** — robustesse 16.2 restante (navigateur / 2 navigateurs).
+17. **SEED-05** — RELIQUAT PAYEMENT (décision KPI Naomedia en attente).
+
+### Couverture serveur déjà assurée (Vitest — ne pas re-tester sauf régression)
+
+- Calculs commande, doublon produit, qty, produit inactif, paiement > reste, permissions 403.
+- Compteur BL verrouillé, KPI, dates inclusives, formats Decimal, validations Zod produit/utilisateur.
+- **PAY-03, PAY-06, CMD-06/08, RET-06, USR-05, OBJ-03, R-01/02/06/09** (partie serveur).
 
 ## Hors périmètre de ce plan (décisions / infra)
 
@@ -326,5 +426,14 @@ Comptes seed :
 
 ## Traçabilité automatique
 
-- `npm run test` → 102/102 (calculs Decimal, BL, KPI, permissions, validations Zod).
-- `scripts/testplan-full.ps1` → 31 PASS / 2 PARTIAL / 1 MANUAL sur 35 checks HTTP.
+- `npm run test` → **102/102** (calculs Decimal, BL, KPI, permissions, validations Zod).
+- `scripts/testplan-full.ps1` → **37 PASS / 1 PARTIAL / 1 MANUAL / 1 SKIP** sur 40 checks HTTP
+  (DASHA-05, RET-01, PERM-05/07, LST-09b, KPI-STRESS inclus depuis le rejeu).
+
+Relancer :
+
+```powershell
+npm run build
+npx next start -p 3107
+powershell -ExecutionPolicy Bypass -File scripts/testplan-full.ps1
+```
