@@ -114,9 +114,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
-    // Compatibilite avec les comptes de recette existants. Les nouveaux mots
-    // de passe crees par l'admin sont controles a 12 caracteres par Zod.
-    minPasswordLength: 8,
+    // Compatibilite recette : minimum 6 caracteres. Les creations admin passent
+    // aussi par Zod (schemaCreationUtilisateur).
+    minPasswordLength: 6,
   },
   disabledPaths: ["/sign-in/email", "/sign-up/email"],
   user: {

@@ -37,8 +37,8 @@ function motDePasseSeed(
   const configure = process.env[variable]?.trim();
 
   if (configure) {
-    if (configure.length < 8) {
-      throw new Error(`${variable} doit contenir au moins 8 caracteres`);
+    if (configure.length < 6) {
+      throw new Error(`${variable} doit contenir au moins 6 caracteres`);
     }
     return configure;
   }
