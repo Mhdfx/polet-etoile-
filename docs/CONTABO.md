@@ -228,6 +228,80 @@ Dans le panel Contabo (VPS control) :
 | Upload logo perdu | volume non monte | verifier volume `uploads_data` (`/app/public/uploads`) |
 | Export Excel perdu apres redemarrage | volume non monte | verifier volume `exports_data` (`/app/exports-prive`) |
 | Conteneur app refuse de demarrer avec « ERREUR : ... » | variable `.env` manquante ou placeholder | completer `.env` (secret, URLs, DATABASE_URL) |
+| Site down apres reboot VPS | Docker ou stack non relancee | voir section **Redemarrage / downtime** ci-dessous |
+
+---
+
+## Redemarrage / downtime (reboot VPS)
+
+Objectif : apres un arret ou un reboot du VPS, l'application repart seule sans
+intervention manuelle.
+
+### Ce qui est deja en place (dans le depot)
+
+| Mecanisme | Role |
+|---|---|
+| `restart: unless-stopped` | Chaque conteneur redemarre si Docker tourne |
+| Healthcheck MySQL (`start_period: 120s`) | Laisse InnoDB recuperer apres crash |
+| Healthcheck app (Node fetch `/connexion`) | Confirme que Next.js repond |
+| `depends_on: mysql: service_healthy` | L'app attend MySQL avant de demarrer |
+| `scripts/docker-entrypoint.sh` | Attente TCP MySQL + reessais `migrate deploy` |
+| Service systemd (optionnel) | `docker compose up -d` au boot du VPS |
+
+### Installation du service systemd (une fois sur le VPS)
+
+Adapter le chemin si le projet n'est pas dans `/opt/apps/poulet-etoile` :
+
+```bash
+cd /opt/apps/poulet-etoile
+git pull
+chmod +x scripts/install-systemd-service.sh scripts/verify-stack.sh
+sudo ./scripts/install-systemd-service.sh /opt/apps/poulet-etoile docker-compose.ip.yml
+# Avec domaine + HTTPS :
+# sudo ./scripts/install-systemd-service.sh /opt/poulet-etoile docker-compose.prod.yml
+```
+
+Puis reconstruire l'image app (entrypoint durci) :
+
+```bash
+docker compose -f docker-compose.ip.yml up -d --build app
+```
+
+### Verifier apres un reboot
+
+```bash
+sudo reboot
+# reconnecter SSH, puis :
+cd /opt/apps/poulet-etoile
+./scripts/verify-stack.sh
+docker compose -f docker-compose.ip.yml ps
+```
+
+Attendu : `mysql` et `app` **healthy**, `/connexion` repond en moins de 5 min.
+
+### Test manuel sans reboot
+
+```bash
+docker compose -f docker-compose.ip.yml restart app
+./scripts/verify-stack.sh
+```
+
+### Ordre de demarrage
+
+1. Docker daemon (`systemctl enable docker`)
+2. MySQL (volume `mysql_data` persiste les donnees)
+3. App : attente TCP → migrations Prisma → `next start`
+4. Caddy (prod uniquement) : apres app healthy
+
+### Si l'app boucle au demarrage
+
+```bash
+docker compose -f docker-compose.ip.yml logs -f app
+docker compose -f docker-compose.ip.yml logs mysql
+```
+
+Causes frequentes : `.env` incomplet, MySQL encore en recovery (attendre 2–3 min),
+mot de passe MySQL change sans mettre a jour `.env`.
 
 ---
 
