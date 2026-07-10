@@ -29,6 +29,13 @@ export function sommerMontants(valeurs: EntreeDecimal[]): Decimal {
   );
 }
 
+/** Somme de quantites en KG, arrondie a 3 decimales (jamais 2 comme un montant). */
+export function sommerQuantites(valeurs: EntreeDecimal[]): Decimal {
+  return arrondirQuantite(
+    valeurs.reduce<Decimal>((total, valeur) => total.plus(valeur), new Decimal(0)),
+  );
+}
+
 export function calculerResteDu(totalCommande: EntreeDecimal, paiements: EntreeDecimal[]): Decimal {
   return arrondirMontant(decimal(totalCommande).minus(sommerMontants(paiements)));
 }

@@ -49,7 +49,15 @@ function motDePasseSeed(
   return valeurLocale;
 }
 
-const produitsCdc = [
+type SeedProduit = {
+  nom: string;
+  categorie: string;
+  prix_reference: string;
+  ordre_affichage: number;
+  suivi_stock?: boolean;
+};
+
+const produitsCdc: SeedProduit[] = [
   { nom: "Abats de poulet", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 10 },
   { nom: "Ailes", categorie: "Découpe", prix_reference: "21.00", ordre_affichage: 20 },
   { nom: "Blanc", categorie: "Découpe", prix_reference: "48.00", ordre_affichage: 30 },
@@ -75,7 +83,9 @@ const produitsCdc = [
   { nom: "POULET ENTIER", categorie: "Poulet frais", prix_reference: "23.50", ordre_affichage: 230 },
   { nom: "SAUCISSES NATURE OU EPICE", categorie: "Élaboré", prix_reference: "54.00", ordre_affichage: 240 },
   { nom: "Sot-l'y-laisse", categorie: "Découpe", prix_reference: "58.00", ordre_affichage: 250 },
-  { nom: "RELIQUAT PAYEMENT", categorie: "Règlement", prix_reference: "1.00", ordre_affichage: 900 },
+  // Pseudo-produit de règlement : pas du stock physique -> exclu des bons de
+  // charge et du rapprochement de tournée.
+  { nom: "RELIQUAT PAYEMENT", categorie: "Règlement", prix_reference: "1.00", ordre_affichage: 900, suivi_stock: false },
 ];
 
 async function upsertUtilisateur(seed: SeedUtilisateur) {
@@ -144,6 +154,12 @@ async function main() {
     update: {},
   });
 
+  await prisma.compteurBl.upsert({
+    where: { cle: "numero_bc" },
+    create: { cle: "numero_bc", valeur: 0 },
+    update: {},
+  });
+
   const admin = await upsertUtilisateur({
     nom_utilisateur: "admin",
     nom_complet: "Administrateur",
@@ -174,6 +190,7 @@ async function main() {
       { cle: "ice", valeur: "000000000000000", updated_by: admin.id },
       { cle: "rc", valeur: "RC Casablanca 000000", updated_by: admin.id },
       { cle: "prefixe_bl", valeur: "PE", updated_by: admin.id },
+      { cle: "prefixe_bc", valeur: "BC", updated_by: admin.id },
       { cle: "fuseau_horaire", valeur: "Africa/Casablanca", updated_by: admin.id },
       { cle: "taux_tva", valeur: "0", updated_by: admin.id },
       { cle: "villes_maroc", valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
@@ -182,6 +199,7 @@ async function main() {
   });
 
   for (const produit of produitsCdc) {
+    const suiviStock = produit.suivi_stock ?? true;
     await prisma.produit.upsert({
       where: { id: `seed-produit-${produit.ordre_affichage}` },
       create: {
@@ -191,11 +209,13 @@ async function main() {
         unite: "kg",
         prix_reference: produit.prix_reference,
         ordre_affichage: produit.ordre_affichage,
+        suivi_stock: suiviStock,
       },
       update: {
         nom: produit.nom,
         categorie: produit.categorie,
         prix_reference: produit.prix_reference,
+        suivi_stock: suiviStock,
         actif: true,
         deleted_at: null,
       },
@@ -219,6 +239,33 @@ async function main() {
       deleted_at: new Date(),
     },
   });
+
+  // Bon de charge de démonstration (idempotent : créé uniquement au 1er seed).
+  const bonChargeDemo = await prisma.bonCharge.findUnique({
+    where: { id: "seed-bon-charge-1" },
+  });
+  if (!bonChargeDemo) {
+    await prisma.bonCharge.create({
+      data: {
+        id: "seed-bon-charge-1",
+        numero_bc: "BC-000001",
+        numero_bc_compteur: 1,
+        commercial_id: commercialCom1.id,
+        cree_par: admin.id,
+        commentaire: "Tournée de démonstration",
+        lignes: {
+          create: [
+            { produit_id: "seed-produit-30", quantite_kg: "100.000" }, // Blanc
+            { produit_id: "seed-produit-90", quantite_kg: "50.000" }, // Cuisse entiere
+          ],
+        },
+      },
+    });
+    await prisma.compteurBl.update({
+      where: { cle: "numero_bc" },
+      data: { valeur: 1 },
+    });
+  }
 
   const clientSansCommande = await prisma.client.upsert({
     where: { id: "seed-client-sans-commande" },
