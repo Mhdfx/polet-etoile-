@@ -818,3 +818,63 @@ Fallback lent uniquement :
 ```bash
 docker compose -f docker-compose.ip.yml -f docker-compose.build.yml up -d --build app
 ```
+
+## Addendum Codex - runbook deployement VPS - 11/07/2026
+
+- Nouveau fichier racine `deployement.md` ajoute avec les informations du VPS,
+  l'architecture Docker Compose, le chemin `/opt/apps/poulet-etoile`, l'image
+  `ghcr.io/mhdfx/coq-plus:latest`, le flux de deploiement rapide, les commandes
+  de verification, les problemes connus (`GHCR denied`, `Permission denied`) et
+  le fallback lent par build local.
+- Etat VPS confirme par l'utilisateur : `docker compose -f docker-compose.ip.yml
+  pull app` telecharge l'image preconstruite, `up -d app` redemarre l'app,
+  `poulet_etoile_app` et `poulet_etoile_mysql` sont healthy, et `/connexion`
+  retourne HTTP 200.
+- Systemd custom reste non installe car la tentative `sudo` a echoue ; les
+  conteneurs utilisent deja `restart: unless-stopped`. A refaire plus tard avec
+  acces sudo/root valide.
+
+## Addendum Codex - QA navigateur live VPS - 11/07/2026
+
+Recette navigateur effectuee sur `http://212.47.68.171` avec `admin`/`password`
+et `com1`/`password`.
+
+Valide sur le live :
+
+- Sweep routes admin : dashboard, produits, prix en masse, commandes, nouvelle
+  commande, charges, paiements, clients, retours, KPI, rapprochement,
+  utilisateurs, objectifs, audit, historique admins, sessions, parametrage,
+  exports. Aucun crash ni erreur console.
+- Sweep routes commercial : dashboard, clients, commandes, nouvelle commande,
+  commandes externes, retours, KPI. Aucun crash ni erreur console.
+- Creation produit QA, client externe admin, commande admin externe, paiement
+  complet, client commercial, commande commercial, retour magasin, utilisateur
+  commercial QA.
+- Audit global et historique admins affichent les actions creees ; retours admin
+  affiche le retour commercial ; sessions actives charge correctement.
+- Permission live verifiee : commercial allant directement sur
+  `/admin/produits` est redirige vers `/403`.
+- Responsive 390 px : routes principales admin et commercial sans overflow
+  horizontal.
+
+Correction live appliquee pendant la QA :
+
+- Le VPS avait encore les anciens parametres base (`prefixeBl = PE`, ICE/RC
+  placeholders, champs legaux manquants). Corrige via `/admin/parametres` :
+  `COQ PLUS SARL`, RC `39869 MOHAMMEDIA`, ICE `003931636000009`, IF
+  `72064177`, patente `39504226`, adresse `RDC 1 LOT EL FARAH MOHAMMEDIA`,
+  TVA `0`, prefixe BL `CP`.
+- Verification apres correction : nouvelle commande creee en live avec le BL
+  `CP-001008`.
+
+Limites / points restants :
+
+- L'in-app browser n'a pas emis d'evenement de telechargement pour l'export Excel
+  global ; la page et les liens sont presents sans erreur console, mais le
+  telechargement doit etre confirme manuellement dans un navigateur classique ou
+  via requete authentifiee.
+- Donnees QA laissees en base live pour inspection avec le prefixe
+  `QA-LIVE-1783783909491`, plus les BL `PE-001006`, `PE-001007` et
+  `CP-001008`.
+- Mots de passe seed (`admin`/`password`, `com1`/`password`) toujours a changer
+  avant usage client reel.

@@ -3,6 +3,7 @@ import { hashPassword } from "better-auth/crypto";
 import { calculerPrixNet } from "@/lib/decimal";
 import { prisma } from "@/lib/db";
 import { attribuerNumeroBL } from "@/lib/bl";
+import { syncCatalogueCdc } from "@/lib/sync-catalogue";
 import { VILLES_MAROC_DEFAUT } from "@/lib/villes";
 
 // Source unique : liste complète des villes du Maroc dans lib/villes.ts.
@@ -34,45 +35,6 @@ function motDePasseSeed(
   );
   return valeurLocale;
 }
-
-type SeedProduit = {
-  nom: string;
-  categorie: string;
-  prix_reference: string;
-  ordre_affichage: number;
-  suivi_stock?: boolean;
-};
-
-const produitsCdc: SeedProduit[] = [
-  { nom: "Abats de poulet", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 10 },
-  { nom: "Ailes", categorie: "Découpe", prix_reference: "21.00", ordre_affichage: 20 },
-  { nom: "Blanc", categorie: "Découpe", prix_reference: "48.00", ordre_affichage: 30 },
-  { nom: "Brochettes de Poulet", categorie: "Élaboré", prix_reference: "55.00", ordre_affichage: 40 },
-  { nom: "Carcasse", categorie: "Découpe", prix_reference: "8.00", ordre_affichage: 50 },
-  { nom: "Chawarma poulet", categorie: "Élaboré", prix_reference: "52.00", ordre_affichage: 60 },
-  { nom: "Coquelet", categorie: "Poulet frais", prix_reference: "32.00", ordre_affichage: 70 },
-  { nom: "COU", categorie: "Abats", prix_reference: "11.00", ordre_affichage: 80 },
-  { nom: "Cuisse entiere", categorie: "Découpe", prix_reference: "28.00", ordre_affichage: 90 },
-  { nom: "Cuisse entiere desossee A Peau", categorie: "Découpe", prix_reference: "42.00", ordre_affichage: 100 },
-  { nom: "Cuisse entiere desossee SP", categorie: "Découpe", prix_reference: "45.00", ordre_affichage: 110 },
-  { nom: "Emince de poulet", categorie: "Élaboré", prix_reference: "50.00", ordre_affichage: 120 },
-  { nom: "FOIE", categorie: "Abats", prix_reference: "18.00", ordre_affichage: 130 },
-  { nom: "GESIER", categorie: "Abats", prix_reference: "16.00", ordre_affichage: 140 },
-  { nom: "HDC Desosse", categorie: "Découpe", prix_reference: "44.00", ordre_affichage: 150 },
-  { nom: "HDC Desosse S Peau", categorie: "Découpe", prix_reference: "46.00", ordre_affichage: 160 },
-  { nom: "HDC Os & Peau", categorie: "Découpe", prix_reference: "31.00", ordre_affichage: 170 },
-  { nom: "HDC Os & S Peau", categorie: "Découpe", prix_reference: "33.00", ordre_affichage: 180 },
-  { nom: "KEFTA NATURE OU EPICE", categorie: "Élaboré", prix_reference: "49.00", ordre_affichage: 190 },
-  { nom: "Pau", categorie: "Découpe", prix_reference: "12.00", ordre_affichage: 200 },
-  { nom: "Petite Viande", categorie: "Découpe", prix_reference: "20.00", ordre_affichage: 210 },
-  { nom: "Pilon", categorie: "Découpe", prix_reference: "25.00", ordre_affichage: 220 },
-  { nom: "POULET ENTIER", categorie: "Poulet frais", prix_reference: "23.50", ordre_affichage: 230 },
-  { nom: "SAUCISSES NATURE OU EPICE", categorie: "Élaboré", prix_reference: "54.00", ordre_affichage: 240 },
-  { nom: "Sot-l'y-laisse", categorie: "Découpe", prix_reference: "58.00", ordre_affichage: 250 },
-  // Pseudo-produit de règlement : pas du stock physique -> exclu des bons de
-  // charge et du rapprochement de tournée.
-  { nom: "RELIQUAT PAYEMENT", categorie: "Règlement", prix_reference: "1.00", ordre_affichage: 900, suivi_stock: false },
-];
 
 async function upsertUtilisateur(seed: SeedUtilisateur) {
   const existantParNom = await prisma.user.findUnique({
@@ -231,29 +193,11 @@ async function main() {
     update: { valeur: JSON.stringify(villesMaroc), updated_by: admin.id },
   });
 
-  for (const produit of produitsCdc) {
-    const suiviStock = produit.suivi_stock ?? true;
-    await prisma.produit.upsert({
-      where: { id: `seed-produit-${produit.ordre_affichage}` },
-      create: {
-        id: `seed-produit-${produit.ordre_affichage}`,
-        nom: produit.nom,
-        categorie: produit.categorie,
-        unite: "kg",
-        prix_reference: produit.prix_reference,
-        ordre_affichage: produit.ordre_affichage,
-        suivi_stock: suiviStock,
-      },
-      update: {
-        nom: produit.nom,
-        categorie: produit.categorie,
-        prix_reference: produit.prix_reference,
-        suivi_stock: suiviStock,
-        actif: true,
-        deleted_at: null,
-      },
-    });
-  }
+  await syncCatalogueCdc(prisma, {
+    mettreAJourPrix: true,
+    versionApp: process.env.npm_package_version ?? "0.1.0",
+    utilisateurId: admin.id,
+  });
 
   if (process.env.SEED_DEMO_DATA !== "true") {
     return;
