@@ -1,4 +1,4 @@
-# testplan.md — Plan de test navigateur complet (Poulet Étoilé / Naomedia)
+# testplan.md — Plan de test navigateur complet (Coq Plus)
 
 Plan de recette manuelle à dérouler dans le navigateur pour valider **toutes** les
 fonctionnalités contre `cdc.md` (recette fonctionnelle 16.1 + robustesse 16.2).
@@ -8,17 +8,307 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
+## Campagne 11/07/2026 - corrections post-QA et retest navigateur (localhost:3107)
+
+Build production relance proprement sur `http://localhost:3107` apres correction
+des 7 anomalies confirmees pendant la campagne daily-use. Retest effectue dans
+l'in-app browser avec `admin` / `password` et `com1` / `password`.
+
+Donnees QA creees pendant le retest : prefixe `QA-FIX2-1783735747610`.
+
+### Synthese corrections 11/07
+
+| Statut | Nombre | Detail |
+|---|---:|---|
+| **FAIL corriges et retestes** | **7/7** | Retours, clients externes, utilisateurs, objectifs, bons de charge, selects commande, parametrage optionnel |
+| **PASS technique** | **4/4** | TypeScript, lint, tests Vitest, build production |
+| **Console navigateur** | **OK** | Aucune nouvelle erreur/warning pendant le smoke final |
+
+### Bugs corriges et verifies
+
+- [x] **MUT-REFRESH-01** Retours commercial : apres creation, la ligne apparait
+  dans l'historique sans intervention utilisateur. Retest : retour
+  `QA-FIX2-1783735747610 Retour refresh`, produit `Blanc`, `0,650 kg`.
+- [x] **MUT-REFRESH-02** Client externe admin : creation visible immediatement
+  dans la table. Retest : `QA-FIX2-1783735747610 Client Externe Fix`.
+- [x] **MUT-REFRESH-03** Utilisateur admin : creation visible immediatement
+  apres succes. Retest : `QA-FIX2-1783735747610 Commercial Fix`, username
+  `fix.qa-fix2-1783735747610`.
+- [x] **MUT-REFRESH-04** Objectif utilisateur : objectif visible apres
+  sauvegarde. Retest : `07/2026 = 4 321,00 DH`.
+- [x] **MUT-REFRESH-05** Bon de charge : creation redirige vers le detail et le
+  total est correct. Retest : `BC-000003`, total `1,250 kg`.
+- [x] **SELECT-01** Selects commande : apres creation de commande, les champs
+  client/produit reviennent au placeholder et ne gardent plus les anciens
+  libelles. Retest : commande `CP-000005`, total `24,00 DH`.
+- [x] **PARAM-01** Parametrage optionnel : un champ optionnel deja renseigne peut
+  etre vide et la valeur vide persiste en base. Retest : `telephone` vide en DB
+  et vide dans l'UI apres reload. Note : l'automatisation navigateur a du saisir
+  un espace pour simuler l'effacement, car son action `fill("")` ne modifiait pas
+  la valeur DOM ; la validation applicative trim correctement en chaine vide.
+
+### Smoke final navigateur
+
+- [x] Routes admin parcourues : `/admin`, `/admin/clients`,
+  `/admin/utilisateurs`, `/admin/charges`, `/admin/parametres`, `/admin/audit`,
+  `/admin/historique-admins`.
+- [x] Chaque route charge son titre attendu et ne cree pas d'overflow horizontal.
+- [x] Console navigateur : aucune nouvelle erreur JavaScript, aucun nouveau
+  warning apres rebuild.
+
+### Verification technique apres corrections
+
+- `npx tsc --noEmit` : PASS.
+- `npm run lint` : PASS.
+- `npm run test` : PASS, **126/126 tests**.
+- `npm run build` : PASS.
+
+### Etat livraison local
+
+Les donnees QA du retest sont conservees pour inspection locale. Pour remettre
+la base en etat livraison propre avant une demonstration client :
+
+```powershell
+npm run reset:delivery-data
+npm run seed
+```
+
+---
+
+## Campagne 11/07/2026 - test navigateur daily-use complet (localhost:3107)
+
+Build production teste dans l'in-app browser sur `http://localhost:3107`.
+Objectif : utiliser l'application comme en exploitation quotidienne, avec ajout,
+modification, verification des listes/details/KPI/audit, puis sweep mobile.
+
+Comptes utilises :
+
+- Admin : `admin` / `password`
+- Commercial : `com1` / `password`
+- Donnees QA creees : prefixe `QA-FULL-202607110135`
+
+### Synthese 11/07
+
+> Cette campagne documente l'etat trouve avant correction. Les 7 echecs listes
+> ci-dessous sont clos dans la campagne "corrections post-QA et retest
+> navigateur" juste au-dessus.
+
+| Statut | Nombre | Detail |
+|---|---:|---|
+| **PASS navigateur** | **56** | Auth, permissions, clients, commandes standard/externe, paiement, produit/prix, objectif, bon de charge, audit, historique admins, sessions, exports, parametrage, KPI, responsive admin/commercial |
+| **FAIL app confirme puis corrige** | **7** | 5 mutations qui sauvegardaient en base mais ne rafraichissaient pas l'interface, 1 Select stale/control warning, 1 parametre optionnel impossible a vider |
+| **PARTIAL** | **5** | PDF contenu non parse, logout/force-session non exerce jusqu'au bout, export fichier telecharge sans comparaison Excel cellule par cellule, suppression/fusion non destructives non rejouees |
+| **MANUAL restant** | **6** | Safari/iOS reel, double navigateur concurrence BL, offline reel long, expiration session longue, comparaison PDF/XLSX au centime, gros export + redemarrage |
+
+### PASS navigateur confirmes 11/07
+
+- [x] **AUTH-11** Login invalide reste sur `/connexion` avec erreur generique.
+- [x] **AUTH-12** Login commercial `com1` OK ; dashboard commercial charge.
+- [x] **PERM-11** Commercial sur `/admin` -> `/403`, aucune donnee admin exposee.
+- [x] **CLI-11** Commercial cree un client standard (`Taroudannt`) ; il apparait dans `Mes clients`.
+- [x] **CLI-12** Commercial modifie ce client (`Oualidia`, nouveau telephone) ; liste mise a jour.
+- [x] **CMD-21** Nouvelle commande commercial : client + produit `Blanc`, `3,250 kg`, total temps reel `156,00 DH`.
+- [x] **CMD-22** Creation BL commercial `CP-000003` OK ; liste et detail affichent client, ville, lignes, total, paye/reste.
+- [x] **PAY-11** Admin encaisse `156,00 DH` sur `CP-000003` ; statut passe `Reglee`, reste `0,00 DH`, paiement visible.
+- [x] **EXT-11** Admin cree client externe `Marrakech`, puis commande externe `CP-000004` avec produit QA ; liste admin et liste commercial externes OK.
+- [x] **PRD-12** Admin cree produit QA, puis change prix `12,34 -> 15,67 DH`.
+- [x] **PRD-13** Historique prix produit affiche ancien prix, nouveau prix et auteur admin.
+- [x] **USR-11** Admin cree utilisateur commercial QA ; l'utilisateur existe en base et apparait apres reload.
+- [x] **OBJ-11** Objectif `07/2026 = 5 000,00 DH` sauvegarde en base et apparait apres reload.
+- [x] **RET-11** Commercial cree retour `Blanc 1,500 kg` ; retour sauvegarde et apparait apres reload.
+- [x] **CHG-11** Admin cree bon de charge `BC-000002`, commercial QA, produit QA, `4,500 kg`.
+- [x] **CHG-12** Detail bon de charge affiche date, commercial, commentaire, ligne produit et total corrects.
+- [x] **AUD-11** Audit global liste les actions admin et commercial : client creation/modification, commande, retour, produit, prix, paiement, client externe, objectif, bon de charge.
+- [x] **HADM-11** Historique admins liste uniquement les actions admin recentes : produit, prix, paiement, client externe, commande externe, utilisateur, objectif, bon de charge.
+- [x] **SES-11** Sessions page affiche session active, role, IP, derniere activite, expiration et user-agent.
+- [x] **EXP-11** Exports directs `/admin/exports/global` et `/admin/charges/export` telecharges via le helper navigateur.
+- [x] **PAR-11** Parametrage sauvegarde une modification temporaire et peut vider
+  `telephone` apres correction `PARAM-01`. Retest : DB et UI vides apres reload.
+- [x] **RWD-11** Sweep mobile 390px sur 10 routes admin : aucun overflow document.
+- [x] **RWD-12** Sweep mobile 390px sur 7 routes commercial : aucun overflow document.
+
+### FAIL app confirmes 11/07, puis corriges
+
+1. **MUT-REFRESH-01 - Retours commercial** : apres creation, le message
+   `Retour enregistre` apparait mais la nouvelle ligne n'est visible dans
+   l'historique qu'apres reload. La donnee est bien en base. **Corrige et
+   reteste** dans la campagne post-QA.
+2. **MUT-REFRESH-02 - Client externe admin** : creation sauvegardee en base,
+   mais la table "clients externes" reste vide jusqu'au reload. **Corrige et
+   reteste** dans la campagne post-QA.
+3. **MUT-REFRESH-03 - Utilisateur admin** : creation sauvegardee en base, mais
+   la table utilisateurs ne se met a jour qu'apres reload. **Corrige et
+   reteste** dans la campagne post-QA.
+4. **MUT-REFRESH-04 - Objectif utilisateur** : objectif sauvegarde en base, mais
+   la table d'objectifs reste vide jusqu'au reload. **Corrige et reteste** dans
+   la campagne post-QA.
+5. **MUT-REFRESH-05 - Bon de charge** : le bon `BC-000002` est cree en base, mais
+   l'utilisateur reste sur le formulaire sans success/redirect visible ; la liste
+   l'affiche seulement apres navigation. **Corrige et reteste** dans la campagne
+   post-QA.
+6. **PARAM-01 - Parametrage optionnel** : saisir `telephone=0600000000` sauvegarde
+   correctement, mais vider ensuite le champ affiche `Parametres enregistres`
+   sans remettre `telephone` a vide en base. La valeur a ete restauree
+   manuellement en DB apres la campagne. **Corrige et reteste** dans la campagne
+   post-QA.
+
+### Bug UI transverse
+
+- **SELECT-01** : apres creation de commande (commercial et admin), les champs
+  Select affichent encore les anciens libelles alors que l'etat interne est
+  reinitialise. Un second submit ne cree pas de doublon, mais affiche des erreurs
+  de validation (`Choisir un client`, `Ajouter au moins une ligne`) alors que
+  l'ancien libelle semble encore selectionne. Console navigateur :
+  `Select is changing from uncontrolled to controlled` puis inverse. Impact :
+  confusion utilisateur, pas de corruption de donnees. **Corrige et reteste**
+  dans la campagne post-QA.
+
+### Partial / non bloque mais a finir
+
+- **PDF-11** : route PDF BL accessible ; contenu non compare cellule/centime
+  avec l'ecran pendant cette passe.
+- **EXP-12** : fichiers Excel telecharges ; contenu XLSX non ouvert/compare
+  cellule par cellule.
+- **SES-12** : bouton fermeture session visible ; fermeture forcee non exercee
+  car elle aurait coupe la session de test courante.
+- **CRUD-11** : suppression produit/client/utilisateur et fusion client non
+  rejouees en destructif pendant cette passe.
+- **ROB-11** : double-clic commande, deux navigateurs simultanes, offline reel et
+  expiration longue restent manuels.
+
+### Etat base apres campagne 11/07
+
+- Users 10, actifs 4 ; sessions 1.
+- Clients standards 3 ; clients externes 1.
+- Commandes 4 ; paiements 2 ; bons de charge 2 ; retours 2.
+- Produits 27 ; objectifs 1 ; audit 85.
+- Compteurs : `numero_bl=4`, `numero_bc=2`.
+
+Les donnees QA sont laissees en place pour inspection locale. Pour revenir a un
+etat livraison propre : `npm run reset:delivery-data && npm run seed`.
+
+### Verification technique 11/07
+
+- `npm run prisma:validate` : PASS.
+- `npx tsc --noEmit` : PASS.
+- `npm run lint` : PASS.
+- `npm run test` : **126/126 PASS** (22 fichiers).
+- `npm run build` : PASS.
+
+### Conclusion 11/07 initiale
+
+Le coeur metier et les calculs etaient solides. Les bugs `MUT-REFRESH-*`,
+`SELECT-01` et `PARAM-01` etaient des bugs UI/UX et post-submit, pas des pertes
+de donnees. Ils sont maintenant corriges/retestes dans la campagne post-QA.
+
+---
+
+## Campagne 10/07/2026 - Coq Plus, villes Maroc et base propre
+
+Build production teste sur `http://localhost:3107` avec `com1` / `password`.
+
+### Resultats valides
+
+- [x] **BRAND-01** Login, shell commercial et metadata affichent **Coq Plus**.
+- [x] **CMD-16** Creation client inline depuis `/commercial/commandes/nouvelle`.
+- [x] **CMD-17** Select ville du dialogue `Nouveau client` contient 450 villes.
+- [x] **CMD-18** Villes verifiees dans le navigateur : `Akchour`, `Oualidia`,
+  `Moulay Idriss Zerhoun`, `Taroudannt`.
+- [x] **CMD-19** Creation commande commercial OK : client `Client test Coq Plus`
+  a `Oualidia`, produit `POULET ENTIER`, quantite `12,750 kg`, BL `CP-000001`,
+  total `299,63 DH`.
+- [x] **CMD-20** Verification base apres creation : ligne produit figee
+  `12.75` / `299.63`.
+- [x] **RESET-01** Donnees de test supprimees apres recette par
+  `npm run reset:delivery-data` puis `npm run seed`.
+- [x] **RESET-02** Etat livraison propre : 0 clients, 0 commandes, 0 paiements,
+  0 retours, 0 audit, 0 objectifs, 0 sessions, 26 produits, compteurs BL/BC a 0.
+- [x] **RESET-03** Utilisateurs conserves : 9 lignes users, dont 3 actifs seed
+  (`admin`, `com1`, `com2`).
+
+### Verification technique
+
+- `npm run prisma:validate` : PASS.
+- `npx tsc --noEmit` : PASS.
+- `npm run lint` : PASS.
+- `npm run test` : **126/126 PASS**.
+- `npm run build` : PASS.
+
+---
+
+## Campagne finale 10/07/2026 - mise a jour client + frontend/UI/UX
+
+Build production teste sur `http://localhost:3107`, avec `admin`, `com1` et
+`com2`. Cette campagne complete les parcours fonctionnels detailles plus bas.
+
+### Demandes client validees
+
+- [x] **HADM-01** `/admin/historique-admins` est visible dans la navigation et
+  les raccourcis du dashboard admin.
+- [x] **HADM-02** La page liste les creations, modifications, suppressions,
+  paiements, sessions et autres traces existantes produites par un admin.
+- [x] **HADM-03** Le filtre auteur est applique dans la requete Prisma : aucune
+  ligne d'un commercial dans les 20 lignes inspectees.
+- [x] **HADM-04** Les filtres utilisateur/action/entite/periode et la pagination
+  sont presents ; l'export contient `roleAuteur=ADMIN` et reapplique ce filtre.
+- [x] **HADM-05** Commercial -> 403 sans ligne exposee ; anonyme -> `/connexion`.
+- [x] **PRD-10** Les 26 produits actifs/non supprimes sont rendus sur une seule
+  page, avec recherche conservee et aucun bouton Precedent/Suivant.
+- [x] **PRD-11** Recherche serveur `q=Ailes` -> 1 produit, toujours sans pagination.
+
+### Matrice frontend responsive
+
+- [x] **RWD-05** 16 routes admin parcourues a 375 px : dashboard, produits,
+  categories, prix en masse, commandes, paiements, clients, retours, KPI,
+  utilisateurs, objectifs, audit, historique admins, sessions, parametres,
+  exports.
+- [x] **RWD-06** 7 routes commercial parcourues a 375 px : dashboard, nouvelle
+  commande, listes standard/externe, clients, retours et KPI.
+- [x] **RWD-07** Overflows corriges puis re-testes sur produits, commandes
+  admin/commercial, paiements, clients admin/commercial et utilisateurs.
+- [x] **RWD-08** Aucun overflow horizontal au niveau document apres correction ;
+  les tableaux larges restent dans leur conteneur scrollable.
+- [x] **RWD-09** Nouvelle page historique : filtres empiles sans chevauchement,
+  navigation mobile utilisable et tableau confine.
+
+### Verification technique
+
+- `npx tsc --noEmit` : PASS.
+- `npm run lint` : PASS.
+- `npm run test` : **113/113 PASS** (20 fichiers), dont 3 tests du filtre audit.
+- `npm run build` : PASS, route `/admin/historique-admins` incluse.
+- Console navigateur : aucune erreur JavaScript. Quatre warnings Radix
+  controlled/uncontrolled ont ete observes avant le dernier rebuild lors d'une
+  interaction produit ; aucune erreur fonctionnelle associee, reproduction a
+  isoler dans une nouvelle session si elle reapparait.
+
+### Observations UI/UX non bloquantes
+
+1. Les champs `date` natifs affichent le placeholder `mm/dd/yyyy` quand le
+   navigateur/OS est en locale anglaise, meme si les dates rendues par l'app
+   sont en `JJ/MM/AAAA`.
+2. Le titre mobile long « Historique des administrateurs » est tronque dans le
+   header compact ; le contexte complet reste visible dans la description.
+3. Les boutons icone des tableaux font 28 px. Ils sont adaptes a la densite
+   desktop mais inferieurs a la cible tactile recommandee de 44 px.
+4. Safari iOS reel, ouverture des fichiers dans Excel/Google Sheets, upload
+   logo natif, offline, expiration longue et concurrence multi-navigateurs
+   restent des tests materiels/manuels ; ils ne sont pas simulables fidelement
+   par l'in-app browser.
+
+---
+
 ## Résultats campagne 10/07/2026 - QA navigateur Codex (localhost:3107)
 
 Objectif : reprise depuis zero du plan de test, puis execution navigateur reelle
 sur l'instance locale ouverte dans l'in-app browser. Tests effectues avec :
 
 - Admin : `admin` / `password`
-- Commercial : `commercial.nord` / `commercial123`
+- Commercial : `com1` / `password` et `com2` / `password`
 - URL : `http://localhost:3107`
 - Donnees creees pendant la campagne :
-  - Commande admin : `PE-001004`, client `Boucherie Atlas`, produit `Abats de poulet`, quantite `12,750 kg`, total `229,50 DH`.
-  - Paiement : `229,50 DH`, reference `QA-PE-001004`, statut passe a `Reglee`, reste `0,00 DH`.
+  - Commande admin : `CP-001004`, client `Boucherie Atlas`, produit `Abats de poulet`, quantite `12,750 kg`, total `229,50 DH`.
+  - Paiement : `229,50 DH`, reference `QA-CP-001004`, statut passe a `Reglee`, reste `0,00 DH`.
   - Retour commercial : `QA retour navigateur 10/07`, `1,250 kg`, produit `Abats de poulet`.
 
 ### Synthese campagne 10/07
@@ -37,8 +327,8 @@ sur l'instance locale ouverte dans l'in-app browser. Tests effectues avec :
 - **ADMIN-NAV** : toutes les entrees admin chargent : accueil, produits, commandes, paiements, clients, retours, KPI, utilisateurs, objectifs, audit, sessions, parametrage, exports.
 - **DASHC-01/03/04** : dashboard commercial avec cartes KPI, raccourcis cliquables, objectif mensuel visible.
 - **DASHA-04 / LST-07 / AUD-02 / KPI-12** : `fin < debut` affiche une erreur explicite sans crash sur dashboard admin, commandes, audit et KPI.
-- **CMD-01/03/04/05/09/12** : portefeuille client commercial isole, prix catalogue non editable, total temps reel, `12,750` kg accepte, creation BL admin `PE-001004`, brouillon restaure apres reload.
-- **LST-03/05** : taille page 100 disponible, recherche BL fonctionne et retrouve `PE-001004`.
+- **CMD-01/03/04/05/09/12** : portefeuille client commercial isole, prix catalogue non editable, total temps reel, `12,750` kg accepte, creation BL admin `CP-001004`, brouillon restaure apres reload.
+- **LST-03/05** : taille page 100 disponible, recherche BL fonctionne et retrouve `CP-001004`.
 - **PAY-01/02/04/05/09** : detail commande correct, paiement complet ajoute, statut `Reglee`, reste `0,00 DH`, audit `paiement.creation`, page `/admin/paiements` OK.
 - **EXT-01** : commandes externes commercial chargees avec filtre client/statut/export visible.
 - **RET-01/02/03/04/07** : note CDC visible, creation retour OK, historique apres reload, pas d'edition/suppression visible, vue admin tous retours.
@@ -119,7 +409,7 @@ sur l'instance locale ouverte dans l'in-app browser. Tests effectues avec :
 - Build production : `npm run build` puis `npx next start -p 3107`
   (aligner `BETTER_AUTH_URL` sur le port utilisé).
 - Navigateurs cibles : Chrome desktop, Chrome mobile et Safari iOS (CDC §13).
-- Automatisation disponible : `npm run test` (102 Vitest) ; `scripts/testplan-full.ps1`
+- Automatisation disponible : `npm run test` (113 Vitest) ; `scripts/testplan-full.ps1`
   (40 checks HTTP — respecter le cooldown rate limit ci-dessus).
 
 Comptes seed :
@@ -127,8 +417,8 @@ Comptes seed :
 | Rôle | Utilisateur | Mot de passe |
 |---|---|---|
 | Admin | `admin` | `password` |
-| Commercial | `commercial.nord` | `commercial123` |
-| Commercial | `commercial.sud` | `commercial123` |
+| Commercial | `com1` | `password` |
+| Commercial | `com2` | `password` |
 
 ---
 
@@ -256,7 +546,7 @@ Comptes seed :
 
 ## 12. Produits & catégories (CDC 6.1, 7.7)
 
-- [x] **PRD-01** Liste admin charge (recherche/statut/pagination présents). *(09/07)*
+- [x] **PRD-01** Liste admin charge : 26 produits sur une page, recherche/statut présents, aucune pagination. *(10/07)*
 - [ ] **PRD-02** ⏳ Création + doublon de nom actif refusé.
 - [ ] **PRD-03** ⏳ Prix négatif / > 2 décimales rejeté.
 - [ ] **PRD-04** ⏳ Changement de prix → historique (ancien/nouveau/auteur/date).
@@ -322,10 +612,11 @@ Comptes seed :
 ## 18. Journal d'audit (CDC 6.9)
 
 - [x] **AUD-01** Colonnes date/utilisateur/action/entité/avant-après. *(09/07)*
-- [ ] **AUD-02** ⏳ Filtres + période invalide → erreur + liste vide (vérifié HTTP, confirmer au clic).
-- [ ] **AUD-03** ⏳ Actions minimales toutes présentes après un parcours complet.
-- [ ] **AUD-04** ⏳ Lecture seule (aucun bouton modifier/supprimer).
+- [x] **AUD-02** Filtres + période invalide → erreur + liste vide. *(10/07 navigateur)*
+- [x] **AUD-03** Création/modification/suppression produit, client, utilisateur, commande, paiement, objectif, paramétrage et session observées. *(10/07)*
+- [x] **AUD-04** Lecture seule (aucun bouton modifier/supprimer). *(10/07)*
 - [ ] **AUD-05** ⏳ Export Excel du journal filtré.
+- [x] **AUD-06** Historique admins dédié, filtre auteur `ADMIN`, export restreint et permissions 403/connexion. *(10/07)*
 
 ## 19. Sessions actives (CDC 6.10)
 
@@ -344,10 +635,10 @@ Comptes seed :
 
 ## 21. Responsive & navigateurs (CDC 13)
 
-- [ ] **RWD-01** ⏳ Mobile Chrome Android + Safari iOS : parcours commercial complet.
-- [ ] **RWD-02** ⏳ Tableaux : scroll horizontal propre.
-- [ ] **RWD-03** ⏳ Admin sur tablette/desktop (Chrome, Edge, Firefox).
-- [ ] **RWD-04** ⏳ Aucune erreur console sur les écrans principaux.
+- [ ] **RWD-01** 🟡 Parcours commercial complet à 375 px dans Chromium in-app ; Chrome Android/Safari iOS réels restent manuels. *(10/07)*
+- [x] **RWD-02** Tableaux confinés, aucun overflow document sur les 23 routes testées. *(10/07)*
+- [ ] **RWD-03** 🟡 Admin validé mobile/tablette/desktop Chromium ; Edge et Firefox réels restent manuels. *(10/07)*
+- [ ] **RWD-04** 🟡 Aucune erreur console ; 4 warnings Select controlled/uncontrolled historiques à isoler si reproductibles. *(10/07)*
 
 ## 22. Performance (CDC 13, 16.1)
 
@@ -426,7 +717,7 @@ Comptes seed :
 
 ## Traçabilité automatique
 
-- `npm run test` → **102/102** (calculs Decimal, BL, KPI, permissions, validations Zod).
+- `npm run test` → **113/113** (calculs Decimal, BL, KPI, permissions, validations Zod, filtres audit).
 - `scripts/testplan-full.ps1` → **37 PASS / 1 PARTIAL / 1 MANUAL / 1 SKIP** sur 40 checks HTTP
   (DASHA-05, RET-01, PERM-05/07, LST-09b, KPI-STRESS inclus depuis le rejeu).
 

@@ -14,7 +14,7 @@ import { requireAdmin } from "@/lib/session";
 import { ParametresForm } from "./parametres-form";
 
 const valeursDefaut = {
-  raisonSociale: "Poulet Etoile",
+  raisonSociale: "Coq Plus",
   ice: "",
   rc: "",
   identifiantFiscal: "",
@@ -23,7 +23,7 @@ const valeursDefaut = {
   telephone: "",
   logoUrl: "",
   tauxTva: "0",
-  prefixeBl: "PE",
+  prefixeBl: "CP",
   fuseauHoraire: "Africa/Casablanca",
 };
 
@@ -126,4 +126,3 @@ export default async function ParametresPage() {
     </AppShell>
   );
 }
-

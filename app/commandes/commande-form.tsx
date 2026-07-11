@@ -361,7 +361,7 @@ export function CommandeForm(props: CommandeFormProps) {
                 erreur={erreurs.commercialId}
               >
                 <Select
-                  value={commercialId || undefined}
+                  value={commercialId}
                   onValueChange={(valeur) => {
                     setCommercialId(valeur);
                     setClientId("");
@@ -403,7 +403,7 @@ export function CommandeForm(props: CommandeFormProps) {
 
           {typeClient === "STANDARD" ? (
             <Champ id="commande-client" label="Client" obligatoire erreur={erreurs.clientId}>
-              <Select value={clientId || undefined} onValueChange={selectionnerClient}>
+              <Select value={clientId} onValueChange={selectionnerClient}>
                 <SelectTrigger id="commande-client" className="w-full">
                   <SelectValue placeholder="Choisir un client" />
                 </SelectTrigger>
@@ -436,7 +436,7 @@ export function CommandeForm(props: CommandeFormProps) {
               erreur={erreurs.clientExterneId}
             >
               <Select
-                value={clientExterneId || undefined}
+                value={clientExterneId}
                 onValueChange={setClientExterneId}
               >
                 <SelectTrigger id="commande-client-externe" className="w-full">
@@ -482,7 +482,7 @@ export function CommandeForm(props: CommandeFormProps) {
               >
                 <Champ id={`ligne-produit-${index}`} label="Produit" obligatoire>
                   <Select
-                    value={ligne.produitId || undefined}
+                    value={ligne.produitId}
                     onValueChange={(produitId) => modifierLigne(index, { produitId })}
                   >
                     <SelectTrigger id={`ligne-produit-${index}`} className="w-full">

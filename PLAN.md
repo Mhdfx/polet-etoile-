@@ -1,11 +1,11 @@
-# PLAN.md - Full App Delivery Plan (Poulet Etoile / Naomedia)
+# PLAN.md - Full App Delivery Plan (Coq Plus / Naomedia)
 
 > Operational roadmap for the full application. This file is the planning board.
 > `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
 > rules. Keep all three aligned after each meaningful change.
 
-Current date: 10/07/2026
-Current status: **code fonctionnel + passe securite applicative terminee ; QA appareil et deploiement restent separes**
+Current date: 11/07/2026
+Current status: **code fonctionnel + corrections post-QA navigateur terminees ; QA appareil, comparaison PDF/XLSX et deploiement restent separes**
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -555,6 +555,10 @@ Then curl or open `http://localhost:3107`, and stop the server.
 - 09/07/2026 - Phase 7 added: central KPI calculator, `/admin/kpi`, `/commercial/kpi`, `/admin/audit`, `/admin/sessions`, session force logout action with audit. Smoke on `:3107`: admin KPI/audit/sessions 200, commercial KPI 200, commercial admin audit -> `/403`; 97 Vitest tests green.
 - 09/07/2026 - Phase 8 hardening pass: generic session server errors, lock assertions for BL/payment `FOR UPDATE`, route permission smoke (anonymous -> `/connexion`, wrong role -> `/403`, missing route -> 404), empty-state smoke for order/audit lists, full verification green with 98 Vitest tests. Remaining: CDC 16.2 unavailable, mobile visual QA and large-data table QA.
 - 10/07/2026 - Security review completed: auth origin/session hardening, explicit login-CSRF guard, export owner/admin isolation with 24h retention, PNG/JPG signature validation, restricted runtime upload serving, audit IP validation, security/no-cache headers, production seed credential gate, dependency review and 110 Vitest tests. Residual risks documented in `docs/SECURITY.md`.
+- 10/07/2026 - Coq Plus delivery reset completed: visible app/package/service branding changed to Coq Plus, default BL prefix changed to `CP`, Morocco city fallback expanded to 450 entries, missing-client commande validation clarified to "Choisir un client", `reset:delivery-data` added to clear business/demo data while preserving users/accounts, seed made delivery-clean by default (`SEED_DEMO_DATA=true` required for demo volume).
+- 10/07/2026 - Browser-tested `/commercial/commandes/nouvelle` on production build `localhost:3107`: login `com1`, create inline client with city `Oualidia`, select `POULET ENTIER`, enter `12,750 kg`, submit order `CP-000001`, verify database line total `299.63`. Temporary browser-test data was reset afterward.
+- 10/07/2026 - Final local delivery state verified: 9 user rows preserved (3 active seed users), 0 sessions, 0 clients, 0 commandes, 0 paiements, 0 retours, 0 audits, 0 objectifs, 26 products, counters `numero_bl=0` and `numero_bc=0`, params `raison_sociale=Coq Plus`, `prefixe_bl=CP`, `villes_maroc=450 villes`.
+- 10/07/2026 - Verification after delivery reset: `npm run prisma:validate`, `npx tsc --noEmit`, `npm run lint`, `npm run test` (126/126), `npm run build` all PASS.
 ## Mise a jour Codex - reconciliation whatsleft - 09/07/2026
 
 - [x] `whatsleft.md` remplace par un etat final propre : toutes les phases code
@@ -619,3 +623,20 @@ Verification :
 Restes non clos : upload binaire logo, creation client inline, export async > 5 000,
 QA mobile/volume navigateur, decisions RELIQUAT/date echeance/paiement global,
 schema freeze explicite par Mehdi et deploiement.
+
+## Mise a jour client - historique admins et catalogue complet - 10/07/2026
+
+- [x] Ajouter `/admin/historique-admins` dans la navigation et les raccourcis admin.
+- [x] Reutiliser le journal d'audit existant sans dupliquer les donnees.
+- [x] Filtrer cote base les traces dont l'auteur a le role `ADMIN`.
+- [x] Conserver filtres utilisateur/action/entite/periode et pagination.
+- [x] Appliquer le meme filtre admin-only a l'export Excel.
+- [x] Refuser la page au commercial (403) et a l'anonyme (connexion).
+- [x] Charger tous les produits filtres sur `/admin/produits` en une page.
+- [x] Retirer les controles Precedent/Suivant du catalogue uniquement.
+- [x] Conserver recherche, CRUD, historique prix et prix en masse.
+- [x] Corriger les overflows mobiles detectes sur produits, commandes,
+  paiements, clients et utilisateurs.
+- [x] Tester 16 routes admin et 7 routes commercial a 375 px.
+- [x] TypeScript, lint, build production et 113/113 tests Vitest verts.
+- [x] Verification navigateur production sur `http://localhost:3107`.

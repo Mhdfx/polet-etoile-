@@ -8,7 +8,15 @@ import { History, Pencil, Plus, Power, Search, Tags, Trash2 } from "lucide-react
 import { BadgeStatut } from "@/components/badge-statut";
 import { Bouton } from "@/components/bouton";
 import { DataTable } from "@/components/data-table";
-import { DialogueConfirmation } from "@/components/dialogue-confirmation";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ResultatAction } from "@/lib/validations/produit";
@@ -31,37 +39,34 @@ export type LigneProduit = {
 
 type ProduitsTableProps = {
   lignes: LigneProduit[];
-  page: number;
-  taillePage: number;
-  totalLignes: number;
   recherche: string;
   categories: string[];
 };
 
+type ConfirmationProduit =
+  | { type: "activation"; produit: LigneProduit }
+  | { type: "suppression"; produit: LigneProduit };
+
 export function ProduitsTable({
   lignes,
-  page,
-  taillePage,
-  totalLignes,
   recherche,
   categories,
 }: ProduitsTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [enChargement, startTransition] = useTransition();
+  const [actionEnCours, startActionTransition] = useTransition();
   const [saisieRecherche, setSaisieRecherche] = useState(recherche);
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [produitEnEdition, setProduitEnEdition] = useState<LigneProduit | null>(null);
   const [produitPrix, setProduitPrix] = useState<LigneProduit | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationProduit | null>(null);
   const [messageEchec, setMessageEchec] = useState<string>();
 
-  function naviguer(prochainePage: number, prochaineRecherche: string) {
+  function naviguer(prochaineRecherche: string) {
     const params = new URLSearchParams();
     if (prochaineRecherche) {
       params.set("q", prochaineRecherche);
-    }
-    if (prochainePage > 1) {
-      params.set("page", String(prochainePage));
     }
     const query = params.toString();
     startTransition(() => {
@@ -71,14 +76,33 @@ export function ProduitsTable({
 
   function soumettreRecherche(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
-    naviguer(1, saisieRecherche.trim());
+    naviguer(saisieRecherche.trim());
   }
 
   async function executerAction(action: () => Promise<ResultatAction>) {
     const resultat = await action();
     if (!resultat.ok) {
       setMessageEchec(resultat.message ?? "L'action a échoué. Réessayez.");
+      return;
     }
+    setConfirmation(null);
+  }
+
+  function confirmerActionProduit() {
+    if (!confirmation) {
+      return;
+    }
+
+    startActionTransition(async () => {
+      if (confirmation.type === "activation") {
+        await executerAction(() =>
+          definirActivationProduit(confirmation.produit.id, !confirmation.produit.actif),
+        );
+        return;
+      }
+
+      await executerAction(() => supprimerProduit(confirmation.produit.id));
+    });
   }
 
   const colonnes = useMemo<ColumnDef<LigneProduit, unknown>[]>(
@@ -138,44 +162,23 @@ export function ProduitsTable({
                   <History />
                 </Link>
               </Button>
-              <DialogueConfirmation
-                titre={produit.actif ? "Désactiver le produit ?" : "Activer le produit ?"}
-                description={
-                  produit.actif
-                    ? `« ${produit.nom} » ne sera plus proposé dans les nouvelles commandes. L'historique existant est conservé.`
-                    : `« ${produit.nom} » sera de nouveau proposé dans les nouvelles commandes.`
-                }
-                libelleConfirmer={produit.actif ? "Désactiver" : "Activer"}
-                onConfirmer={() =>
-                  executerAction(() =>
-                    definirActivationProduit(produit.id, !produit.actif),
-                  )
-                }
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title={produit.actif ? "Désactiver" : "Activer"}
+                onClick={() => setConfirmation({ type: "activation", produit })}
               >
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  title={produit.actif ? "Désactiver" : "Activer"}
-                >
-                  <Power />
-                </Button>
-              </DialogueConfirmation>
-              <DialogueConfirmation
-                danger
-                titre="Supprimer le produit ?"
-                description={`« ${produit.nom} » sera retiré des listes (suppression logique, tracée dans l'audit). Les commandes passées ne sont pas modifiées.`}
-                libelleConfirmer="Supprimer"
-                onConfirmer={() => executerAction(() => supprimerProduit(produit.id))}
+                <Power />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Supprimer"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmation({ type: "suppression", produit })}
               >
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  title="Supprimer"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 />
-                </Button>
-              </DialogueConfirmation>
+                <Trash2 />
+              </Button>
             </div>
           );
         },
@@ -196,14 +199,17 @@ export function ProduitsTable({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <form onSubmit={soumettreRecherche} className="flex items-center gap-2">
-          <div className="relative">
+        <form
+          onSubmit={soumettreRecherche}
+          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+        >
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={saisieRecherche}
               onChange={(evenement) => setSaisieRecherche(evenement.target.value)}
               placeholder="Rechercher un produit…"
-              className="w-64 pl-8"
+              className="w-full pl-8 sm:w-64"
               aria-label="Rechercher un produit"
             />
           </div>
@@ -229,12 +235,9 @@ export function ProduitsTable({
       <DataTable
         colonnes={colonnes}
         donnees={lignes}
-        page={page}
-        taillePage={taillePage}
-        totalLignes={totalLignes}
+        pagination={false}
         chargement={enChargement}
         messageVide={messageVide}
-        onPageChange={(prochainePage) => naviguer(prochainePage, recherche)}
       />
 
       {creationOuverte ? (
@@ -269,6 +272,49 @@ export function ProduitsTable({
           onFermer={() => setProduitPrix(null)}
         />
       ) : null}
+
+      <AlertDialog
+        open={Boolean(confirmation)}
+        onOpenChange={(ouvert) => {
+          if (!ouvert && !actionEnCours) {
+            setConfirmation(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmation?.type === "suppression"
+                ? "Supprimer le produit ?"
+                : confirmation?.produit.actif
+                  ? "Désactiver le produit ?"
+                  : "Activer le produit ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmation?.type === "suppression"
+                ? `« ${confirmation.produit.nom} » sera retiré des listes (suppression logique, tracée dans l'audit). Les commandes passées ne sont pas modifiées.`
+                : confirmation?.produit.actif
+                  ? `« ${confirmation.produit.nom} » ne sera plus proposé dans les nouvelles commandes. L'historique existant est conservé.`
+                  : `« ${confirmation?.produit.nom ?? ""} » sera de nouveau proposé dans les nouvelles commandes.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionEnCours}>Annuler</AlertDialogCancel>
+            <Button
+              variant={confirmation?.type === "suppression" ? "destructive" : "default"}
+              disabled={actionEnCours}
+              aria-busy={actionEnCours}
+              onClick={confirmerActionProduit}
+            >
+              {confirmation?.type === "suppression"
+                ? "Supprimer"
+                : confirmation?.produit.actif
+                  ? "Désactiver"
+                  : "Activer"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

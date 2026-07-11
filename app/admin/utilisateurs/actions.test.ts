@@ -136,7 +136,7 @@ describe("creerUtilisateur", () => {
       data: {
         nom_utilisateur: "commercial.centre",
         nom_complet: "Yassine Alaoui",
-        email: "commercial.centre@poulet-etoile.local",
+        email: "commercial.centre@coq-plus.local",
         email_verifie: true,
         role: "COMMERCIAL",
       },

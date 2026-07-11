@@ -7,10 +7,10 @@ ALTER TABLE `users`
 UPDATE `users`
 SET
     `email` = CASE
-        WHEN `nom_utilisateur` = 'admin' THEN 'admin@poulet-etoile.local'
-        WHEN `nom_utilisateur` = 'commercial.nord' THEN 'commercial.nord@poulet-etoile.local'
-        WHEN `nom_utilisateur` = 'commercial.sud' THEN 'commercial.sud@poulet-etoile.local'
-        ELSE CONCAT(REPLACE(`nom_utilisateur`, ' ', '-'), '@poulet-etoile.local')
+        WHEN `nom_utilisateur` = 'admin' THEN 'admin@coq-plus.local'
+        WHEN `nom_utilisateur` = 'commercial.nord' THEN 'commercial.nord@coq-plus.local'
+        WHEN `nom_utilisateur` = 'commercial.sud' THEN 'commercial.sud@coq-plus.local'
+        ELSE CONCAT(REPLACE(`nom_utilisateur`, ' ', '-'), '@coq-plus.local')
     END,
     `emailVerified` = true
 WHERE `email` IS NULL;

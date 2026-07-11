@@ -94,6 +94,9 @@ export function ChargeForm({
       // double envoi si l'utilisateur reclique pendant la redirection).
       router.push(`/admin/charges/${resultat.bonChargeId}`);
       router.refresh();
+      window.setTimeout(() => {
+        window.location.assign(`/admin/charges/${resultat.bonChargeId}`);
+      }, 100);
       return;
     }
 
@@ -116,7 +119,7 @@ export function ChargeForm({
 
       <div className="grid gap-3 md:grid-cols-3">
         <Champ id="charge-commercial" label="Commercial" obligatoire erreur={erreurs.commercialId}>
-          <Select value={commercialId || undefined} onValueChange={setCommercialId}>
+          <Select value={commercialId} onValueChange={setCommercialId}>
             <SelectTrigger id="charge-commercial" className="w-full">
               <SelectValue placeholder="Choisir un commercial" />
             </SelectTrigger>
@@ -159,7 +162,7 @@ export function ChargeForm({
             <div key={ligne.cle} className="flex flex-wrap items-end gap-2">
               <div className="min-w-[200px] flex-1">
                 <Select
-                  value={ligne.produitId || undefined}
+                  value={ligne.produitId}
                   onValueChange={(valeur) => modifierLigne(ligne.cle, "produitId", valeur)}
                 >
                   <SelectTrigger className="w-full">

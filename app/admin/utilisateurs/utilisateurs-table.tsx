@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -72,12 +72,19 @@ export function UtilisateursTable({
     naviguer(1, saisieRecherche.trim());
   }
 
-  async function executerAction(action: () => Promise<ResultatAction>) {
+  const executerAction = useCallback(async (action: () => Promise<ResultatAction>) => {
     const resultat = await action();
     if (!resultat.ok) {
       setMessageEchec(resultat.message ?? "L'action a échoué. Réessayez.");
+      return;
     }
-  }
+    router.refresh();
+  }, [router]);
+
+  const rafraichirApresMutation = useCallback(() => {
+    router.refresh();
+    window.setTimeout(() => window.location.reload(), 100);
+  }, [router]);
 
   const colonnes = useMemo<ColumnDef<LigneUtilisateur, unknown>[]>(
     () => [
@@ -201,7 +208,7 @@ export function UtilisateursTable({
         },
       },
     ],
-    [idAdminConnecte],
+    [executerAction, idAdminConnecte],
   );
 
   const messageVide = recherche
@@ -227,14 +234,17 @@ export function UtilisateursTable({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <form onSubmit={soumettreRecherche} className="flex items-center gap-2">
-          <div className="relative">
+        <form
+          onSubmit={soumettreRecherche}
+          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+        >
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={saisieRecherche}
               onChange={(evenement) => setSaisieRecherche(evenement.target.value)}
               placeholder="Rechercher un utilisateur…"
-              className="w-64 pl-8"
+              className="w-full pl-8 sm:w-64"
               aria-label="Rechercher un utilisateur"
             />
           </div>
@@ -261,7 +271,11 @@ export function UtilisateursTable({
       />
 
       {creationOuverte ? (
-        <DialogueNouvelUtilisateur ouvert onFermer={() => setCreationOuverte(false)} />
+        <DialogueNouvelUtilisateur
+          ouvert
+          onFermer={() => setCreationOuverte(false)}
+          onSucces={rafraichirApresMutation}
+        />
       ) : null}
 
       {utilisateurMdp ? (

@@ -333,7 +333,7 @@ seed reelles : 27 produits, 1003 commandes) :
 - Detail commande : 200 ; PDF BL : `application/pdf` 3.4 Ko ; Export Excel :
   `.xlsx` 46 Ko
 - Permissions (CDC 16.2) : anonyme -> /connexion ; commercial -> /admin -> /403 ;
-  commercial.nord sur commande de commercial.sud -> /403, **aucune donnee exposee**
+  com1 sur commande de com2 -> /403, **aucune donnee exposee**
   (0 montant DH, 0 numero BL dans le corps de reponse)
 - KPI admin : montants reels formates FR (`977 755,91 DH`, `1 833 170,57 DH`,
   `33,58 DH`), aucun NaN/null
@@ -347,6 +347,22 @@ reprise sur le conteneur Docker : aligner `DATABASE_URL` sur `3307` puis relance
 
 Reste : uniquement decisions metier (RELIQUAT/date echeance/paiement global),
 QA mobile reelle et deploiement recette. Aucune section code en attente.
+
+## Mise a jour Codex - Coq Plus + base livraison propre - 10/07/2026
+
+- [x] Renommage applicatif vers **Coq Plus**.
+- [x] Prefixe BL par defaut passe a `CP`.
+- [x] Liste villes Maroc chargee a 450 entrees dans `villes_maroc`.
+- [x] Creation client inline testee dans la nouvelle commande avec ville `Oualidia`.
+- [x] Creation commande commercial testee en navigateur : `CP-000001`,
+  `POULET ENTIER`, `12,750 kg`, `299,63 DH`.
+- [x] Donnees de test supprimees apres recette ; base locale remise en mode
+  livraison propre.
+- [x] Utilisateurs/accounts conserves ; sessions nettoyees.
+- [x] `npm run reset:delivery-data` ajoute pour refaire ce nettoyage.
+- [x] `npm run seed` ne cree plus de donnees demo sauf `SEED_DEMO_DATA=true`.
+- [x] Verification finale : Prisma validate, TypeScript, lint, tests 126/126,
+  build production.
 
 ## Passe correction bugs recette navigateur - 09/07/2026
 

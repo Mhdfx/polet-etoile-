@@ -1,10 +1,10 @@
-# HANDOFF - Application de gestion commerciale (Poulet Etoile / Naomedia)
+# HANDOFF - Application de gestion commerciale (Coq Plus / Naomedia)
 
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 10/07/2026.
-Statut : **code CDC pret pour tests locaux, passe securite applicative terminee - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
+Derniere mise a jour : 11/07/2026.
+Statut : **code CDC pret pour tests locaux, corrections post-QA navigateur appliquees et retestees - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -12,7 +12,7 @@ l'etat courant, les decisions et les endroits ou modifier chaque sujet.
 ## 1. Projet
 
 Application web de gestion commerciale pour une entreprise de distribution avicole
-(Poulet Etoile), livree pour Naomedia. Interface 100 % en francais.
+(Coq Plus), livree pour Naomedia. Interface 100 % en francais.
 
 Deux espaces :
 
@@ -534,7 +534,7 @@ Bugs de deploiement trouves et corriges :
 - Healthchecks app ajoutes aux deux compose ; `.dockerignore` complete
   (uploads/exports locaux, env prod, compose) pour ne rien baker dans l'image.
 
-Verification de cette passe (image `poulet-etoile:test` + stack compose locale
+Verification de cette passe (image `coq-plus:test` + stack compose locale
 MySQL 8.4 vierge, app port 8189) :
 
 - `docker build` OK ; `prisma migrate deploy` applique les 2 migrations sur
@@ -565,7 +565,7 @@ Deux derniers bugs de conteneur trouves et corriges dans le `Dockerfile` :
   (CSP...) etaient eux appliques car figes au build dans le routes-manifest.
   Copie ajoutee. Verifie : X-Powered-By absent.
 
-Smoke final complet sur l'image `poulet-etoile:final` (base vierge -> migrations
+Smoke final complet sur l'image `coq-plus:final` (base vierge -> migrations
 -> seed production -> tests HTTP) :
 
 - Migrations auto au demarrage : OK (2/2).
@@ -584,6 +584,33 @@ Smoke final complet sur l'image `poulet-etoile:final` (base vierge -> migrations
 
 L'application est prete pour le deploiement Contabo via `docs/CONTABO.md`.
 
+## Addendum Codex - Coq Plus + base propre de livraison - 10/07/2026
+
+- Branding app finalise sur **Coq Plus** : shell, login, metadata, package,
+  scripts/service, seed et parametres systeme. Prefixe BL par defaut : `CP`.
+- Liste villes Maroc : `lib/villes.ts` contient maintenant le fallback local
+  dedoublonne de **450 villes**. Le parametre `villes_maroc` est reseede en base.
+  Dans l'ecran commande, le choix de ville se trouve dans le dialogue
+  **Nouveau client**.
+- Seed livraison : par defaut, `npm run seed` cree/met a jour les utilisateurs
+  seed, parametres, compteurs, villes et catalogue produit uniquement. Les donnees
+  demo/volume ne sont creees que si `SEED_DEMO_DATA=true`.
+- Reset livraison : nouveau script `npm run reset:delivery-data`, qui conserve
+  `users`, `accounts`, `verifications` et les parametres, puis supprime commandes,
+  lignes, clients, clients externes, paiements, bons de charge, retours, objectifs,
+  audit, sessions et produits avant reseed propre.
+- Validation commande commercial : absence de client affiche maintenant
+  `Choisir un client` et bloque avant transaction.
+- Recette navigateur production `http://localhost:3107` : login `com1`, creation
+  client inline `Client test Coq Plus` a `Oualidia`, commande `POULET ENTIER`
+  `12,750 kg`, BL `CP-000001`, total `299,63 DH`. Donnees de test supprimees
+  ensuite via reset + seed.
+- Etat final base locale apres nettoyage : 9 users conserves dont 3 actifs
+  (`admin`, `com1`, `com2`), 0 sessions, 0 clients, 0 commandes, 0 paiements,
+  0 retours, 0 audit, 0 objectifs, 26 produits, compteurs BL/BC a 0.
+- Verification : `npm run prisma:validate`, `npx tsc --noEmit`, `npm run lint`,
+  `npm run test` (126/126), `npm run build` PASS.
+
 ## Mise a jour Codex - historique admins, catalogue et QA responsive - 10/07/2026
 
 - Nouvelle section `/admin/historique-admins` dans la navigation et le dashboard.
@@ -600,3 +627,120 @@ L'application est prete pour le deploiement Contabo via `docs/CONTABO.md`.
   gardent un scroll horizontal interne.
 - Verification finale : `npx tsc --noEmit`, lint, build production et 113/113
   tests Vitest verts. Serveur local actif sur `http://localhost:3107`.
+
+## Addendum Codex - diagnostic performance local - 10/07/2026
+
+- Symptome confirme cote environnement : plusieurs processus Next du meme projet
+  tournaient en parallele (`next dev`, `next start` et `next build`) et
+  partageaient `.next`. Cela a provoque un serveur `3107` indisponible puis un
+  build invalide sans `.next/BUILD_ID`.
+- Correction de session : arret des processus Next/npm du projet, rebuild propre,
+  puis redemarrage production sur `http://localhost:3107`. Compilation passee de
+  47 s a 18,2 s apres nettoyage des processus concurrents.
+- Diagnostic code : `/admin/historique-admins` n'est pas le goulet local
+  (requete admin-audit rechauffee ~5-13 ms ; page navigateur ~190-250 ms).
+  `/admin/produits` reste volontairement sans pagination.
+- Optimisation appliquee : `app/admin/produits/produits-table.tsx` ne monte plus
+  deux dialogues de confirmation par ligne produit. Un seul dialogue controle est
+  reutilise pour activer/desactiver/supprimer, ce qui garde le catalogue complet
+  plus leger quand le nombre de produits augmente.
+- Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test` (125/125),
+  `npm run build` OK. Test navigateur : ouverture du dialogue "Desactiver le
+  produit ?" puis annulation, sans changement de donnees.
+
+## Addendum Codex - QA navigateur daily-use complet - 11/07/2026
+
+Campagne navigateur production sur `http://localhost:3107`, avec `admin` /
+`password` et `com1` / `password`, prefixe donnees QA
+`QA-FULL-202607110135`.
+
+Valide en navigateur :
+
+- Authentification, erreur login, permission commercial -> admin 403.
+- Creation/modification client commercial, commande standard `CP-000003`,
+  paiement complet, statut `Reglee`.
+- Creation produit QA + changement de prix + historique prix.
+- Creation client externe + commande externe `CP-000004`.
+- Creation utilisateur commercial QA + objectif mensuel.
+- Creation retour commercial, bon de charge `BC-000002`, details, KPI, audit
+  global, historique admins, sessions, exports directs, parametrage.
+- Sweep responsive 390 px : 10 routes admin + 7 routes commercial, aucun overflow
+  document detecte.
+
+Bugs confirmes pendant cette campagne, corriges ensuite :
+
+- Plusieurs mutations sauvegardaient bien en MySQL mais ne rafraichissaient pas la
+  liste/table sans reload : retour commercial, client externe admin, utilisateur
+  admin, objectif utilisateur, bon de charge. Corrige dans l'addendum post-QA
+  ci-dessous.
+- Select Radix/controlle : apres creation commande, certains selects gardaient
+  visuellement l'ancien libelle alors que l'etat interne etait reset. Corrige
+  dans l'addendum post-QA ci-dessous.
+- Parametrage : vider un champ optionnel deja renseigne (teste avec `telephone`)
+  affichait un succes mais ne persistait pas la valeur vide. Corrige dans
+  l'addendum post-QA ci-dessous.
+
+Verification technique de cette passe :
+
+- `npm run prisma:validate` OK
+- `npx tsc --noEmit` OK
+- `npm run lint` OK
+- `npm run test` OK (126/126, 22 fichiers)
+- `npm run build` OK
+
+Etat base locale apres QA : donnees de test conservees pour inspection
+(`users=10`, `clients=3`, `clients externes=1`, `commandes=4`,
+`paiements=2`, `bons_charge=2`, `retours=2`, `produits=27`,
+`objectifs=1`, `audit=85`, compteurs `numero_bl=4`, `numero_bc=2`).
+Pour remettre la base en etat livraison propre : `npm run reset:delivery-data`
+puis `npm run seed`.
+
+## Addendum Codex - corrections post-QA et retest navigateur - 11/07/2026
+
+Les 7 bugs confirmes dans la campagne daily-use du 11/07 ont ete corriges puis
+retestes dans l'in-app browser sur le build production `http://localhost:3107`.
+
+Corrections appliquees :
+
+- Retours commercial : `app/retours/retour-form.tsx` force maintenant le refresh
+  visible apres creation ; le select produit reste controle.
+- Clients externes/admin : `app/admin/clients/clients-dialogs.tsx` et
+  `app/admin/clients/clients-table.tsx` rafraichissent les tables apres creation,
+  edition ou action serveur.
+- Utilisateurs/admin : `app/admin/utilisateurs/utilisateurs-dialogs.tsx` et
+  `app/admin/utilisateurs/utilisateurs-table.tsx` rafraichissent apres creation,
+  activation/desactivation ou suppression logique.
+- Objectifs : `app/admin/utilisateurs/[id]/objectifs/objectif-form.tsx`
+  rafraichit la page apres sauvegarde.
+- Bons de charge : `app/admin/charges/charge-form.tsx` redirige de facon fiable
+  vers le detail cree et garde les selects controles.
+- Commandes : `app/commandes/commande-form.tsx` et
+  `app/commercial/clients/clients-dialogs.tsx` corrigent les selects
+  controlled/uncontrolled et les libelles obsoletes apres submit.
+- Parametrage : `app/admin/parametres/parametres-form.tsx` utilise un submit
+  controle et transmet explicitement les champs vides, ce qui permet de vider un
+  parametre optionnel comme `telephone`.
+
+Retest navigateur valide :
+
+- Retour `QA-FIX2-1783735747610 Retour refresh` visible apres creation.
+- Client externe `QA-FIX2-1783735747610 Client Externe Fix` visible apres
+  creation.
+- Utilisateur `QA-FIX2-1783735747610 Commercial Fix` visible apres creation.
+- Objectif `07/2026 = 4 321,00 DH` visible apres sauvegarde.
+- Bon de charge `BC-000003` cree avec detail et total `1,250 kg`.
+- Commande `CP-000005` creee ; les selects client/produit reviennent aux
+  placeholders apres succes.
+- `telephone` peut etre remis a vide en parametrage, verifie en DB et UI.
+- Smoke final sur routes admin principales : aucun overflow horizontal, aucune
+  nouvelle erreur/warning console.
+
+Verification finale de cette passe :
+
+- `npx tsc --noEmit` OK
+- `npm run lint` OK
+- `npm run test` OK (126/126)
+- `npm run build` OK
+
+Donnees QA conservees pour inspection. Pour revenir a l'etat livraison propre :
+`npm run reset:delivery-data` puis `npm run seed`.

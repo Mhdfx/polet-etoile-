@@ -22,8 +22,8 @@ npm run start
 Avec Docker :
 
 ```bash
-docker build -t poulet-etoile .
-docker run --env-file .env -p 3000:3000 poulet-etoile
+docker build -t coq-plus .
+docker run --env-file .env -p 3000:3000 coq-plus
 ```
 
 ## VPS Contabo (Docker Compose + Caddy)
@@ -61,7 +61,7 @@ Au demarrage, le conteneur applique `prisma migrate deploy` puis `npm run start`
 Sauvegarde quotidienne recommandee cote infrastructure Naomedia :
 
 ```bash
-mysqldump --single-transaction --routines --triggers --databases poulet_etoile > backup.sql
+mysqldump --single-transaction --routines --triggers --databases coq_plus > backup.sql
 ```
 
 Restaurer sur une base de meme version MySQL 8.
@@ -74,4 +74,3 @@ Restaurer sur une base de meme version MySQL 8.
 4. Ajouter un paiement admin, verifier statut et reste du.
 5. Exporter commandes et audit.
 6. Verifier `/admin/parametres`, `/admin/kpi`, `/admin/sessions`.
-

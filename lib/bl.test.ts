@@ -3,7 +3,7 @@ import { attribuerNumeroBL, formaterNumeroBl } from "@/lib/bl";
 
 describe("bl", () => {
   it("formate un numero BL avec prefixe et padding", () => {
-    expect(formaterNumeroBl(42, "PE")).toBe("PE-000042");
+    expect(formaterNumeroBl(42, "CP")).toBe("CP-000042");
   });
 
   it("utilise le prefixe par defaut", () => {
@@ -14,14 +14,14 @@ describe("bl", () => {
     const tx = {
       compteurBl: { upsert: vi.fn(), update: vi.fn() },
       parametreSysteme: {
-        findUnique: vi.fn().mockResolvedValue({ valeur: "PE" }),
+        findUnique: vi.fn().mockResolvedValue({ valeur: "CP" }),
       },
       $queryRaw: vi.fn().mockResolvedValue([{ valeur: 7 }]),
     };
 
     const resultat = await attribuerNumeroBL(tx as never);
 
-    expect(resultat).toEqual({ compteur: 8, numeroBl: "PE-000008" });
+    expect(resultat).toEqual({ compteur: 8, numeroBl: "CP-000008" });
     expect(tx.$queryRaw).toHaveBeenCalled();
     expect(String(tx.$queryRaw.mock.calls[0][0])).toContain("FOR UPDATE");
     expect(tx.compteurBl.update).toHaveBeenCalledWith({

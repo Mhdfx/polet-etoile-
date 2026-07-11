@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ChampMontant } from "@/components/champ-montant";
@@ -14,22 +15,28 @@ export function ObjectifForm({
   utilisateurId: string;
   moisParDefaut: string;
 }) {
+  const router = useRouter();
   const [mois, setMois] = useState(moisParDefaut);
   const [montant, setMontant] = useState("");
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [messageErreur, setMessageErreur] = useState<string>();
+  const [messageSucces, setMessageSucces] = useState<string>();
   const [enCours, startTransition] = useTransition();
 
   function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
     setErreurs({});
     setMessageErreur(undefined);
+    setMessageSucces(undefined);
 
     startTransition(async () => {
       const resultat = await definirObjectif({ utilisateurId, mois, montant });
 
       if (resultat.ok) {
         setMontant("");
+        setMessageSucces("Objectif enregistre.");
+        router.refresh();
+        window.setTimeout(() => window.location.reload(), 100);
         return;
       }
 
@@ -50,6 +57,11 @@ export function ObjectifForm({
           className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
           {messageErreur}
+        </p>
+      ) : null}
+      {messageSucces ? (
+        <p className="rounded-md bg-succes/10 px-3 py-2 text-sm text-succes">
+          {messageSucces}
         </p>
       ) : null}
 

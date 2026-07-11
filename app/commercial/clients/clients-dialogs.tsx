@@ -119,7 +119,7 @@ export function DialogueClientCommercial({
             obligatoire
             erreur={erreurs.regionVille}
           >
-            <Select value={regionVille || undefined} onValueChange={setRegionVille}>
+            <Select value={regionVille} onValueChange={setRegionVille}>
               <SelectTrigger
                 id="client-ville"
                 className="w-full"

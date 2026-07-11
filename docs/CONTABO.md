@@ -1,4 +1,4 @@
-# Deploiement Contabo VPS — Poulet Etoile
+# Deploiement Contabo VPS — Coq Plus
 
 Guide pas a pas pour un VPS Contabo Ubuntu 22.04/24.04 avec Docker, MySQL,
 HTTPS automatique (Caddy) et l'application Next.js de ce depot.
@@ -98,11 +98,11 @@ dig +short app.votredomaine.ma
 ## Etape 5 — Cloner le projet sur le VPS
 
 ```bash
-sudo mkdir -p /opt/poulet-etoile
-sudo chown deploy:deploy /opt/poulet-etoile
-cd /opt/poulet-etoile
+sudo mkdir -p /opt/coq-plus
+sudo chown deploy:deploy /opt/coq-plus
+cd /opt/coq-plus
 
-git clone https://github.com/VOTRE_ORG/poulet-etoile.git .
+git clone https://github.com/VOTRE_ORG/coq-plus.git .
 # ou : scp/rsync depuis votre machine locale si depot prive
 ```
 
@@ -117,7 +117,7 @@ nano .env
 
 Remplir **obligatoirement** :
 
-- `APP_DOMAIN` — ex. `app.poulet-etoile.ma`
+- `APP_DOMAIN` — ex. `app.coq-plus.ma`
 - `APP_EMAIL` — email pour Let's Encrypt
 - `BETTER_AUTH_URL` et `NEXT_PUBLIC_APP_URL` — `https://APP_DOMAIN`
 - `BETTER_AUTH_SECRET` — generer avec :
@@ -134,7 +134,7 @@ variables `MYSQL_*` — ne pas le definir dans `.env`.
 ## Etape 7 — Lancer la stack
 
 ```bash
-cd /opt/poulet-etoile
+cd /opt/coq-plus
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
@@ -197,9 +197,9 @@ docker compose -f docker-compose.prod.yml exec -T mysql \
   sh -c 'exec mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --single-transaction "$MYSQL_DATABASE"' \
   > backup-$(date +%F).sql
 
-# Sauvegarde quotidienne a 2h du matin (mkdir -p /opt/poulet-etoile/backups
+# Sauvegarde quotidienne a 2h du matin (mkdir -p /opt/coq-plus/backups
 # une fois, puis crontab -e sous l'utilisateur deploy)
-# 0 2 * * * cd /opt/poulet-etoile && docker compose -f docker-compose.prod.yml exec -T mysql sh -c 'exec mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --single-transaction "$MYSQL_DATABASE"' > /opt/poulet-etoile/backups/backup-$(date +\%F).sql
+# 0 2 * * * cd /opt/coq-plus && docker compose -f docker-compose.prod.yml exec -T mysql sh -c 'exec mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --single-transaction "$MYSQL_DATABASE"' > /opt/coq-plus/backups/backup-$(date +\%F).sql
 
 # Arret complet
 docker compose -f docker-compose.prod.yml down
@@ -250,15 +250,15 @@ intervention manuelle.
 
 ### Installation du service systemd (une fois sur le VPS)
 
-Adapter le chemin si le projet n'est pas dans `/opt/apps/poulet-etoile` :
+Adapter le chemin si le projet n'est pas dans `/opt/apps/coq-plus` :
 
 ```bash
-cd /opt/apps/poulet-etoile
+cd /opt/apps/coq-plus
 git pull
 chmod +x scripts/install-systemd-service.sh scripts/verify-stack.sh
-sudo ./scripts/install-systemd-service.sh /opt/apps/poulet-etoile docker-compose.ip.yml
+sudo ./scripts/install-systemd-service.sh /opt/apps/coq-plus docker-compose.ip.yml
 # Avec domaine + HTTPS :
-# sudo ./scripts/install-systemd-service.sh /opt/poulet-etoile docker-compose.prod.yml
+# sudo ./scripts/install-systemd-service.sh /opt/coq-plus docker-compose.prod.yml
 ```
 
 Puis reconstruire l'image app (entrypoint durci) :
@@ -272,7 +272,7 @@ docker compose -f docker-compose.ip.yml up -d --build app
 ```bash
 sudo reboot
 # reconnecter SSH, puis :
-cd /opt/apps/poulet-etoile
+cd /opt/apps/coq-plus
 ./scripts/verify-stack.sh
 docker compose -f docker-compose.ip.yml ps
 ```

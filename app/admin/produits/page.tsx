@@ -7,9 +7,7 @@ import { formatDate, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { ProduitsTable } from "./produits-table";
 
-const TAILLE_PAGE = 10;
-
-type ParametresRecherche = Promise<{ page?: string; q?: string }>;
+type ParametresRecherche = Promise<{ q?: string }>;
 
 export default async function ProduitsPage({
   searchParams,
@@ -18,7 +16,6 @@ export default async function ProduitsPage({
 }) {
   const utilisateur = await requireAdmin();
   const params = await searchParams;
-  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const recherche = (params.q ?? "").trim();
 
   const where = {
@@ -33,13 +30,10 @@ export default async function ProduitsPage({
       : {}),
   };
 
-  const [totalLignes, produits, categories] = await Promise.all([
-    prisma.produit.count({ where }),
+  const [produits, categories] = await Promise.all([
     prisma.produit.findMany({
       where,
       orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
-      skip: (page - 1) * TAILLE_PAGE,
-      take: TAILLE_PAGE,
     }),
     listerCategoriesProduits(),
   ]);
@@ -72,9 +66,6 @@ export default async function ProduitsPage({
       </div>
       <ProduitsTable
         lignes={lignes}
-        page={page}
-        taillePage={TAILLE_PAGE}
-        totalLignes={totalLignes}
         recherche={recherche}
         categories={categories}
       />

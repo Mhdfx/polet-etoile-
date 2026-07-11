@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, RoleUtilisateur } from "@prisma/client";
+import { construireFiltreAudit } from "@/lib/audit-filters";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { creerExportJob } from "@/lib/export-jobs";
@@ -81,20 +82,20 @@ export async function GET(request: Request) {
     }
   }
 
-  const where: Prisma.AuditLogWhereInput = {
-    ...(url.searchParams.get("utilisateur")
-      ? { utilisateur_id: url.searchParams.get("utilisateur")! }
-      : {}),
-    ...(url.searchParams.get("action")
-      ? { action: { contains: url.searchParams.get("action")! } }
-      : {}),
-    ...(url.searchParams.get("entite")
-      ? { entite: { contains: url.searchParams.get("entite")! } }
-      : {}),
-    ...(bornes ? { created_at: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc } } : {}),
-  };
+  const roleAuteur =
+    url.searchParams.get("roleAuteur") === "ADMIN"
+      ? ("ADMIN" satisfies RoleUtilisateur)
+      : undefined;
+  const where = construireFiltreAudit({
+    utilisateurId: url.searchParams.get("utilisateur") ?? undefined,
+    action: url.searchParams.get("action") ?? undefined,
+    entite: url.searchParams.get("entite") ?? undefined,
+    bornes,
+    roleAuteur,
+  });
 
-  const filename = `audit_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const prefixe = roleAuteur ? "historique_admins" : "audit";
+  const filename = `${prefixe}_${new Date().toISOString().slice(0, 10)}.xlsx`;
   const total = await prisma.auditLog.count({ where });
 
   if (total > 5000) {

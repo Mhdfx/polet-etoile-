@@ -155,14 +155,17 @@ export function ClientsCommercialTable({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <form onSubmit={soumettreRecherche} className="flex items-center gap-2">
-          <div className="relative">
+        <form
+          onSubmit={soumettreRecherche}
+          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+        >
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={saisieRecherche}
               onChange={(evenement) => setSaisieRecherche(evenement.target.value)}
               placeholder="Rechercher un client..."
-              className="w-64 pl-8"
+              className="w-full pl-8 sm:w-64"
               aria-label="Rechercher un client"
             />
           </div>

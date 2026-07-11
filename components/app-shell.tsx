@@ -146,7 +146,7 @@ export function AppShell({
               P
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-bold">Poulet Étoilé</p>
+              <p className="text-sm font-bold">Coq Plus</p>
               <p className="text-[11px] text-sidebar-foreground/70">
                 {espace === "admin" ? "Administration" : "Espace commercial"}
               </p>
@@ -211,7 +211,7 @@ export function AppShell({
             <p className="font-semibold text-sidebar-foreground/80">
               Gestion commerciale
             </p>
-            <p>Poulet Étoilé — Naomedia</p>
+            <p>Coq Plus</p>
           </div>
         </aside>
 

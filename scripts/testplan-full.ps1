@@ -27,7 +27,7 @@ function Get-Count($html, $pattern) {
 # --- PERM-01 ---
 foreach ($p in @("/admin", "/commercial", "/admin/commandes")) {
   $r = Invoke-WebRequest -Uri "$Base$p" -UseBasicParsing
-  $leak = $r.Content -match '977 755|PE-000|1 833|1003 resultat'
+  $leak = $r.Content -match '977 755|CP-000|1 833|1003 resultat'
   $redir = $r.Content -match 'connexion|refresh|Connexion'
   Test-Case "PERM-01$p" $(if ($redir -and -not $leak) { "PASS" } else { "FAIL" }) "leak=$leak"
 }
@@ -56,7 +56,7 @@ Test-Case "PERM-02" $(if ($r.Content -match "403|Acces refuse|Accès refusé") {
 
 # PERM-03 cross command
 $r = Invoke-WebRequest -Uri "$Base/commercial/commandes/seed-volume-0216" -WebSession $nord -UseBasicParsing
-$leak = $r.Content -match "PE-000|1 947|Boucherie|montant"
+$leak = $r.Content -match "CP-000|1 947|Boucherie|montant"
 Test-Case "PERM-03" $(if (($r.Content -match "403|Acces refuse|Accès refusé") -and -not $leak) { "PASS" } else { "FAIL" }) "leak=$leak"
 
 # PERM-04 cross PDF — 200 HTML guard OK
