@@ -91,7 +91,7 @@ describe("clients admin", () => {
 
     expect(resultat.ok).toBe(false);
     if (!resultat.ok) {
-      expect(resultat.erreurs?.commercialId).toBe("Commercial introuvable");
+      expect(resultat.erreurs?.commercialId).toBe("Responsable introuvable");
     }
     expect(txMock.client.create).not.toHaveBeenCalled();
   });
@@ -127,6 +127,37 @@ describe("clients admin", () => {
       }),
     );
     expect(revalidatePathMock).toHaveBeenCalledWith("/admin/clients");
+  });
+
+  it("cree un client standard rattache a un administrateur actif", async () => {
+    txMock.user.findFirst.mockResolvedValue({ id: "admin-owner" });
+    txMock.client.findFirst.mockResolvedValue(null);
+    txMock.client.create.mockResolvedValue({ id: "client-admin" });
+
+    const resultat = await creerClientAdmin({
+      nom: "Client Admin",
+      regionVille: "Rabat",
+      commercialId: "admin-owner",
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "admin-owner",
+        role: { in: ["ADMIN", "COMMERCIAL"] },
+        actif: true,
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+    expect(txMock.client.create).toHaveBeenCalledWith({
+      data: {
+        nom: "Client Admin",
+        region_ville: "Rabat",
+        telephone: undefined,
+        commercial_id: "admin-owner",
+      },
+    });
   });
 
   it("soft delete un client externe et audite l'action", async () => {

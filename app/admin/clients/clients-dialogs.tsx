@@ -140,7 +140,7 @@ export function DialogueClientAdmin({
         <DialogHeader>
           <DialogTitle>{edition ? "Modifier le client" : "Nouveau client"}</DialogTitle>
           <DialogDescription>
-            Le client standard est toujours rattache a un commercial actif.
+            Le client standard est rattache a un commercial ou a un administrateur actif.
           </DialogDescription>
         </DialogHeader>
 
@@ -184,7 +184,7 @@ export function DialogueClientAdmin({
 
           <Champ
             id="client-commercial"
-            label="Commercial"
+            label="Responsable"
             obligatoire
             erreur={erreurs.commercialId}
           >
@@ -194,7 +194,7 @@ export function DialogueClientAdmin({
                 className="w-full"
                 aria-invalid={Boolean(erreurs.commercialId)}
               >
-                <SelectValue placeholder="Choisir un commercial" />
+                <SelectValue placeholder="Choisir un responsable" />
               </SelectTrigger>
               <SelectContent>
                 {commerciaux.map((commercial) => (

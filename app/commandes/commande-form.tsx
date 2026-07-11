@@ -356,7 +356,7 @@ export function CommandeForm(props: CommandeFormProps) {
             <>
               <Champ
                 id="commande-commercial"
-                label="Commercial"
+                label="Responsable"
                 obligatoire
                 erreur={erreurs.commercialId}
               >
@@ -368,7 +368,7 @@ export function CommandeForm(props: CommandeFormProps) {
                   }}
                 >
                   <SelectTrigger id="commande-commercial" className="w-full">
-                    <SelectValue placeholder="Choisir un commercial" />
+                    <SelectValue placeholder="Choisir un responsable" />
                   </SelectTrigger>
                   <SelectContent>
                     {props.commerciaux.map((commercial) => (
@@ -603,7 +603,7 @@ export function CommandeForm(props: CommandeFormProps) {
             </Champ>
             {props.mode === "admin" ? (
               <p className="text-xs text-muted-foreground">
-                Le client sera affecte au commercial selectionne dans la commande.
+                Le client sera affecte au responsable selectionne dans la commande.
               </p>
             ) : null}
             {messageClient ? <p className="text-sm text-destructive">{messageClient}</p> : null}
