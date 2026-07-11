@@ -9,9 +9,11 @@ import { supprimerBonCharge } from "@/app/charges/actions";
 export function SupprimerBonChargeBouton({
   bonChargeId,
   numeroBc,
+  commandeId,
 }: {
   bonChargeId: string;
   numeroBc: string;
+  commandeId?: string;
 }) {
   const router = useRouter();
 
@@ -24,7 +26,7 @@ export function SupprimerBonChargeBouton({
       onConfirmer={async () => {
         const resultat = await supprimerBonCharge(bonChargeId);
         if (resultat.ok) {
-          router.push("/admin/charges");
+          router.push(commandeId ? `/admin/commandes/${commandeId}` : "/admin/charges");
           router.refresh();
         }
       }}

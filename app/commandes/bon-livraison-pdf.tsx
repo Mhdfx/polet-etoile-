@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     minHeight: 18,
   },
   tableHead: {
-    minHeight: 31,
+    minHeight: 28,
   },
   tableCell: {
     borderRight: `1 solid ${BORDURE}`,
@@ -159,13 +159,13 @@ const styles = StyleSheet.create({
   prix: { width: 58, textAlign: "right" },
   total: { width: 118, textAlign: "right" },
   productCell: {
-    paddingTop: 7,
-    justifyContent: "flex-start",
+    paddingVertical: 5,
+    justifyContent: "center",
   },
   amountRow: {
     flexDirection: "row",
-    marginTop: 15,
-    minHeight: 106,
+    marginTop: 12,
+    minHeight: 96,
   },
   amountLeft: {
     flex: 1,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    minHeight: 92,
+    minHeight: 86,
   },
   paymentTable: {
     width: 310,
@@ -318,14 +318,12 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     textAlign: "center",
     color: ROUGE,
-    fontSize: 6.5,
+    fontSize: 6.2,
     fontWeight: 700,
   },
 });
 
 export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }) {
-  const lignes = lignesAvecBlancs(commande.lignes, 4);
-
   return (
     <Document title={`BL ${commande.numeroBl}`}>
       <Page size="A4" style={styles.page}>
@@ -374,24 +372,17 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
             <Text style={[styles.tableCell, styles.prix, styles.headText]}>PRIX UNIT</Text>
             <Text style={[styles.tableCell, styles.total, styles.headText]}>TOTAL</Text>
           </View>
-          {lignes.map((ligne, index) => (
-            <View key={`${ligne.produit}-${index}`} style={[styles.row, { minHeight: 20 }]}>
+          {commande.lignes.map((ligne, index) => (
+            <View key={`${ligne.produit}-${index}`} style={[styles.row, { minHeight: 22 }]}>
               <Text style={[styles.tableCell, styles.designation, styles.productCell]}>
                 {ligne.produit}
               </Text>
-              <Text style={[styles.tableCell, styles.nombre]}>{ligne.nombre}</Text>
+              <Text style={[styles.tableCell, styles.nombre]} />
               <Text style={[styles.tableCell, styles.poids]}>{ligne.quantite}</Text>
               <Text style={[styles.tableCell, styles.prix]}>{ligne.prixUnitaire}</Text>
               <Text style={[styles.tableCell, styles.total]}>{ligne.prixNet}</Text>
             </View>
           ))}
-          <View style={[styles.row, { height: 150 }]}>
-            <Text style={[styles.tableCell, styles.designation]} />
-            <Text style={[styles.tableCell, styles.nombre]} />
-            <Text style={[styles.tableCell, styles.poids]} />
-            <Text style={[styles.tableCell, styles.prix]} />
-            <Text style={[styles.tableCell, styles.total]} />
-          </View>
         </View>
 
         <View style={styles.amountRow}>
@@ -481,29 +472,15 @@ function TotalLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-type LignePdf = CommandeDocumentData["lignes"][number] & { nombre: string };
-
-function lignesAvecBlancs(lignes: CommandeDocumentData["lignes"], minimum: number): LignePdf[] {
-  const remplies = lignes.map((ligne) => ({ ...ligne, nombre: "" }));
-  const blancs = Array.from({ length: Math.max(0, minimum - remplies.length) }, () => ({
-    produit: "",
-    nombre: "",
-    quantite: "",
-    prixUnitaire: "",
-    prixNet: "",
-  }));
-
-  return [...remplies, ...blancs];
-}
-
 function footerSociete({ societe }: CommandeDocumentData): string {
+  const telephone = societe.telephone || "+212626184088";
   const infos = [
     `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
     societe.rc ? `RC : ${societe.rc}` : undefined,
     societe.ice ? `ICE : ${societe.ice}` : undefined,
     societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
     societe.patente ? `TP : ${societe.patente}` : undefined,
-    societe.telephone ? `Tel : ${societe.telephone}` : undefined,
+    `Tel : ${telephone}`,
   ].filter(Boolean);
 
   return infos.join(" - ");

@@ -878,3 +878,45 @@ Limites / points restants :
   `CP-001008`.
 - Mots de passe seed (`admin`/`password`, `com1`/`password`) toujours a changer
   avant usage client reel.
+
+## Addendum Codex - modifications commandes / facture / bons de charge - 11/07/2026
+
+Demande client :
+
+- Rendre l'ajout de commande admin plus evident.
+- Nettoyer la facture/BL : retirer les clones/lignes vides, faire tenir le rendu,
+  ajouter le telephone `+212626184088` dans le pied.
+- Depuis la liste/detail des commandes admin, permettre de generer facilement le
+  bon de charge exact de la commande.
+- Un bon de charge lie a une commande ne peut etre genere qu'une seule fois ; il
+  reste fige et ne peut qu'etre supprime.
+
+Changements appliques :
+
+- `Commande` et `BonCharge` sont lies en one-to-one via `bons_charge.commande_id`
+  unique, migration `20260711172000_bon_charge_commande_unique`.
+- Nouvelle action serveur `creerBonChargeDepuisCommande` :
+  - admin uniquement ;
+  - verrouille la commande en transaction ;
+  - refuse toute generation si un BC existe deja, meme supprime ;
+  - reprend commercial, date et quantites physiques de la commande ;
+  - ignore les produits non stock (`suivi_stock=false`) ;
+  - audite `bon_charge.creation_depuis_commande`.
+- UI admin commandes : bouton `Ajouter une commande` plus clair, nouvelle colonne
+  `Bon de charge` avec creation, lien vers le BC existant ou etat `BC supprime`.
+- Detail commande admin : meme action/lien `Bon de charge`.
+- Liste/detail bons de charge : affichage de la commande source quand le BC vient
+  d'une commande ; apres suppression, retour vers la commande source.
+- PDF BL : suppression des lignes vides forcees et du grand bloc vide ; le pied
+  inclut toujours `Tel : +212626184088` si aucun telephone n'est renseigne.
+
+Verification locale :
+
+- Migration appliquee localement avec `npm run prisma:migrate:deploy`.
+- `npm run prisma:validate`, `npm run prisma:generate`, `npx tsc --noEmit`,
+  `npm run test` (131/131), `npm run lint`, `npm run build` OK.
+- Smoke navigateur local `http://localhost:3107` :
+  - commande test `CP-000001` creee localement ;
+  - bouton `Bon de charge` depuis `/admin/commandes` genere `BC-000001` ;
+  - detail BC affiche la commande source `CP-000001`, produit et quantite ;
+  - retour liste commandes affiche `BC-000001` au lieu du bouton de generation.

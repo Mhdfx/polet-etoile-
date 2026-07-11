@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { Download, FileText, Plus } from "lucide-react";
+import { BonChargeCommandeButton } from "@/app/charges/bon-charge-commande-button";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
@@ -121,6 +122,7 @@ export default async function CommandesAdminPage({
         utilisateur: { select: { nom_complet: true } },
         lignes: { where: { deleted_at: null }, select: { prix_net: true } },
         paiements: { select: { montant: true, date_paiement: true } },
+        bon_charge: { select: { id: true, numero_bc: true, deleted_at: true } },
       },
     }),
     prisma.user.findMany({
@@ -163,7 +165,7 @@ export default async function CommandesAdminPage({
       espace="admin"
       cheminActif="/admin/commandes"
       titre="Commandes"
-      description="Toutes les commandes, paiements calcules, filtres et exports."
+      description="Toutes les commandes, creation admin, bons de charge, paiements calcules, filtres et exports."
     >
       <div className="grid min-w-0 gap-4">
         <div className="grid gap-4 md:grid-cols-4">
@@ -253,7 +255,7 @@ export default async function CommandesAdminPage({
             <Button asChild>
               <Link href="/admin/commandes/nouvelle">
                 <Plus />
-                Nouvelle commande
+                Ajouter une commande
               </Link>
             </Button>
           </div>
@@ -274,12 +276,13 @@ export default async function CommandesAdminPage({
                 <TableHead className="text-right">Reste</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">BL</TableHead>
+                <TableHead className="text-right">Bon de charge</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {commandes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
                     Aucune commande.
                   </TableCell>
                 </TableRow>
@@ -329,6 +332,20 @@ export default async function CommandesAdminPage({
                             <FileText />
                           </Link>
                         </Button>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <BonChargeCommandeButton
+                          commandeId={commande.id}
+                          bonCharge={
+                            commande.bon_charge
+                              ? {
+                                  id: commande.bon_charge.id,
+                                  numeroBc: commande.bon_charge.numero_bc,
+                                  supprime: Boolean(commande.bon_charge.deleted_at),
+                                }
+                              : null
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   );

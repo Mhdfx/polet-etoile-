@@ -33,6 +33,7 @@ export default async function DetailBonChargePage({
       date_charge: true,
       commentaire: true,
       created_at: true,
+      commande: { select: { id: true, numero_bl: true } },
       commercial: { select: { nom_complet: true } },
       createur: { select: { nom_complet: true } },
       lignes: {
@@ -63,15 +64,34 @@ export default async function DetailBonChargePage({
               <ArrowLeft className="h-4 w-4" /> Retour aux bons de charge
             </Link>
           </Button>
-          <SupprimerBonChargeBouton bonChargeId={bon.id} numeroBc={bon.numero_bc} />
+          <SupprimerBonChargeBouton
+            bonChargeId={bon.id}
+            numeroBc={bon.numero_bc}
+            commandeId={bon.commande?.id}
+          />
         </div>
 
-        <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Commercial
             </p>
             <p className="text-sm font-medium">{bon.commercial.nom_complet}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Commande source
+            </p>
+            {bon.commande ? (
+              <Link
+                href={`/admin/commandes/${bon.commande.id}`}
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {bon.commande.numero_bl}
+              </Link>
+            ) : (
+              <p className="text-sm font-medium">Saisie manuelle</p>
+            )}
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
