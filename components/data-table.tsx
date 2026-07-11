@@ -18,34 +18,40 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type DataTableProps<TDonnee> = {
+type DataTableCommunProps<TDonnee> = {
   colonnes: ColumnDef<TDonnee, unknown>[];
   donnees: TDonnee[];
-  /** Pagination serveur : page courante (base 1), total de lignes et taille de page. */
-  page: number;
-  taillePage: number;
-  totalLignes: number;
-  onPageChange: (page: number) => void;
   chargement?: boolean;
   /** Message d'etat vide explicite, jamais un tableau vide silencieux. */
   messageVide: string;
 };
 
-export function DataTable<TDonnee>({
-  colonnes,
-  donnees,
-  page,
-  taillePage,
-  totalLignes,
-  onPageChange,
-  chargement = false,
-  messageVide,
-}: DataTableProps<TDonnee>) {
+type DataTableAvecPagination = {
+  pagination?: true;
+  page: number;
+  taillePage: number;
+  totalLignes: number;
+  onPageChange: (page: number) => void;
+};
+
+type DataTableSansPagination = {
+  pagination: false;
+};
+
+type DataTableProps<TDonnee> = DataTableCommunProps<TDonnee> &
+  (DataTableAvecPagination | DataTableSansPagination);
+
+export function DataTable<TDonnee>(props: DataTableProps<TDonnee>) {
+  const { colonnes, donnees, chargement = false, messageVide } = props;
+  const paginationActive = props.pagination !== false;
+  const page = paginationActive ? props.page : 1;
+  const taillePage = paginationActive ? props.taillePage : Math.max(1, donnees.length);
+  const totalLignes = paginationActive ? props.totalLignes : donnees.length;
   const table = useReactTable({
     data: donnees,
     columns: colonnes,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
+    manualPagination: paginationActive,
     rowCount: totalLignes,
   });
 
@@ -110,33 +116,41 @@ export function DataTable<TDonnee>({
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p>
+      {paginationActive ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p>
+            {totalLignes === 0
+              ? "Aucun résultat"
+              : `${totalLignes} résultat${totalLignes > 1 ? "s" : ""} — page ${page} sur ${pagesTotal}`}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={chargement || page <= 1}
+              onClick={() => props.onPageChange(page - 1)}
+            >
+              <ChevronLeft />
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={chargement || page >= pagesTotal}
+              onClick={() => props.onPageChange(page + 1)}
+            >
+              Suivant
+              <ChevronRight />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
           {totalLignes === 0
             ? "Aucun résultat"
-            : `${totalLignes} résultat${totalLignes > 1 ? "s" : ""} — page ${page} sur ${pagesTotal}`}
+            : `${totalLignes} produit${totalLignes > 1 ? "s" : ""}`}
         </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={chargement || page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeft />
-            Précédent
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={chargement || page >= pagesTotal}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Suivant
-            <ChevronRight />
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

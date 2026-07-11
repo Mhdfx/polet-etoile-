@@ -23,6 +23,7 @@ next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.next-start*.log
 
 # graphify (généré, se reconstruit)
 /graphify-out/

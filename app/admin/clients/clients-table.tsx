@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -128,12 +128,19 @@ export function AdminClientsTable({
     });
   }
 
-  async function executerAction(action: () => Promise<ResultatAction>) {
+  const executerAction = useCallback(async (action: () => Promise<ResultatAction>) => {
     const resultat = await action();
     if (!resultat.ok) {
       setMessageEchec(resultat.message ?? "L'action a echoue. Reessayez.");
+      return;
     }
-  }
+    router.refresh();
+  }, [router]);
+
+  const rafraichirApresMutation = useCallback(() => {
+    router.refresh();
+    window.setTimeout(() => window.location.reload(), 100);
+  }, [router]);
 
   const colonnesClients = useMemo<ColumnDef<LigneClientAdmin, unknown>[]>(
     () => [
@@ -210,7 +217,7 @@ export function AdminClientsTable({
         },
       },
     ],
-    [],
+    [executerAction],
   );
 
   const colonnesExternes = useMemo<ColumnDef<LigneClientExterne, unknown>[]>(
@@ -276,7 +283,7 @@ export function AdminClientsTable({
         },
       },
     ],
-    [],
+    [executerAction],
   );
 
   return (
@@ -288,14 +295,17 @@ export function AdminClientsTable({
 
       <section className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <form onSubmit={soumettreRecherche} className="flex items-center gap-2">
-            <div className="relative">
+          <form
+            onSubmit={soumettreRecherche}
+            className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+          >
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={saisieRecherche}
                 onChange={(evenement) => setSaisieRecherche(evenement.target.value)}
                 placeholder="Rechercher un client..."
-                className="w-64 pl-8"
+                className="w-full pl-8 sm:w-64"
                 aria-label="Rechercher un client"
               />
             </div>
@@ -338,9 +348,9 @@ export function AdminClientsTable({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <form
             onSubmit={soumettreRechercheExternes}
-            className="flex items-center gap-2"
+            className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
           >
-            <div className="relative">
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={saisieRechercheExternes}
@@ -348,7 +358,7 @@ export function AdminClientsTable({
                   setSaisieRechercheExternes(evenement.target.value)
                 }
                 placeholder="Rechercher un client externe..."
-                className="w-64 pl-8"
+                className="w-full pl-8 sm:w-64"
                 aria-label="Rechercher un client externe"
               />
             </div>
@@ -387,6 +397,7 @@ export function AdminClientsTable({
           villes={villes}
           commerciaux={commerciaux}
           onFermer={() => setCreationOuverte(false)}
+          onSucces={rafraichirApresMutation}
         />
       ) : null}
 
@@ -397,6 +408,7 @@ export function AdminClientsTable({
           commerciaux={commerciaux}
           client={clientEdition}
           onFermer={() => setClientEdition(null)}
+          onSucces={rafraichirApresMutation}
         />
       ) : null}
 
@@ -405,6 +417,7 @@ export function AdminClientsTable({
           ouvert
           villes={villes}
           onFermer={() => setCreationExterneOuverte(false)}
+          onSucces={rafraichirApresMutation}
         />
       ) : null}
 
@@ -414,6 +427,7 @@ export function AdminClientsTable({
           villes={villes}
           client={clientExterneEdition}
           onFermer={() => setClientExterneEdition(null)}
+          onSucces={rafraichirApresMutation}
         />
       ) : null}
     </div>

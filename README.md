@@ -1,4 +1,4 @@
-# Poulet Etoile / Naomedia
+# Coq Plus / Naomedia
 
 Application de gestion commerciale pour distribution avicole.
 

@@ -26,7 +26,7 @@ export default async function ConnexionPage() {
             P
           </div>
           <div className="leading-tight">
-            <p className="text-base font-bold">Poulet Étoilé</p>
+            <p className="text-base font-bold">Coq Plus</p>
             <p className="text-xs text-white/70">Gestion commerciale</p>
           </div>
         </div>
@@ -44,7 +44,7 @@ export default async function ConnexionPage() {
         </div>
 
         <p className="text-xs text-white/60">
-          © {new Date().getFullYear()} Poulet Étoilé — Naomedia
+          © {new Date().getFullYear()} Coq Plus
         </p>
       </section>
 
@@ -55,7 +55,7 @@ export default async function ConnexionPage() {
               P
             </div>
             <div className="leading-tight">
-              <p className="text-base font-bold text-foreground">Poulet Étoilé</p>
+              <p className="text-base font-bold text-foreground">Coq Plus</p>
               <p className="text-xs text-muted-foreground">Gestion commerciale</p>
             </div>
           </div>

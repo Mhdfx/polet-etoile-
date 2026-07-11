@@ -49,7 +49,7 @@ const baseCommande = z.object({
 });
 
 export const schemaCreationCommandeCommercial = baseCommande.extend({
-  clientId: champId,
+  clientId: z.string().min(1, "Choisir un client"),
 });
 
 export const schemaCreationCommandeAdmin = baseCommande

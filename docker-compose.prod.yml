@@ -73,7 +73,7 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN requis ex. app.poulet-etoile.ma}
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN requis ex. app.coq-plus.ma}
       APP_EMAIL: ${APP_EMAIL:-admin@example.com}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro

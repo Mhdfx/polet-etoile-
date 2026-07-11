@@ -86,7 +86,7 @@ export default async function ExportsAdminPage() {
             <p>
               Ces exports servent aux analyses ponctuelles. Ils ne remplacent pas
               la sauvegarde automatique de la base MySQL, qui reste geree par
-              l&apos;infrastructure Naomedia cote serveur.
+              l&apos;infrastructure serveur.
             </p>
           </div>
         </Panel>

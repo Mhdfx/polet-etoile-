@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Poulet Étoilé",
-  description: "Application de gestion commerciale Naomedia",
+  title: "Coq Plus",
+  description: "Application de gestion commerciale Coq Plus",
 };
 
 export default function RootLayout({

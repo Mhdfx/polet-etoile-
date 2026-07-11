@@ -76,7 +76,7 @@ export async function chargerCommandeDocument(
 
   return {
     societe: {
-      raisonSociale: params.get("raison_sociale") ?? "Poulet Etoile",
+      raisonSociale: params.get("raison_sociale") ?? "Coq Plus",
       ice: params.get("ice"),
       rc: params.get("rc"),
       logo: await chargerLogoDataUri(params.get("logo_url")),

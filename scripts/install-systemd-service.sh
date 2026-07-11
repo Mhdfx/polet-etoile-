@@ -2,14 +2,14 @@
 # Installe le service systemd qui relance la stack au boot du VPS.
 # Usage (sur le VPS, en root) :
 #   sudo ./scripts/install-systemd-service.sh
-#   sudo ./scripts/install-systemd-service.sh /opt/apps/poulet-etoile docker-compose.ip.yml
+#   sudo ./scripts/install-systemd-service.sh /opt/apps/coq-plus docker-compose.ip.yml
 
 set -euo pipefail
 
-WORK_DIR="${1:-/opt/apps/poulet-etoile}"
+WORK_DIR="${1:-/opt/apps/coq-plus}"
 COMPOSE_FILE="${2:-docker-compose.ip.yml}"
-SERVICE_NAME="poulet-etoile"
-TEMPLATE="${WORK_DIR}/deploy/poulet-etoile.service.template"
+SERVICE_NAME="coq-plus"
+TEMPLATE="${WORK_DIR}/deploy/coq-plus.service.template"
 TARGET="/etc/systemd/system/${SERVICE_NAME}.service"
 
 if [ "$(id -u)" -ne 0 ]; then

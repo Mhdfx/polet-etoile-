@@ -26,7 +26,7 @@ function erreurServeur(erreur: unknown, action: string): ResultatAction {
 }
 
 function emailTechnique(nomUtilisateur: string): string {
-  return `${nomUtilisateur}@poulet-etoile.local`;
+  return `${nomUtilisateur}@coq-plus.local`;
 }
 
 function moisCourantApplication(): string {

@@ -165,7 +165,7 @@ export default async function CommandesAdminPage({
       titre="Commandes"
       description="Toutes les commandes, paiements calcules, filtres et exports."
     >
-      <div className="grid gap-4">
+      <div className="grid min-w-0 gap-4">
         <div className="grid gap-4 md:grid-cols-4">
           <CarteKPI label="Commandes filtrees" valeur={String(totauxListe.total)} tonalite="neutre" />
           <CarteKPI label="Réglées" valeur={String(totauxListe.payees)} tonalite="vert" />
@@ -338,12 +338,12 @@ export default async function CommandesAdminPage({
           </Table>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
           <p>
             {totalLignes} resultat{totalLignes > 1 ? "s" : ""} - page {page} sur{" "}
             {pagesTotal}
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
               {page > 1 ? (
                 <Link href={lienPage(params, 1)}>Premiere</Link>

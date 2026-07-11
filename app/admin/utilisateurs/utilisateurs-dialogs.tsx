@@ -42,9 +42,11 @@ function BanniereErreur({ message }: { message?: string }) {
 export function DialogueNouvelUtilisateur({
   ouvert,
   onFermer,
+  onSucces,
 }: {
   ouvert: boolean;
   onFermer: () => void;
+  onSucces?: () => void;
 }) {
   const [nomComplet, setNomComplet] = useState("");
   const [nomUtilisateur, setNomUtilisateur] = useState("");
@@ -70,6 +72,7 @@ export function DialogueNouvelUtilisateur({
       });
 
       if (resultat.ok) {
+        onSucces?.();
         onFermer();
         return;
       }

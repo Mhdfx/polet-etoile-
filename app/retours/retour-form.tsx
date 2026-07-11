@@ -50,8 +50,11 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
       setQuantiteKg("");
       setCommentaire("");
       setSucces("Retour enregistre.");
-      // L'historique sous le formulaire doit refleter le retour sans reload manuel.
+      // L'historique sous le formulaire vit dans le Server Component parent.
+      // Un reload court garantit que la ligne creee est visible immediatement
+      // meme si le cache RSC local ne se reconcilie pas assez vite.
       router.refresh();
+      window.setTimeout(() => window.location.reload(), 100);
       return;
     }
 
@@ -74,7 +77,7 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
 
       <div className="grid gap-3 md:grid-cols-2">
         <Champ id="retour-produit" label="Produit" obligatoire erreur={erreurs.produitId}>
-          <Select value={produitId || undefined} onValueChange={setProduitId}>
+          <Select value={produitId} onValueChange={setProduitId}>
             <SelectTrigger id="retour-produit" className="w-full">
               <SelectValue placeholder="Choisir un produit" />
             </SelectTrigger>

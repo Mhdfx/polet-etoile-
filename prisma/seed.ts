@@ -79,15 +79,46 @@ async function upsertUtilisateur(seed: SeedUtilisateur) {
     where: { nom_utilisateur: seed.nom_utilisateur },
   });
 
-  if (existantParNom && existantParNom.email !== seed.email) {
-    await prisma.user.update({
+  const utilisateurParEmail = await prisma.user.findUnique({
+    where: { email: seed.email },
+  });
+
+  if (
+    existantParNom &&
+    existantParNom.email !== seed.email &&
+    (!utilisateurParEmail || utilisateurParEmail.id === existantParNom.id)
+  ) {
+    const utilisateur = await prisma.user.update({
       where: { id: existantParNom.id },
       data: {
-        nom_utilisateur: `${seed.nom_utilisateur}.archive.${existantParNom.id.slice(0, 8)}`,
-        actif: false,
-        deleted_at: new Date(),
+        email: seed.email,
+        nom_complet: seed.nom_complet,
+        email_verifie: true,
+        role: seed.role,
+        actif: true,
+        deleted_at: null,
       },
     });
+
+    await prisma.account.upsert({
+      where: {
+        providerId_accountId: {
+          providerId: "credential",
+          accountId: utilisateur.id,
+        },
+      },
+      create: {
+        providerId: "credential",
+        accountId: utilisateur.id,
+        userId: utilisateur.id,
+        password: await hashPassword(seed.mot_de_passe),
+      },
+      update: {
+        password: await hashPassword(seed.mot_de_passe),
+      },
+    });
+
+    return utilisateur;
   }
 
   const utilisateur = await prisma.user.upsert({
@@ -149,7 +180,7 @@ async function main() {
   const admin = await upsertUtilisateur({
     nom_utilisateur: "admin",
     nom_complet: "Administrateur",
-    email: "admin@poulet-etoile.local",
+    email: "admin@coq-plus.local",
     mot_de_passe: motDePasseAdmin,
     role: "ADMIN",
   });
@@ -157,7 +188,7 @@ async function main() {
   const commercialCom1 = await upsertUtilisateur({
     nom_utilisateur: "com1",
     nom_complet: "Commercial 1",
-    email: "commercial.nord@poulet-etoile.local",
+    email: "commercial.nord@coq-plus.local",
     mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
   });
@@ -165,23 +196,28 @@ async function main() {
   const commercialCom2 = await upsertUtilisateur({
     nom_utilisateur: "com2",
     nom_complet: "Commercial 2",
-    email: "commercial.sud@poulet-etoile.local",
+    email: "commercial.sud@coq-plus.local",
     mot_de_passe: motDePasseCommercial,
     role: "COMMERCIAL",
   });
 
-  await prisma.parametreSysteme.createMany({
-    data: [
-      { cle: "raison_sociale", valeur: "Poulet Étoilé", updated_by: admin.id },
-      { cle: "ice", valeur: "000000000000000", updated_by: admin.id },
-      { cle: "rc", valeur: "RC Casablanca 000000", updated_by: admin.id },
-      { cle: "prefixe_bl", valeur: "PE", updated_by: admin.id },
-      { cle: "prefixe_bc", valeur: "BC", updated_by: admin.id },
-      { cle: "fuseau_horaire", valeur: "Africa/Casablanca", updated_by: admin.id },
-      { cle: "taux_tva", valeur: "0", updated_by: admin.id },
-    ],
-    skipDuplicates: true,
-  });
+  const parametresDefaut = [
+    { cle: "raison_sociale", valeur: "Coq Plus" },
+    { cle: "ice", valeur: "000000000000000" },
+    { cle: "rc", valeur: "RC Casablanca 000000" },
+    { cle: "prefixe_bl", valeur: "CP" },
+    { cle: "prefixe_bc", valeur: "BC" },
+    { cle: "fuseau_horaire", valeur: "Africa/Casablanca" },
+    { cle: "taux_tva", valeur: "0" },
+  ];
+
+  for (const parametre of parametresDefaut) {
+    await prisma.parametreSysteme.upsert({
+      where: { cle: parametre.cle },
+      create: { ...parametre, updated_by: admin.id },
+      update: { valeur: parametre.valeur, updated_by: admin.id },
+    });
+  }
 
   // Villes : upsert (pas skipDuplicates) pour que la liste complète s'applique
   // aussi aux bases déjà seedées. L'admin peut ensuite la personnaliser.
@@ -213,6 +249,10 @@ async function main() {
         deleted_at: null,
       },
     });
+  }
+
+  if (process.env.SEED_DEMO_DATA !== "true") {
+    return;
   }
 
   await prisma.produit.upsert({

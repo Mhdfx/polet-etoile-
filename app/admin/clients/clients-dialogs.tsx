@@ -65,7 +65,7 @@ function SelectVille({
   invalide: boolean;
 }) {
   return (
-    <Select value={value || undefined} onValueChange={onChange}>
+    <Select value={value} onValueChange={onChange}>
       <SelectTrigger id={id} className="w-full" aria-invalid={invalide}>
         <SelectValue placeholder="Choisir une ville" />
       </SelectTrigger>
@@ -83,6 +83,7 @@ function SelectVille({
 type DialogueClientAdminProps = {
   ouvert: boolean;
   onFermer: () => void;
+  onSucces?: () => void;
   villes: string[];
   commerciaux: OptionCommercial[];
   client?: {
@@ -97,6 +98,7 @@ type DialogueClientAdminProps = {
 export function DialogueClientAdmin({
   ouvert,
   onFermer,
+  onSucces,
   villes,
   commerciaux,
   client,
@@ -122,6 +124,7 @@ export function DialogueClientAdmin({
         : await creerClientAdmin(entree);
 
       if (resultat.ok) {
+        onSucces?.();
         onFermer();
         return;
       }
@@ -185,7 +188,7 @@ export function DialogueClientAdmin({
             obligatoire
             erreur={erreurs.commercialId}
           >
-            <Select value={commercialId || undefined} onValueChange={setCommercialId}>
+            <Select value={commercialId} onValueChange={setCommercialId}>
               <SelectTrigger
                 id="client-commercial"
                 className="w-full"
@@ -220,6 +223,7 @@ export function DialogueClientAdmin({
 type DialogueClientExterneProps = {
   ouvert: boolean;
   onFermer: () => void;
+  onSucces?: () => void;
   villes: string[];
   client?: {
     id: string;
@@ -232,6 +236,7 @@ type DialogueClientExterneProps = {
 export function DialogueClientExterne({
   ouvert,
   onFermer,
+  onSucces,
   villes,
   client,
 }: DialogueClientExterneProps) {
@@ -255,6 +260,7 @@ export function DialogueClientExterne({
         : await creerClientExterne(entree);
 
       if (resultat.ok) {
+        onSucces?.();
         onFermer();
         return;
       }

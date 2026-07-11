@@ -1,5 +1,5 @@
 [Unit]
-Description=Poulet Etoile — stack Docker Compose
+Description=Coq Plus — stack Docker Compose
 Documentation=file://@WORK_DIR@/docs/CONTABO.md
 Requires=docker.service
 After=docker.service network-online.target

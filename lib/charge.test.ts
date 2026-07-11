@@ -138,6 +138,6 @@ describe("calculerReconciliation", () => {
 describe("formaterNumeroBc", () => {
   it("prefixe et pad sur 6 chiffres", () => {
     expect(formaterNumeroBc(1)).toBe("BC-000001");
-    expect(formaterNumeroBc(1234, "PE")).toBe("PE-001234");
+    expect(formaterNumeroBc(1234, "CP")).toBe("CP-001234");
   });
 });

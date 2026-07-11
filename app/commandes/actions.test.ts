@@ -60,7 +60,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   requireAdminMock.mockResolvedValue(admin);
   requireCommercialMock.mockResolvedValue(commercial);
-  attribuerNumeroBLMock.mockResolvedValue({ compteur: 9, numeroBl: "PE-000009" });
+  attribuerNumeroBLMock.mockResolvedValue({ compteur: 9, numeroBl: "CP-000009" });
   txMock.user.findFirst.mockResolvedValue({ id: "com-1" });
   txMock.client.findFirst.mockResolvedValue({ id: "client-1" });
   txMock.clientExterne.findFirst.mockResolvedValue({ id: "ext-1" });
@@ -76,7 +76,7 @@ beforeEach(() => {
   });
   txMock.commande.findFirst.mockResolvedValue({
     id: "commande-1",
-    numero_bl: "PE-000009",
+    numero_bl: "CP-000009",
     utilisateur_id: "com-1",
     client_id: "client-1",
     client_externe_id: null,
@@ -107,7 +107,7 @@ describe("creerCommandeCommercial", () => {
     expect(attribuerNumeroBLMock).toHaveBeenCalledWith(txMock);
     expect(txMock.commande.create).toHaveBeenCalledWith({
       data: {
-        numero_bl: "PE-000009",
+        numero_bl: "CP-000009",
         numero_bl_compteur: 9,
         utilisateur_id: "com-1",
         type_commande: "STANDARD",
@@ -141,6 +141,20 @@ describe("creerCommandeCommercial", () => {
         }),
       }),
     );
+  });
+
+  it("affiche une erreur claire si aucun client n'est choisi", async () => {
+    const resultat = await creerCommandeCommercial({
+      clientId: "",
+      lignes: [{ produitId: "prod-1", quantite: "1" }],
+    });
+
+    expect(resultat.ok).toBe(false);
+    if (!resultat.ok) {
+      expect(resultat.erreurs?.clientId).toBe("Choisir un client");
+    }
+    expect(transactionMock).not.toHaveBeenCalled();
+    expect(txMock.commande.create).not.toHaveBeenCalled();
   });
 
   it("refuse un client qui n'appartient pas au commercial connecte", async () => {
