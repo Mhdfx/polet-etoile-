@@ -47,7 +47,9 @@ export default async function RetoursCommercialPage({
 
   const [produits, retours] = await Promise.all([
     prisma.produit.findMany({
-      where: { actif: true, deleted_at: null },
+      // Retour physique : uniquement les produits suivis en stock (pas le
+      // pseudo-produit RELIQUAT PAYEMENT).
+      where: { actif: true, deleted_at: null, suivi_stock: true },
       orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
       select: { id: true, nom: true },
     }),

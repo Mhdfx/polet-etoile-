@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ChampMontant } from "@/components/champ-montant";
@@ -21,30 +22,38 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
   const [reference, setReference] = useState("");
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
-  const [enCours, startTransition] = useTransition();
+  const [enCours, setEnCours] = useState(false);
+  const router = useRouter();
 
-  function soumettre(evenement: FormEvent<HTMLFormElement>) {
+  async function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
+    if (enCours) {
+      return;
+    }
     setErreurs({});
     setMessage(undefined);
+    setEnCours(true);
 
-    startTransition(async () => {
-      const resultat = await ajouterPaiementCommande({
-        commandeId,
-        montant,
-        modePaiement,
-        reference,
-      });
-
-      if (resultat.ok) {
-        setMontant("");
-        setReference("");
-        return;
-      }
-
-      setErreurs(resultat.erreurs ?? {});
-      setMessage(resultat.message);
+    const resultat = await ajouterPaiementCommande({
+      commandeId,
+      montant,
+      modePaiement,
+      reference,
     });
+
+    // Le bouton se libere des que la mutation repond ; la revalidation des
+    // totaux (paye / reste / statut) suit via router.refresh().
+    setEnCours(false);
+
+    if (resultat.ok) {
+      setMontant("");
+      setReference("");
+      router.refresh();
+      return;
+    }
+
+    setErreurs(resultat.erreurs ?? {});
+    setMessage(resultat.message);
   }
 
   return (

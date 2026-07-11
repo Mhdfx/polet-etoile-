@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Bouton } from "@/components/bouton";
@@ -41,7 +41,7 @@ export function ChargeForm({
   const [lignes, setLignes] = useState<LigneSaisie[]>([nouvelleLigne()]);
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
-  const [enCours, startTransition] = useTransition();
+  const [enCours, setEnCours] = useState(false);
 
   const produitsParId = useMemo(
     () => new Map(produits.map((produit) => [produit.id, produit.nom])),
@@ -64,8 +64,11 @@ export function ChargeForm({
     );
   }
 
-  function soumettre(evenement: FormEvent<HTMLFormElement>) {
+  async function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
+    if (enCours) {
+      return;
+    }
     setErreurs({});
     setMessage(undefined);
 
@@ -78,23 +81,25 @@ export function ChargeForm({
       return;
     }
 
-    startTransition(async () => {
-      const resultat = await creerBonCharge({
-        commercialId,
-        dateCharge: dateCharge || undefined,
-        commentaire: commentaire || undefined,
-        lignes: lignesRemplies,
-      });
-
-      if (resultat.ok) {
-        router.push(`/admin/charges/${resultat.bonChargeId}`);
-        router.refresh();
-        return;
-      }
-
-      setErreurs(resultat.erreurs ?? {});
-      setMessage(resultat.message);
+    setEnCours(true);
+    const resultat = await creerBonCharge({
+      commercialId,
+      dateCharge: dateCharge || undefined,
+      commentaire: commentaire || undefined,
+      lignes: lignesRemplies,
     });
+
+    if (resultat.ok) {
+      // On reste en chargement jusqu'a la navigation vers le detail (evite un
+      // double envoi si l'utilisateur reclique pendant la redirection).
+      router.push(`/admin/charges/${resultat.bonChargeId}`);
+      router.refresh();
+      return;
+    }
+
+    setEnCours(false);
+    setErreurs(resultat.erreurs ?? {});
+    setMessage(resultat.message);
   }
 
   return (

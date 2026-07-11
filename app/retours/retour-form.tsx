@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
@@ -28,31 +28,35 @@ export function RetourForm({ produits }: { produits: ProduitRetour[] }) {
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
   const [succes, setSucces] = useState<string>();
-  const [enCours, startTransition] = useTransition();
+  const [enCours, setEnCours] = useState(false);
   const router = useRouter();
 
-  function soumettre(evenement: FormEvent<HTMLFormElement>) {
+  async function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
+    if (enCours) {
+      return;
+    }
     setErreurs({});
     setMessage(undefined);
     setSucces(undefined);
+    setEnCours(true);
 
-    startTransition(async () => {
-      const resultat = await creerRetour({ produitId, quantiteKg, commentaire });
+    const resultat = await creerRetour({ produitId, quantiteKg, commentaire });
 
-      if (resultat.ok) {
-        setProduitId("");
-        setQuantiteKg("");
-        setCommentaire("");
-        setSucces("Retour enregistre.");
-        // L'historique sous le formulaire doit refleter le retour sans reload manuel.
-        router.refresh();
-        return;
-      }
+    setEnCours(false);
 
-      setErreurs(resultat.erreurs ?? {});
-      setMessage(resultat.message);
-    });
+    if (resultat.ok) {
+      setProduitId("");
+      setQuantiteKg("");
+      setCommentaire("");
+      setSucces("Retour enregistre.");
+      // L'historique sous le formulaire doit refleter le retour sans reload manuel.
+      router.refresh();
+      return;
+    }
+
+    setErreurs(resultat.erreurs ?? {});
+    setMessage(resultat.message);
   }
 
   return (
