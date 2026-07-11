@@ -981,3 +981,36 @@ Verification locale :
 - Requete authentifiee sur `/admin/commandes/nouvelle` : HTTP 200 et presence
   de `Responsable`, `Administrateur (admin) - Admin` et de la description mise a
   jour.
+
+## Addendum Codex - pages parfois bloquees apres rebuild/deploiement - 11/07/2026
+
+Observation utilisateur : certaines pages semblent parfois ne plus reagir apres
+un clic, puis refonctionnent apres un rafraichissement manuel.
+
+Analyse :
+
+- Logs serveur locaux propres, aucun crash Next.js visible.
+- Reproduction en onglet frais sur `/admin/commandes/nouvelle` : chargement OK,
+  selecteurs/boutons OK, aucune erreur console.
+- Le symptome correspond surtout au cas Next.js classique apres rebuild ou
+  redeploiement : un onglet garde des references vers d'anciens chunks JS, puis
+  une navigation/click client tente de charger un fichier qui n'existe plus. Le
+  refresh manuel recharge le HTML et les nouveaux chunks, donc la page repart.
+
+Correction appliquee :
+
+- Ajout de `components/chunk-reload-guard.tsx`, monte dans `app/layout.tsx`.
+- Le guard ecoute `error` et `unhandledrejection`; si l'erreur ressemble a
+  `ChunkLoadError`, `Loading chunk`, `Loading CSS chunk` ou un echec d'import
+  dynamique, la page se recharge automatiquement une seule fois sur une fenetre
+  de 30 secondes.
+- Fallback memoire si `sessionStorage` est indisponible afin que le gestionnaire
+  d'erreur ne puisse pas planter lui-meme.
+
+Verification locale :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Serveur prod local redemarre sur `:3107`.
+- Smoke navigateur sur `/admin/commandes/nouvelle` : page chargee, option admin
+  presente, bouton `Ajouter une ligne` fonctionne, aucune erreur console.
