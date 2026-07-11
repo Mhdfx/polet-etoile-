@@ -8,7 +8,7 @@ import { CommandeForm } from "@/app/commandes/commande-form";
 export default async function NouvelleCommandeAdminPage() {
   const admin = await requireAdmin();
 
-  const [produits, clients, clientsExternes, commerciaux, villes] = await Promise.all([
+  const [produits, clients, clientsExternes, responsables, villes] = await Promise.all([
     prisma.produit.findMany({
       where: { actif: true, deleted_at: null },
       orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
@@ -35,9 +35,9 @@ export default async function NouvelleCommandeAdminPage() {
       select: { id: true, nom: true, region_ville: true },
     }),
     prisma.user.findMany({
-      where: { role: "COMMERCIAL", actif: true, deleted_at: null },
-      orderBy: { nom_complet: "asc" },
-      select: { id: true, nom_complet: true, nom_utilisateur: true },
+      where: { role: { in: ["ADMIN", "COMMERCIAL"] }, actif: true, deleted_at: null },
+      orderBy: [{ role: "asc" }, { nom_complet: "asc" }],
+      select: { id: true, nom_complet: true, nom_utilisateur: true, role: true },
     }),
     listerVillesMaroc(),
   ]);
@@ -48,7 +48,7 @@ export default async function NouvelleCommandeAdminPage() {
       espace="admin"
       cheminActif="/admin/commandes/nouvelle"
       titre="Nouvelle commande"
-      description="Creation admin au nom d'un commercial, avec support client standard ou externe."
+      description="Creation admin au nom d'un commercial ou d'un administrateur, avec support client standard ou externe."
     >
       <CommandeForm
         mode="admin"
@@ -70,9 +70,11 @@ export default async function NouvelleCommandeAdminPage() {
           nom: client.nom,
           ville: client.region_ville,
         }))}
-        commerciaux={commerciaux.map((commercial) => ({
-          id: commercial.id,
-          nom: `${commercial.nom_complet} (${commercial.nom_utilisateur})`,
+        commerciaux={responsables.map((responsable) => ({
+          id: responsable.id,
+          nom: `${responsable.nom_complet} (${responsable.nom_utilisateur}) - ${
+            responsable.role === "ADMIN" ? "Admin" : "Commercial"
+          }`,
         }))}
         villes={villes}
       />

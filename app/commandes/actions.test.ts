@@ -220,6 +220,15 @@ describe("creerCommandeAdmin", () => {
     });
 
     expect(resultat.ok).toBe(true);
+    expect(txMock.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "com-1",
+        role: { in: ["ADMIN", "COMMERCIAL"] },
+        actif: true,
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
     expect(txMock.clientExterne.findFirst).toHaveBeenCalledWith({
       where: { id: "ext-1", actif: true, deleted_at: null },
       select: { id: true },
@@ -231,6 +240,36 @@ describe("creerCommandeAdmin", () => {
           type_commande: "EXTERNE",
           client_id: null,
           client_externe_id: "ext-1",
+        }),
+      }),
+    );
+  });
+
+  it("permet a l'admin de creer une commande rattachee a un administrateur", async () => {
+    txMock.user.findFirst.mockResolvedValue({ id: "admin-1" });
+
+    const resultat = await creerCommandeAdmin({
+      commercialId: "admin-1",
+      typeClient: "EXTERNE",
+      clientExterneId: "ext-1",
+      lignes: [{ produitId: "prod-1", quantite: "1" }],
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "admin-1",
+        role: { in: ["ADMIN", "COMMERCIAL"] },
+        actif: true,
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+    expect(txMock.commande.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          utilisateur_id: "admin-1",
+          type_commande: "EXTERNE",
         }),
       }),
     );

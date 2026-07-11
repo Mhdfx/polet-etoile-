@@ -33,21 +33,23 @@ function erreurServeur(erreur: unknown, action: string): ResultatAction {
   return { ok: false, message: `${MESSAGE_ERREUR_SERVEUR} (ref. ${idErreur})` };
 }
 
-async function verifierCommercialActif(
+async function verifierResponsableClientActif(
   tx: Prisma.TransactionClient,
-  commercialId: string,
+  responsableId: string,
 ): Promise<ResultatAction | null> {
-  const commercial = await tx.user.findFirst({
+  const responsable = await tx.user.findFirst({
     where: {
-      id: commercialId,
-      role: "COMMERCIAL",
+      id: responsableId,
+      role: { in: ["ADMIN", "COMMERCIAL"] },
       actif: true,
       deleted_at: null,
     },
     select: { id: true },
   });
 
-  return commercial ? null : { ok: false, erreurs: { commercialId: "Commercial introuvable" } };
+  return responsable
+    ? null
+    : { ok: false, erreurs: { commercialId: "Responsable introuvable" } };
 }
 
 export async function creerClientAdmin(entree: unknown): Promise<ResultatAction> {
@@ -64,7 +66,7 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
     const ip = await adresseIpRequete();
 
     const resultat = await prisma.$transaction(async (tx) => {
-      const erreurCommercial = await verifierCommercialActif(tx, commercialId);
+      const erreurCommercial = await verifierResponsableClientActif(tx, commercialId);
       if (erreurCommercial) {
         return erreurCommercial;
       }
@@ -77,7 +79,7 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
       if (doublon) {
         return {
           ok: false as const,
-          erreurs: { nom: "Ce commercial a deja un client actif avec ce nom" },
+          erreurs: { nom: "Ce responsable a deja un client actif avec ce nom" },
         };
       }
 
@@ -144,7 +146,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
         return { ok: false as const, message: "Client introuvable" };
       }
 
-      const erreurCommercial = await verifierCommercialActif(tx, commercialId);
+      const erreurCommercial = await verifierResponsableClientActif(tx, commercialId);
       if (erreurCommercial) {
         return erreurCommercial;
       }
@@ -162,7 +164,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
       if (doublon) {
         return {
           ok: false as const,
-          erreurs: { nom: "Ce commercial a deja un client actif avec ce nom" },
+          erreurs: { nom: "Ce responsable a deja un client actif avec ce nom" },
         };
       }
 

@@ -49,21 +49,21 @@ function erreurServeurMutation(
   return { ok: false, message: `${MESSAGE_ERREUR_SERVEUR} (ref. ${idErreur})` };
 }
 
-async function verifierCommercialActif(
+async function verifierResponsableCommandeActif(
   tx: Prisma.TransactionClient,
-  commercialId: string,
+  responsableId: string,
 ): Promise<boolean> {
-  const commercial = await tx.user.findFirst({
+  const responsable = await tx.user.findFirst({
     where: {
-      id: commercialId,
-      role: "COMMERCIAL",
+      id: responsableId,
+      role: { in: ["ADMIN", "COMMERCIAL"] },
       actif: true,
       deleted_at: null,
     },
     select: { id: true },
   });
 
-  return Boolean(commercial);
+  return Boolean(responsable);
 }
 
 async function verifierClientStandard(
@@ -121,8 +121,8 @@ async function creerCommandeTransactionnelle({
   totalAnnonce?: string;
   ip: string | null;
 }): Promise<ResultatCommande> {
-  if (!(await verifierCommercialActif(tx, commercialId))) {
-    return { ok: false, erreurs: { commercialId: "Commercial introuvable" } };
+  if (!(await verifierResponsableCommandeActif(tx, commercialId))) {
+    return { ok: false, erreurs: { commercialId: "Responsable introuvable" } };
   }
 
   if (typeCommande === "STANDARD") {

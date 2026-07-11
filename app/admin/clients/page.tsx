@@ -65,7 +65,7 @@ export default async function ClientsAdminPage({
     clients,
     totalExternes,
     clientsExternes,
-    commerciaux,
+    responsables,
     villes,
   ] = await Promise.all([
     prisma.client.count({ where: whereClients }),
@@ -103,9 +103,9 @@ export default async function ClientsAdminPage({
       },
     }),
     prisma.user.findMany({
-      where: { role: "COMMERCIAL", actif: true, deleted_at: null },
-      orderBy: { nom_complet: "asc" },
-      select: { id: true, nom_complet: true, nom_utilisateur: true },
+      where: { role: { in: ["ADMIN", "COMMERCIAL"] }, actif: true, deleted_at: null },
+      orderBy: [{ role: "asc" }, { nom_complet: "asc" }],
+      select: { id: true, nom_complet: true, nom_utilisateur: true, role: true },
     }),
     listerVillesMaroc(),
   ]);
@@ -145,10 +145,12 @@ export default async function ClientsAdminPage({
           actif: client.actif,
           modifieLe: formatDate(client.updated_at),
         }))}
-        commerciaux={commerciaux.map((commercial) => ({
-          id: commercial.id,
-          nomComplet: commercial.nom_complet,
-          nomUtilisateur: commercial.nom_utilisateur,
+        commerciaux={responsables.map((responsable) => ({
+          id: responsable.id,
+          nomComplet: responsable.nom_complet,
+          nomUtilisateur: `${responsable.nom_utilisateur} - ${
+            responsable.role === "ADMIN" ? "Admin" : "Commercial"
+          }`,
         }))}
         villes={villes}
         page={page}

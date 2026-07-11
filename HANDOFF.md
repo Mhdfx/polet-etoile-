@@ -950,3 +950,34 @@ Verification locale :
   `attachment; filename="BC-000001.pdf"`, signature `%PDF-`.
 - PDF rendu en PNG via `pdftoppm` et inspecte visuellement : page lisible,
   tableau aligne, signatures et pied presents.
+
+## Addendum Codex - commandes admin rattachees aux admins - 11/07/2026
+
+Demande client : dans la creation de commande admin, permettre de rattacher une
+commande a un administrateur aussi bien qu'a un commercial, meme si le modele
+metier initial parlait uniquement de commerciaux.
+
+Changements appliques :
+
+- `/admin/commandes/nouvelle` charge maintenant les utilisateurs actifs de role
+  `ADMIN` et `COMMERCIAL` dans le select de rattachement.
+- Le libelle UI admin devient `Responsable` au lieu de `Commercial` pour ce
+  champ, avec distinction `Admin` / `Commercial` dans les options.
+- L'action serveur de creation de commande admin accepte un responsable actif
+  `ADMIN` ou `COMMERCIAL`; les commandes creees restent stockees dans
+  `commandes.utilisateur_id`.
+- La creation/modification admin de clients standards accepte aussi un
+  responsable actif `ADMIN` ou `COMMERCIAL`, afin qu'un admin puisse creer un
+  client standard rattache a lui depuis le formulaire de commande.
+- L'ecran `/admin/clients` et ses dialogues utilisent la meme liste de
+  responsables pour eviter de creer des clients impossibles a modifier ensuite.
+
+Verification locale :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Tests ajoutes : creation d'une commande admin rattachee a un admin, creation
+  d'un client standard rattache a un admin.
+- Requete authentifiee sur `/admin/commandes/nouvelle` : HTTP 200 et presence
+  de `Responsable`, `Administrateur (admin) - Admin` et de la description mise a
+  jour.
