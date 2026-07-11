@@ -15,7 +15,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "reset:delivery-data": "tsx scripts/reset-delivery-data.ts",
-    "sync:catalogue": "tsx scripts/sync-catalogue-production.ts",
+    "sync:catalogue": "tsx lib/run-sync-catalogue-production.ts",
     "seed": "prisma db seed"
   },
   "dependencies": {

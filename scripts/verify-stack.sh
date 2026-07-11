@@ -2,11 +2,12 @@
 # Verifie que la stack est saine apres demarrage ou reboot VPS.
 # Usage :
 #   ./scripts/verify-stack.sh
-#   WORK_DIR=/opt/apps/coq-plus COMPOSE_FILE=docker-compose.ip.yml ./scripts/verify-stack.sh
+#   WORK_DIR=/opt/apps/poulet-etoile COMPOSE_FILE=docker-compose.ip.yml ./scripts/verify-stack.sh
 
 set -euo pipefail
 
-WORK_DIR="${WORK_DIR:-/opt/apps/coq-plus}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_DIR="${WORK_DIR:-$(dirname "$SCRIPT_DIR")}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.ip.yml}"
 BASE_URL="${BASE_URL:-http://127.0.0.1}"
 MAX_WAIT_SEC="${MAX_WAIT_SEC:-300}"
