@@ -1,0 +1,10 @@
+# Override de secours pour reconstruire l'image app localement.
+# Usage exceptionnel seulement (lent sur VPS) :
+#   docker compose -f docker-compose.ip.yml -f docker-compose.build.yml up -d --build app
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/mhdfx/coq-plus:latest}

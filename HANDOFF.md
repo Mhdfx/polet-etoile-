@@ -780,3 +780,41 @@ Verification :
 Note : si aucun logo n'est televerse dans le parametrage admin, le PDF affiche
 un badge texte `COQ PLUS`. Un vrai logo PNG/JPG televerse remplacera ce badge
 automatiquement.
+
+## Addendum Codex - images Docker preconstruites GHCR - 11/07/2026
+
+Objectif : eviter les builds Docker de 10-20 minutes sur le VPS Contabo.
+
+Changements appliques :
+
+- Ajout de `.github/workflows/docker-image.yml` : a chaque push sur `main`, GitHub
+  Actions construit le `Dockerfile` et pousse l'image
+  `ghcr.io/mhdfx/coq-plus:latest` plus un tag `sha-...`.
+- `docker-compose.ip.yml` et `docker-compose.prod.yml` utilisent maintenant
+  `image: ${APP_IMAGE:-ghcr.io/mhdfx/coq-plus:latest}` au lieu de `build:`.
+- Ajout de `docker-compose.build.yml` comme override de secours si une
+  reconstruction locale/serveur est vraiment necessaire.
+- `.env.production.example`, `docs/DEPLOYMENT.md` et `docs/CONTABO.md` documentent
+  `APP_IMAGE`, le pull GHCR et la commande de secours.
+
+Nouveau deploy VPS standard :
+
+```bash
+git fetch origin
+git reset --hard origin/main
+docker compose -f docker-compose.ip.yml pull app
+docker compose -f docker-compose.ip.yml up -d app
+WORK_DIR=/opt/apps/poulet-etoile COMPOSE_FILE=docker-compose.ip.yml ./scripts/verify-stack.sh
+```
+
+Si le package GHCR est prive, connecter Docker une seule fois :
+
+```bash
+echo VOTRE_GITHUB_TOKEN | docker login ghcr.io -u Mhdfx --password-stdin
+```
+
+Fallback lent uniquement :
+
+```bash
+docker compose -f docker-compose.ip.yml -f docker-compose.build.yml up -d --build app
+```
