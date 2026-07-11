@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,11 +64,18 @@ export default async function DetailBonChargePage({
               <ArrowLeft className="h-4 w-4" /> Retour aux bons de charge
             </Link>
           </Button>
-          <SupprimerBonChargeBouton
-            bonChargeId={bon.id}
-            numeroBc={bon.numero_bc}
-            commandeId={bon.commande?.id}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/admin/charges/${bon.id}/pdf`}>
+                <Download className="h-4 w-4" /> Telecharger PDF
+              </Link>
+            </Button>
+            <SupprimerBonChargeBouton
+              bonChargeId={bon.id}
+              numeroBc={bon.numero_bc}
+              commandeId={bon.commande?.id}
+            />
+          </div>
         </div>
 
         <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">

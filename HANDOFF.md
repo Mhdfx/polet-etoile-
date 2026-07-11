@@ -920,3 +920,33 @@ Verification locale :
   - bouton `Bon de charge` depuis `/admin/commandes` genere `BC-000001` ;
   - detail BC affiche la commande source `CP-000001`, produit et quantite ;
   - retour liste commandes affiche `BC-000001` au lieu du bouton de generation.
+
+## Addendum Codex - PDF bon de charge - 11/07/2026
+
+Demande client : depuis le detail d'un bon de charge, pouvoir telecharger le bon
+en PDF.
+
+Changements appliques :
+
+- Nouvelle route admin protegee `/admin/charges/[id]/pdf`.
+- Nouveau chargeur `app/charges/document-data.ts` pour centraliser les donnees
+  PDF d'un bon de charge : societe, commercial, commande source, lignes, total,
+  createur et commentaire.
+- Nouveau rendu `app/charges/bon-charge-pdf.tsx` avec mise en page A4 :
+  entete societe, numero BC, cartes de contexte, tableau des produits charges,
+  commentaire, signatures depot/commercial et pied avec telephone.
+- Le detail `/admin/charges/[id]` affiche maintenant un bouton
+  `Telecharger PDF` a cote de la suppression.
+- Le helper logo PDF existant est exporte depuis `app/commandes/document-data.ts`
+  pour eviter de dupliquer la lecture securisee des logos.
+
+Verification locale :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` OK.
+- Smoke navigateur local sur
+  `/admin/charges/cmrgxdma400013ou9x16njhbu` : bouton `Telecharger PDF`
+  present et lien unique vers `/admin/charges/cmrgxdma400013ou9x16njhbu/pdf`.
+- Requete authentifiee admin sur la route PDF : HTTP 200, `application/pdf`,
+  `attachment; filename="BC-000001.pdf"`, signature `%PDF-`.
+- PDF rendu en PNG via `pdftoppm` et inspecte visuellement : page lisible,
+  tableau aligne, signatures et pied presents.
