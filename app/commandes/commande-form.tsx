@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { creerClientAdmin } from "@/app/admin/clients/actions";
@@ -109,8 +109,8 @@ export function CommandeForm(props: CommandeFormProps) {
   const [nouveauClientTelephone, setNouveauClientTelephone] = useState("");
   const [erreursClient, setErreursClient] = useState<Record<string, string>>({});
   const [messageClient, setMessageClient] = useState<string>();
-  const [enCours, startTransition] = useTransition();
-  const [clientEnCours, startClientTransition] = useTransition();
+  const [enCours, setEnCours] = useState(false);
+  const [clientEnCours, setClientEnCours] = useState(false);
   const [brouillonCharge, setBrouillonCharge] = useState(false);
   const [estHorsLigne, setEstHorsLigne] = useState(false);
 
@@ -233,8 +233,18 @@ export function CommandeForm(props: CommandeFormProps) {
     setErreurs({});
   }
 
-  function soumettre(evenement: FormEvent<HTMLFormElement>) {
+  function selectionnerClient(valeur: string) {
+    setClientId(valeur);
+    // Le message « Client cree, selectionnez-le » disparait une fois la
+    // selection faite.
+    setSucces(undefined);
+  }
+
+  async function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
+    if (enCours) {
+      return;
+    }
     setMessage(undefined);
     setSucces(undefined);
     setErreurs({});
@@ -246,61 +256,63 @@ export function CommandeForm(props: CommandeFormProps) {
 
     const lignesValides = lignes.filter((ligne) => ligne.produitId || ligne.quantite);
 
-    startTransition(async () => {
-      const resultat =
-        props.mode === "admin"
-          ? await creerCommandeAdmin({
-              commercialId,
-              typeClient,
-              clientId: typeClient === "STANDARD" ? clientId : undefined,
-              clientExterneId:
-                typeClient === "EXTERNE" ? clientExterneId : undefined,
-              lignes: lignesValides,
-            })
-          : await creerCommandeCommercial({
-              clientId,
-              lignes: lignesValides,
-            });
+    setEnCours(true);
+    const resultat =
+      props.mode === "admin"
+        ? await creerCommandeAdmin({
+            commercialId,
+            typeClient,
+            clientId: typeClient === "STANDARD" ? clientId : undefined,
+            clientExterneId: typeClient === "EXTERNE" ? clientExterneId : undefined,
+            lignes: lignesValides,
+          })
+        : await creerCommandeCommercial({
+            clientId,
+            lignes: lignesValides,
+          });
+    setEnCours(false);
 
-      if (resultat.ok) {
-        setSucces(`Commande creee : ${resultat.numeroBl}`);
-        reinitialiserApresSucces();
-        return;
-      }
+    if (resultat.ok) {
+      setSucces(`Commande creee : ${resultat.numeroBl}`);
+      reinitialiserApresSucces();
+      return;
+    }
 
-      setErreurs(resultat.erreurs ?? {});
-      setMessage(resultat.message ?? "La commande n'a pas pu etre creee.");
-    });
+    setErreurs(resultat.erreurs ?? {});
+    setMessage(resultat.message ?? "La commande n'a pas pu etre creee.");
   }
 
-  function creerClientInline() {
+  async function creerClientInline() {
+    if (clientEnCours) {
+      return;
+    }
     setErreursClient({});
     setMessageClient(undefined);
+    setClientEnCours(true);
 
-    startClientTransition(async () => {
-      const entree = {
-        nom: nouveauClientNom,
-        regionVille: nouveauClientVille,
-        telephone: nouveauClientTelephone,
-        ...(props.mode === "admin" ? { commercialId } : {}),
-      };
-      const resultat =
-        props.mode === "admin"
-          ? await creerClientAdmin(entree)
-          : await creerClientCommercial(entree);
+    const entree = {
+      nom: nouveauClientNom,
+      regionVille: nouveauClientVille,
+      telephone: nouveauClientTelephone,
+      ...(props.mode === "admin" ? { commercialId } : {}),
+    };
+    const resultat =
+      props.mode === "admin"
+        ? await creerClientAdmin(entree)
+        : await creerClientCommercial(entree);
+    setClientEnCours(false);
 
-      if (!resultat.ok) {
-        setErreursClient(resultat.erreurs ?? {});
-        setMessageClient(resultat.message ?? "Creation client impossible.");
-        return;
-      }
+    if (!resultat.ok) {
+      setErreursClient(resultat.erreurs ?? {});
+      setMessageClient(resultat.message ?? "Creation client impossible.");
+      return;
+    }
 
-      setNouveauClientNom("");
-      setNouveauClientTelephone("");
-      setDialogueClientOuvert(false);
-      setSucces("Client cree. La liste a ete actualisee, selectionnez-le pour continuer.");
-      router.refresh();
-    });
+    setNouveauClientNom("");
+    setNouveauClientTelephone("");
+    setDialogueClientOuvert(false);
+    setSucces("Client cree. La liste a ete actualisee, selectionnez-le pour continuer.");
+    router.refresh();
   }
 
   return (
@@ -391,7 +403,7 @@ export function CommandeForm(props: CommandeFormProps) {
 
           {typeClient === "STANDARD" ? (
             <Champ id="commande-client" label="Client" obligatoire erreur={erreurs.clientId}>
-              <Select value={clientId || undefined} onValueChange={setClientId}>
+              <Select value={clientId || undefined} onValueChange={selectionnerClient}>
                 <SelectTrigger id="commande-client" className="w-full">
                   <SelectValue placeholder="Choisir un client" />
                 </SelectTrigger>

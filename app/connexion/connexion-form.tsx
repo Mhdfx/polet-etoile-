@@ -10,6 +10,8 @@ import { signIn } from "@/lib/auth-client";
 
 export function ConnexionForm() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
@@ -17,23 +19,33 @@ export function ConnexionForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErreur(null);
+
+    // Champs controles : on lit l'etat React (pas FormData), ce qui evite le cas
+    // ou le nom d'utilisateur part vide a la soumission (autofill / re-render).
+    const identifiant = username.trim();
+    const motDePasse = password;
+
+    if (!identifiant || !motDePasse) {
+      setErreur("Saisissez votre nom d'utilisateur et votre mot de passe.");
+      return;
+    }
+
     setChargement(true);
-
-    const formData = new FormData(event.currentTarget);
-    const username = String(formData.get("username") ?? "");
-    const password = String(formData.get("password") ?? "");
-
     const resultat = await signIn.username({
-      username,
-      password,
+      username: identifiant,
+      password: motDePasse,
       rememberMe: false,
     });
-
     setChargement(false);
 
     if (resultat.error) {
       // CDC §5.1 : ne jamais indiquer lequel des deux champs est errone.
-      setErreur("Nom d'utilisateur ou mot de passe incorrect.");
+      const tropDeTentatives = resultat.error.status === 429;
+      setErreur(
+        tropDeTentatives
+          ? "Trop de tentatives. Patientez une minute avant de reessayer."
+          : "Nom d'utilisateur ou mot de passe incorrect.",
+      );
       return;
     }
 
@@ -51,6 +63,8 @@ export function ConnexionForm() {
           required
           autoComplete="username"
           autoFocus
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
           disabled={chargement}
           className="h-10"
           placeholder="votre.identifiant"
@@ -66,6 +80,8 @@ export function ConnexionForm() {
             required
             minLength={8}
             autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
             disabled={chargement}
             className="h-10 pr-10"
           />

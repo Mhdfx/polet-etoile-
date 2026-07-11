@@ -8,6 +8,17 @@ const estProduction = process.env.NODE_ENV === "production";
 const authSecret = process.env.BETTER_AUTH_SECRET;
 const authBaseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
+// Nombre max de tentatives de connexion par minute et par IP.
+// Prod : 5 (anti-bruteforce, CDC 12.1). Hors prod : 1000 (recette/QA).
+// AUTH_SIGNIN_MAX permet d'ajuster explicitement (ex. recette stricte).
+const limiteSignIn = (() => {
+  const brut = Number(process.env.AUTH_SIGNIN_MAX);
+  if (Number.isFinite(brut) && brut > 0) {
+    return Math.floor(brut);
+  }
+  return estProduction ? 5 : 1000;
+})();
+
 if (estProduction && (!authSecret || authSecret.length < 32)) {
   throw new Error(
     "BETTER_AUTH_SECRET doit contenir au moins 32 caracteres en production",
@@ -69,7 +80,7 @@ const proxiesDeConfiance = (process.env.AUTH_TRUSTED_PROXIES ?? "")
   .filter(Boolean);
 
 export const auth = betterAuth({
-  appName: "Poulet Etoile",
+  appName: "Coq Plus",
   baseURL: authBaseUrlIsLocal
     ? {
         allowedHosts: [
@@ -97,14 +108,16 @@ export const auth = betterAuth({
         : undefined,
   },
   // CDC 12.1 : limitation du taux de tentatives de connexion.
-  // 5 essais par minute et par IP sur le sign-in, puis blocage temporaire.
+  // Production : 5 essais/min/IP sur le sign-in (anti-bruteforce). Hors
+  // production (dev/recette) : limite large pour ne pas bloquer les campagnes
+  // de test qui enchainent les comptes. Surchargeable via AUTH_SIGNIN_MAX.
   rateLimit: {
     enabled: true,
     window: 60,
-    max: 100,
+    max: estProduction ? 100 : 1000,
     customRules: {
-      "/sign-in/username": { window: 60, max: 5 },
-      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-in/username": { window: 60, max: limiteSignIn },
+      "/sign-in/email": { window: 60, max: limiteSignIn },
     },
   },
   database: prismaAdapter(prisma, {
