@@ -744,3 +744,39 @@ Verification finale de cette passe :
 
 Donnees QA conservees pour inspection. Pour revenir a l'etat livraison propre :
 `npm run reset:delivery-data` puis `npm run seed`.
+
+## Addendum Codex - modele facture/BL client - 11/07/2026
+
+Demande client : faire ressembler le PDF facture/BL au modele fourni dans
+`image.png`, avec les informations legales presentes dans
+`CamScanner 15-05-2026 13.41.pdf`.
+
+Changements appliques :
+
+- `app/commandes/bon-livraison-pdf.tsx` remplace l'ancien PDF simple par un
+  formulaire A4 proche du modele : logo centre, bloc BL/date/code client, bloc
+  client, tableau produits, montant en lettres, totaux HT/TVA/TTC, conditions de
+  reglement, cachet visuel, NET A PAYER et pied de page rouge.
+- `app/commandes/document-data.ts` expose les champs necessaires au document :
+  RC, ICE, identifiant fiscal, patente, adresse, telephone, TVA, Total HT,
+  TVA, Total TTC, code client stable et montant en lettres.
+- `app/admin/parametres/page.tsx` et `prisma/seed.ts` utilisent maintenant les
+  valeurs legales Coq Plus par defaut : `COQ PLUS SARL`, RC
+  `39869 MOHAMMEDIA`, ICE `003931636000009`, IF `72064177`, TP `39504226`,
+  adresse `RDC 1 LOT EL FARAH MOHAMMEDIA`, TVA `0`.
+- La base locale a ete alignee avec ces valeurs pour tester le rendu sans
+  attendre un reset/seed.
+
+Verification :
+
+- Rendu direct d'une commande reelle `CP-000005` vers
+  `tmp/pdfs/bl-reference-style.pdf`.
+- `pdfinfo` : 1 page A4.
+- PNG `tmp/pdfs/bl-reference-style-1.png` inspecte visuellement : document lisible,
+  sans chevauchement ni texte coupe.
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (126/126) et
+  `npm run build` OK.
+
+Note : si aucun logo n'est televerse dans le parametrage admin, le PDF affiche
+un badge texte `COQ PLUS`. Un vrai logo PNG/JPG televerse remplacera ce badge
+automatiquement.

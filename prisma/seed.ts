@@ -202,13 +202,17 @@ async function main() {
   });
 
   const parametresDefaut = [
-    { cle: "raison_sociale", valeur: "Coq Plus" },
-    { cle: "ice", valeur: "000000000000000" },
-    { cle: "rc", valeur: "RC Casablanca 000000" },
+    { cle: "raison_sociale", valeur: "COQ PLUS SARL" },
+    { cle: "ice", valeur: "003931636000009" },
+    { cle: "rc", valeur: "39869 MOHAMMEDIA" },
+    { cle: "identifiant_fiscal", valeur: "72064177" },
+    { cle: "patente", valeur: "39504226" },
+    { cle: "adresse", valeur: "RDC 1 LOT EL FARAH MOHAMMEDIA" },
+    { cle: "telephone", valeur: "" },
+    { cle: "taux_tva", valeur: "0" },
     { cle: "prefixe_bl", valeur: "CP" },
     { cle: "prefixe_bc", valeur: "BC" },
     { cle: "fuseau_horaire", valeur: "Africa/Casablanca" },
-    { cle: "taux_tva", valeur: "0" },
   ];
 
   for (const parametre of parametresDefaut) {

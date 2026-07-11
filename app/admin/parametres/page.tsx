@@ -14,12 +14,12 @@ import { requireAdmin } from "@/lib/session";
 import { ParametresForm } from "./parametres-form";
 
 const valeursDefaut = {
-  raisonSociale: "Coq Plus",
-  ice: "",
-  rc: "",
-  identifiantFiscal: "",
-  patente: "",
-  adresse: "",
+  raisonSociale: "COQ PLUS SARL",
+  ice: "003931636000009",
+  rc: "39869 MOHAMMEDIA",
+  identifiantFiscal: "72064177",
+  patente: "39504226",
+  adresse: "RDC 1 LOT EL FARAH MOHAMMEDIA",
   telephone: "",
   logoUrl: "",
   tauxTva: "0",

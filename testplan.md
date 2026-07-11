@@ -8,6 +8,37 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
+## Campagne 11/07/2026 - facture/BL PDF modele client
+
+Objectif : adapter le PDF BL/facture au modele fourni dans `image.png` et
+reprendre les informations legales depuis `CamScanner 15-05-2026 13.41.pdf`.
+
+### Resultats valides
+
+- [x] **PDF-12** Template PDF remplace par une mise en page A4 proche du modele :
+  logo en haut, bloc BL/date/code client, bloc client, site de livraison, tableau
+  produits, montant en lettres, Nbr caisses, Total HT/TVA/Total TTC, conditions
+  de reglement, cachet visuel, NET A PAYER et pied de page societe.
+- [x] **PDF-13** Informations legales Coq Plus integrees depuis le scan :
+  `COQ PLUS SARL`, RC `39869 MOHAMMEDIA`, ICE `003931636000009`, IF `72064177`,
+  TP `39504226`, adresse `RDC 1 LOT EL FARAH MOHAMMEDIA`.
+- [x] **PDF-14** Les parametres seed/default ont ete alignes pour une base propre
+  de livraison ; les valeurs DB locales ont aussi ete mises a jour pour le test.
+- [x] **PDF-15** Rendu verifie sur une commande reelle `CP-000005` :
+  `tmp/pdfs/bl-reference-style.pdf`, 1 page A4, PNG inspecte visuellement.
+
+### Verification technique
+
+- `npx tsc --noEmit` : PASS.
+- `npm run lint` : PASS.
+- `npm run test` : PASS, **126/126 tests**.
+- `npm run build` : PASS.
+
+Note : le logo utilise dans le PDF reste celui televerse dans le parametrage
+admin quand il existe. Sinon le PDF affiche un badge texte `COQ PLUS` propre.
+
+---
+
 ## Campagne 11/07/2026 - corrections post-QA et retest navigateur (localhost:3107)
 
 Build production relance proprement sur `http://localhost:3107` apres correction
