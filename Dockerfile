@@ -37,7 +37,8 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 # de prisma/seed.ts via tsconfig) — sans eux le seed echoue dans le conteneur.
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+# scripts/ requis pour npm run sync:catalogue, seed et reset en conteneur.
+COPY --from=builder /app/scripts ./scripts
 
 RUN mkdir -p public/uploads/logos exports-prive && chown -R nextjs:nextjs /app \
   && chmod +x ./scripts/docker-entrypoint.sh
