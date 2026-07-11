@@ -247,7 +247,7 @@ const TYPES_LOGO_PDF: Record<string, string> = {
   ".jpeg": "image/jpeg",
 };
 
-async function chargerLogoDataUri(cheminPublic?: string): Promise<string | undefined> {
+export async function chargerLogoDataUri(cheminPublic?: string): Promise<string | undefined> {
   if (!cheminPublic || !estCheminLogoPublic(cheminPublic)) {
     return undefined;
   }
