@@ -22,8 +22,8 @@ npm run start
 Avec Docker :
 
 ```bash
-docker build -t coq-plus .
-docker run --env-file .env -p 3000:3000 coq-plus
+docker pull ghcr.io/mhdfx/coq-plus:latest
+docker run --env-file .env -p 3000:3000 ghcr.io/mhdfx/coq-plus:latest
 ```
 
 ## VPS Contabo (Docker Compose + Caddy)
@@ -32,16 +32,27 @@ Guide detaille : [`docs/CONTABO.md`](./CONTABO.md).
 
 Fichiers :
 
+- `docker-compose.ip.yml` : MySQL + app en HTTP sur IP seule
+- `docker-compose.build.yml` : override de secours pour reconstruire sur serveur
+
 - `docker-compose.prod.yml` — MySQL + app + Caddy (HTTPS)
 - `.env.production.example` — variables a copier vers `.env` sur le serveur
 
 ```bash
 cp .env.production.example .env
 # editer .env (domaine, secrets, mots de passe MySQL)
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml pull app
+docker compose -f docker-compose.prod.yml up -d app
 ```
 
 Au demarrage, le conteneur applique `prisma migrate deploy` puis `npm run start`.
+L'image applicative est preconstruite par GitHub Actions et publiee sur
+`ghcr.io/mhdfx/coq-plus:latest`. En cas d'urgence seulement, reconstruire sur le
+serveur avec :
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up -d --build app
+```
 
 ## Coolify
 

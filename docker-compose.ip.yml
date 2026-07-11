@@ -2,7 +2,8 @@
 # Usage sur le VPS :
 #   cp .env.production.example .env
 #   nano .env
-#   docker compose -f docker-compose.ip.yml up -d --build
+#   docker compose -f docker-compose.ip.yml pull app
+#   docker compose -f docker-compose.ip.yml up -d app
 
 services:
   mysql:
@@ -36,9 +37,7 @@ services:
       - poulet
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/mhdfx/coq-plus:latest}
     container_name: poulet_etoile_app
     restart: unless-stopped
     ports:

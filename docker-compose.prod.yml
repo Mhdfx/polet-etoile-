@@ -1,6 +1,7 @@
 # Production — Contabo / VPS Ubuntu
 # Usage : cp .env.production.example .env  puis editer .env  puis :
-#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml pull app
+#   docker compose -f docker-compose.prod.yml up -d app
 
 services:
   mysql:
@@ -34,9 +35,7 @@ services:
       - poulet
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/mhdfx/coq-plus:latest}
     container_name: poulet_etoile_app
     restart: unless-stopped
     env_file:

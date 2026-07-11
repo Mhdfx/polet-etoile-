@@ -15,6 +15,17 @@ HTTPS automatique (Caddy) et l'application Next.js de ce depot.
 Sans domaine : vous pouvez tester en HTTP sur le port 80 en mettant l'IP dans
 `APP_DOMAIN` (pas de HTTPS Let's Encrypt sur IP seule).
 
+Image applicative preconstruite :
+
+- `APP_IMAGE=ghcr.io/mhdfx/coq-plus:latest`
+- L'image est construite par GitHub Actions a chaque push sur `main`.
+- Si le package GHCR est prive, connecter Docker une seule fois sur le VPS :
+  ```bash
+  echo VOTRE_GITHUB_TOKEN | docker login ghcr.io -u Mhdfx --password-stdin
+  ```
+- Attendre que l'action GitHub "Build Docker image" soit verte avant de lancer
+  `docker compose ... pull app`.
+
 ---
 
 ## Etape 1 — Premier acces SSH
@@ -135,7 +146,8 @@ variables `MYSQL_*` — ne pas le definir dans `.env`.
 
 ```bash
 cd /opt/coq-plus
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml pull app
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 Suivre les logs :
@@ -186,7 +198,8 @@ docker compose -f docker-compose.prod.yml ps
 
 # Redemarrer l'app apres un git pull
 git pull
-docker compose -f docker-compose.prod.yml up -d --build app
+docker compose -f docker-compose.prod.yml pull app
+docker compose -f docker-compose.prod.yml up -d app
 
 # Logs
 docker compose -f docker-compose.prod.yml logs -f caddy app mysql
@@ -261,10 +274,11 @@ sudo ./scripts/install-systemd-service.sh /opt/apps/coq-plus docker-compose.ip.y
 # sudo ./scripts/install-systemd-service.sh /opt/coq-plus docker-compose.prod.yml
 ```
 
-Puis reconstruire l'image app (entrypoint durci) :
+Puis recuperer l'image app preconstruite :
 
 ```bash
-docker compose -f docker-compose.ip.yml up -d --build app
+docker compose -f docker-compose.ip.yml pull app
+docker compose -f docker-compose.ip.yml up -d app
 ```
 
 ### Verifier apres un reboot

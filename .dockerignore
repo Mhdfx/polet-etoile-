@@ -11,6 +11,7 @@ Dockerfile
 docker-compose.yml
 docker-compose.prod.yml
 docker-compose.ip.yml
+docker-compose.build.yml
 .env
 .env.local
 .env.production
