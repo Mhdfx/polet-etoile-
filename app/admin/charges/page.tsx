@@ -54,6 +54,7 @@ export default async function ChargesAdminPage({
       numero_bc: true,
       date_charge: true,
       commercial: { select: { nom_complet: true } },
+      commande: { select: { id: true, numero_bl: true } },
       lignes: { where: { deleted_at: null }, select: { quantite_kg: true } },
     },
   });
@@ -117,6 +118,7 @@ export default async function ChargesAdminPage({
                 <TableHead>N° BC</TableHead>
                 <TableHead>Date tournée</TableHead>
                 <TableHead>Commercial</TableHead>
+                <TableHead>Commande</TableHead>
                 <TableHead className="text-right">Lignes</TableHead>
                 <TableHead className="text-right">Total chargé</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -125,7 +127,7 @@ export default async function ChargesAdminPage({
             <TableBody>
               {bons.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     {bornes || erreurPeriode
                       ? "Aucun bon de charge sur cette periode."
                       : "Aucun bon de charge. Créez-en un pour démarrer une tournée."}
@@ -139,6 +141,18 @@ export default async function ChargesAdminPage({
                       <TableCell className="font-medium">{bon.numero_bc}</TableCell>
                       <TableCell>{formatDate(bon.date_charge)}</TableCell>
                       <TableCell>{bon.commercial.nom_complet}</TableCell>
+                      <TableCell>
+                        {bon.commande ? (
+                          <Link
+                            href={`/admin/commandes/${bon.commande.id}`}
+                            className="font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            {bon.commande.numero_bl}
+                          </Link>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{bon.lignes.length}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatQuantite(totalKg)}

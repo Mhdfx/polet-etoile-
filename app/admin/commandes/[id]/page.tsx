@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { PaiementForm } from "@/app/commandes/paiement-form";
 import { SupprimerCommandeButton } from "@/app/commandes/supprimer-commande-button";
+import { BonChargeCommandeButton } from "@/app/charges/bon-charge-commande-button";
 import {
   calculerTotauxCommande,
   libelleModePaiement,
@@ -45,6 +46,7 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
       client: { select: { nom: true, region_ville: true } },
       client_externe: { select: { nom: true, region_ville: true } },
       utilisateur: { select: { nom_complet: true, nom_utilisateur: true } },
+      bon_charge: { select: { id: true, numero_bc: true, deleted_at: true } },
       lignes: {
         where: { deleted_at: null },
         select: {
@@ -95,6 +97,18 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
                 PDF BL
               </Link>
             </Button>
+            <BonChargeCommandeButton
+              commandeId={commande.id}
+              bonCharge={
+                commande.bon_charge
+                  ? {
+                      id: commande.bon_charge.id,
+                      numeroBc: commande.bon_charge.numero_bc,
+                      supprime: Boolean(commande.bon_charge.deleted_at),
+                    }
+                  : null
+              }
+            />
             <SupprimerCommandeButton commandeId={commande.id} />
           </div>
         </div>

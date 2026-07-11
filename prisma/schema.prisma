@@ -216,6 +216,7 @@ model Commande {
   utilisateur    User            @relation("CommandeCommercial", fields: [utilisateur_id], references: [id])
   lignes         LigneCommande[]
   paiements      Paiement[]
+  bon_charge     BonCharge?
 
   @@index([utilisateur_id, date_commande])
   @@index([client_id])
@@ -252,6 +253,7 @@ model BonCharge {
   id                 String    @id @default(cuid())
   numero_bc          String    @unique @db.VarChar(40)
   numero_bc_compteur Int       @unique
+  commande_id        String?   @unique
   commercial_id      String
   cree_par           String
   date_charge        DateTime  @default(now()) @db.DateTime(3)
@@ -259,6 +261,7 @@ model BonCharge {
   created_at         DateTime  @default(now()) @db.DateTime(3)
   deleted_at         DateTime? @db.DateTime(3)
 
+  commande   Commande?        @relation(fields: [commande_id], references: [id])
   commercial User             @relation("BonChargeCommercial", fields: [commercial_id], references: [id])
   createur   User             @relation("BonChargeCreateur", fields: [cree_par], references: [id])
   lignes     LigneBonCharge[]
