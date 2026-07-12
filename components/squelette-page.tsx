@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function SquelettePage() {
   return (
     <main className="flex min-h-dvh bg-background" aria-busy="true">
-      <div className="hidden w-[212px] shrink-0 bg-sidebar md:block" />
+      <div className="hidden w-[248px] shrink-0 bg-sidebar md:block" />
       <div className="flex-1">
         <div className="border-b border-border bg-background px-5 py-4 lg:px-7">
           <Skeleton className="h-3 w-40" />

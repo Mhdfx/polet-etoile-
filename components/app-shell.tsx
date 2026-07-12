@@ -142,14 +142,17 @@ export function AppShell({
         Aller au contenu principal
       </a>
       <section className="flex min-h-dvh w-full bg-background">
-        <aside className="sticky top-0 hidden h-dvh w-[212px] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
-          <div className="flex h-16 items-center gap-3 px-5">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-sidebar-primary text-lg font-black text-sidebar-primary-foreground">
+        <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground shadow-[18px_0_45px_rgba(15,23,42,0.10)] md:flex md:flex-col">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_8%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(180deg,var(--sidebar)_0%,#0b57bb_48%,#08459b_100%)]" />
+          <div className="pointer-events-none absolute inset-x-4 top-20 h-px bg-white/15" />
+
+          <div className="relative flex min-h-20 items-center gap-3 px-5">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-xl font-black text-sidebar shadow-sm ring-1 ring-white/25">
               P
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-bold">Coq Plus</p>
-              <p className="text-[11px] text-sidebar-foreground/70">
+              <p className="text-base font-bold tracking-tight">Coq Plus</p>
+              <p className="text-xs text-white/70">
                 {espace === "admin" ? "Administration" : "Espace commercial"}
               </p>
             </div>
@@ -157,11 +160,11 @@ export function AppShell({
 
           <nav
             aria-label="Navigation principale"
-            className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4"
+            className="relative flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4 pt-2 [scrollbar-color:rgba(255,255,255,0.42)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/35 [&::-webkit-scrollbar-track]:bg-transparent"
           >
             {groupes.map((groupe) => (
-              <div key={groupe.titre} className="mt-3 first:mt-1">
-                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/55">
+              <div key={groupe.titre} className="mt-4 first:mt-1">
+                <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/55">
                   {groupe.titre}
                 </p>
                 <div className="grid gap-0.5">
@@ -171,10 +174,14 @@ export function AppShell({
                       const Icon = item.icon;
                       const actif = estActif(item, cheminActif, racine);
                       const classes = cn(
-                        "flex h-9 items-center gap-3 rounded-md px-3 text-left text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                        "group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                         actif
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                          : "text-sidebar-foreground/85 hover:bg-white/10 hover:text-sidebar-foreground",
+                          ? "bg-white text-sidebar shadow-sm shadow-slate-950/10"
+                          : "text-white/80 hover:bg-white/10 hover:text-white",
+                      );
+                      const iconClasses = cn(
+                        "h-4 w-4 shrink-0 transition-colors",
+                        actif ? "text-sidebar" : "text-white/78 group-hover:text-white",
                       );
 
                       if (!item.href) {
@@ -186,8 +193,10 @@ export function AppShell({
                             title="Module à venir"
                             className={cn(classes, "cursor-not-allowed opacity-45")}
                           >
-                            <Icon className="h-4 w-4 shrink-0" />
-                            <span>{item.label}</span>
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10">
+                              <Icon className={iconClasses} />
+                            </span>
+                            <span className="truncate">{item.label}</span>
                           </button>
                         );
                       }
@@ -199,8 +208,15 @@ export function AppShell({
                           aria-current={actif ? "page" : undefined}
                           className={classes}
                         >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span>{item.label}</span>
+                          <span
+                            className={cn(
+                              "grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors",
+                              actif ? "bg-sidebar/10" : "bg-white/10 group-hover:bg-white/15",
+                            )}
+                          >
+                            <Icon className={iconClasses} />
+                          </span>
+                          <span className="truncate">{item.label}</span>
                         </Link>
                       );
                     })}
@@ -209,11 +225,13 @@ export function AppShell({
             ))}
           </nav>
 
-          <div className="border-t border-sidebar-border px-5 py-4 text-[11px] leading-relaxed text-sidebar-foreground/60">
-            <p className="font-semibold text-sidebar-foreground/80">
-              Gestion commerciale
-            </p>
-            <p>Coq Plus</p>
+          <div className="relative border-t border-white/15 px-4 py-4 text-xs leading-relaxed text-white/65">
+            <div className="rounded-xl bg-white/10 px-3 py-3 ring-1 ring-white/10">
+              <p className="font-semibold text-white">
+                Gestion commerciale
+              </p>
+              <p className="mt-0.5">Coq Plus</p>
+            </div>
           </div>
         </aside>
 
