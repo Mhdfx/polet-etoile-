@@ -111,10 +111,11 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 10,
     fontWeight: 700,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   clientLine: {
-    marginBottom: 14,
+    marginBottom: 8,
+    lineHeight: 1.25,
   },
   clientFiscal: {
     fontSize: 7.5,
@@ -358,7 +359,7 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
 
           <View style={styles.clientBox}>
             <Text style={styles.clientName}>{commande.client}</Text>
-            <Text style={styles.clientLine}>-</Text>
+            <Text style={styles.clientLine}>{commande.adresseClient}</Text>
             <Text style={styles.clientLine}>{commande.ville}</Text>
             <Text style={styles.clientFiscal}>ICE : -</Text>
           </View>
@@ -366,7 +367,11 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
 
         <View style={styles.siteLine}>
           <Text style={styles.siteLabel}>Site de livraison :</Text>
-          <Text style={styles.siteValue}>{commande.client}</Text>
+          <Text style={styles.siteValue}>
+            {commande.adresseClient !== "-"
+              ? `${commande.client} - ${commande.adresseClient}`
+              : commande.client}
+          </Text>
         </View>
 
         <View style={styles.table}>

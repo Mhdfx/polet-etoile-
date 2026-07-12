@@ -60,7 +60,7 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { nom, regionVille, telephone, commercialId } = validation.data;
+  const { nom, regionVille, adresse, telephone, commercialId } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -87,6 +87,7 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
         data: {
           nom,
           region_ville: regionVille,
+          adresse,
           telephone,
           commercial_id: commercialId,
         },
@@ -99,7 +100,7 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
           action: "client.creation",
           entite: "clients",
           entiteId: client.id,
-          apres: { nom, region_ville: regionVille, telephone, commercial_id: commercialId },
+          apres: { nom, region_ville: regionVille, adresse, telephone, commercial_id: commercialId },
         },
         ip,
       );
@@ -125,7 +126,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { id, nom, regionVille, telephone, commercialId } = validation.data;
+  const { id, nom, regionVille, adresse, telephone, commercialId } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -136,6 +137,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
         select: {
           nom: true,
           region_ville: true,
+          adresse: true,
           telephone: true,
           commercial_id: true,
           actif: true,
@@ -173,6 +175,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
         data: {
           nom,
           region_ville: regionVille,
+          adresse,
           telephone,
           commercial_id: commercialId,
         },
@@ -186,7 +189,7 @@ export async function modifierClientAdmin(entree: unknown): Promise<ResultatActi
           entite: "clients",
           entiteId: id,
           avant: existant,
-          apres: { nom, region_ville: regionVille, telephone, commercial_id: commercialId },
+          apres: { nom, region_ville: regionVille, adresse, telephone, commercial_id: commercialId },
         },
         ip,
       );
@@ -218,7 +221,7 @@ export async function supprimerClientAdmin(id: string): Promise<ResultatAction> 
     const resultat = await prisma.$transaction(async (tx) => {
       const existant = await tx.client.findFirst({
         where: { id, deleted_at: null },
-        select: { nom: true, region_ville: true, telephone: true, commercial_id: true },
+        select: { nom: true, region_ville: true, adresse: true, telephone: true, commercial_id: true },
       });
 
       if (!existant) {
@@ -264,7 +267,7 @@ export async function creerClientExterne(entree: unknown): Promise<ResultatActio
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { nom, regionVille, telephone } = validation.data;
+  const { nom, regionVille, adresse, telephone } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -283,7 +286,7 @@ export async function creerClientExterne(entree: unknown): Promise<ResultatActio
       }
 
       const client = await tx.clientExterne.create({
-        data: { nom, region_ville: regionVille, telephone },
+        data: { nom, region_ville: regionVille, adresse, telephone },
       });
 
       await ecrireAudit(
@@ -293,7 +296,7 @@ export async function creerClientExterne(entree: unknown): Promise<ResultatActio
           action: "client_externe.creation",
           entite: "clients_externes",
           entiteId: client.id,
-          apres: { nom, region_ville: regionVille, telephone },
+          apres: { nom, region_ville: regionVille, adresse, telephone },
         },
         ip,
       );
@@ -319,7 +322,7 @@ export async function modifierClientExterne(entree: unknown): Promise<ResultatAc
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { id, nom, regionVille, telephone } = validation.data;
+  const { id, nom, regionVille, adresse, telephone } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -327,7 +330,7 @@ export async function modifierClientExterne(entree: unknown): Promise<ResultatAc
     const resultat = await prisma.$transaction(async (tx) => {
       const existant = await tx.clientExterne.findFirst({
         where: { id, deleted_at: null },
-        select: { nom: true, region_ville: true, telephone: true, actif: true },
+        select: { nom: true, region_ville: true, adresse: true, telephone: true, actif: true },
       });
 
       if (!existant) {
@@ -348,7 +351,7 @@ export async function modifierClientExterne(entree: unknown): Promise<ResultatAc
 
       await tx.clientExterne.update({
         where: { id },
-        data: { nom, region_ville: regionVille, telephone },
+        data: { nom, region_ville: regionVille, adresse, telephone },
       });
 
       await ecrireAudit(
@@ -359,7 +362,7 @@ export async function modifierClientExterne(entree: unknown): Promise<ResultatAc
           entite: "clients_externes",
           entiteId: id,
           avant: existant,
-          apres: { nom, region_ville: regionVille, telephone },
+          apres: { nom, region_ville: regionVille, adresse, telephone },
         },
         ip,
       );
@@ -390,7 +393,7 @@ export async function supprimerClientExterne(id: string): Promise<ResultatAction
     const resultat = await prisma.$transaction(async (tx) => {
       const existant = await tx.clientExterne.findFirst({
         where: { id, deleted_at: null },
-        select: { nom: true, region_ville: true, telephone: true },
+        select: { nom: true, region_ville: true, adresse: true, telephone: true },
       });
 
       if (!existant) {

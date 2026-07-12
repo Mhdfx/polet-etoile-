@@ -14,6 +14,12 @@ const champVille = z
   .min(2, "La ville est obligatoire")
   .max(120, "La ville ne doit pas depasser 120 caracteres");
 
+const champAdresse = z
+  .string()
+  .trim()
+  .min(2, "L'adresse est obligatoire")
+  .max(255, "L'adresse ne doit pas depasser 255 caracteres");
+
 const champTelephone = z
   .string()
   .trim()
@@ -24,6 +30,7 @@ const champTelephone = z
 export const schemaCreationClientAdmin = z.object({
   nom: champNomClient,
   regionVille: champVille,
+  adresse: champAdresse,
   telephone: champTelephone,
   commercialId: champId,
 });
@@ -35,6 +42,7 @@ export const schemaModificationClientAdmin = schemaCreationClientAdmin.extend({
 export const schemaCreationClientCommercial = z.object({
   nom: champNomClient,
   regionVille: champVille,
+  adresse: champAdresse,
   telephone: champTelephone,
 });
 
@@ -46,6 +54,7 @@ export const schemaModificationClientCommercial =
 export const schemaCreationClientExterne = z.object({
   nom: champNomClient,
   regionVille: champVille,
+  adresse: champAdresse,
   telephone: champTelephone,
 });
 

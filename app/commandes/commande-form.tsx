@@ -106,6 +106,7 @@ export function CommandeForm(props: CommandeFormProps) {
   const [dialogueClientOuvert, setDialogueClientOuvert] = useState(false);
   const [nouveauClientNom, setNouveauClientNom] = useState("");
   const [nouveauClientVille, setNouveauClientVille] = useState(props.villes[0] ?? "");
+  const [nouveauClientAdresse, setNouveauClientAdresse] = useState("");
   const [nouveauClientTelephone, setNouveauClientTelephone] = useState("");
   const [erreursClient, setErreursClient] = useState<Record<string, string>>({});
   const [messageClient, setMessageClient] = useState<string>();
@@ -293,6 +294,7 @@ export function CommandeForm(props: CommandeFormProps) {
     const entree = {
       nom: nouveauClientNom,
       regionVille: nouveauClientVille,
+      adresse: nouveauClientAdresse,
       telephone: nouveauClientTelephone,
       ...(props.mode === "admin" ? { commercialId } : {}),
     };
@@ -309,6 +311,7 @@ export function CommandeForm(props: CommandeFormProps) {
     }
 
     setNouveauClientNom("");
+    setNouveauClientAdresse("");
     setNouveauClientTelephone("");
     setDialogueClientOuvert(false);
     setSucces("Client cree. La liste a ete actualisee, selectionnez-le pour continuer.");
@@ -589,6 +592,19 @@ export function CommandeForm(props: CommandeFormProps) {
                   </option>
                 ))}
               </SelectNatif>
+            </Champ>
+            <Champ
+              id="nouveau-client-adresse"
+              label="Adresse"
+              erreur={erreursClient.adresse}
+              obligatoire
+            >
+              <Input
+                id="nouveau-client-adresse"
+                value={nouveauClientAdresse}
+                onChange={(event) => setNouveauClientAdresse(event.target.value)}
+                placeholder="Ex. Lotissement Al Amal, rue 12"
+              />
             </Champ>
             <Champ
               id="nouveau-client-telephone"

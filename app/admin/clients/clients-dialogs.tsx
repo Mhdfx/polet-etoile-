@@ -90,6 +90,7 @@ type DialogueClientAdminProps = {
     id: string;
     nom: string;
     regionVille: string;
+    adresseBrute: string;
     telephoneBrut: string;
     commercialId: string;
   };
@@ -106,6 +107,7 @@ export function DialogueClientAdmin({
   const edition = Boolean(client);
   const [nom, setNom] = useState(client?.nom ?? "");
   const [regionVille, setRegionVille] = useState(client?.regionVille ?? "");
+  const [adresse, setAdresse] = useState(client?.adresseBrute ?? "");
   const [telephone, setTelephone] = useState(client?.telephoneBrut ?? "");
   const [commercialId, setCommercialId] = useState(client?.commercialId ?? "");
   const [erreurs, setErreurs] = useState<ErreursChamps>({});
@@ -118,7 +120,7 @@ export function DialogueClientAdmin({
     setMessageErreur(undefined);
 
     startTransition(async () => {
-      const entree = { id: client?.id, nom, regionVille, telephone, commercialId };
+      const entree = { id: client?.id, nom, regionVille, adresse, telephone, commercialId };
       const resultat: ResultatAction = client
         ? await modifierClientAdmin(entree)
         : await creerClientAdmin(entree);
@@ -169,6 +171,16 @@ export function DialogueClientAdmin({
               onChange={setRegionVille}
               villes={villes}
               invalide={Boolean(erreurs.regionVille)}
+            />
+          </Champ>
+
+          <Champ id="client-adresse" label="Adresse" obligatoire erreur={erreurs.adresse}>
+            <Input
+              id="client-adresse"
+              value={adresse}
+              onChange={(evenement) => setAdresse(evenement.target.value)}
+              placeholder="Ex. Lotissement Al Amal, rue 12"
+              aria-invalid={Boolean(erreurs.adresse)}
             />
           </Champ>
 
@@ -229,6 +241,7 @@ type DialogueClientExterneProps = {
     id: string;
     nom: string;
     regionVille: string;
+    adresseBrute: string;
     telephoneBrut: string;
   };
 };
@@ -243,6 +256,7 @@ export function DialogueClientExterne({
   const edition = Boolean(client);
   const [nom, setNom] = useState(client?.nom ?? "");
   const [regionVille, setRegionVille] = useState(client?.regionVille ?? "");
+  const [adresse, setAdresse] = useState(client?.adresseBrute ?? "");
   const [telephone, setTelephone] = useState(client?.telephoneBrut ?? "");
   const [erreurs, setErreurs] = useState<ErreursChamps>({});
   const [messageErreur, setMessageErreur] = useState<string>();
@@ -254,7 +268,7 @@ export function DialogueClientExterne({
     setMessageErreur(undefined);
 
     startTransition(async () => {
-      const entree = { id: client?.id, nom, regionVille, telephone };
+      const entree = { id: client?.id, nom, regionVille, adresse, telephone };
       const resultat = client
         ? await modifierClientExterne(entree)
         : await creerClientExterne(entree);
@@ -313,6 +327,21 @@ export function DialogueClientExterne({
               onChange={setRegionVille}
               villes={villes}
               invalide={Boolean(erreurs.regionVille)}
+            />
+          </Champ>
+
+          <Champ
+            id="client-externe-adresse"
+            label="Adresse"
+            obligatoire
+            erreur={erreurs.adresse}
+          >
+            <Input
+              id="client-externe-adresse"
+              value={adresse}
+              onChange={(evenement) => setAdresse(evenement.target.value)}
+              placeholder="Ex. Avenue Mohammed V, immeuble 4"
+              aria-invalid={Boolean(erreurs.adresse)}
             />
           </Champ>
 

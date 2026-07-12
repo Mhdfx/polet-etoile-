@@ -31,6 +31,7 @@ export default async function ClientAdminDetailPage({ params }: PageProps) {
       id: true,
       nom: true,
       region_ville: true,
+      adresse: true,
       telephone: true,
       commercial: { select: { nom_complet: true, nom_utilisateur: true } },
       commandes: {
@@ -108,6 +109,10 @@ export default async function ClientAdminDetailPage({ params }: PageProps) {
             <p>
               <span className="text-muted-foreground">Telephone : </span>
               {client.telephone ?? "-"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Adresse : </span>
+              {client.adresse ?? "-"}
             </p>
             <p>
               <span className="text-muted-foreground">Commercial : </span>
@@ -203,4 +208,3 @@ export default async function ClientAdminDetailPage({ params }: PageProps) {
     </AppShell>
   );
 }
-

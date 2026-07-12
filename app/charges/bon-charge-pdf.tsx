@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 700,
     color: "#172033",
+    lineHeight: 1.25,
   },
   sectionTitle: {
     marginTop: 4,
@@ -224,6 +225,14 @@ export function BonChargePdf({ bon }: { bon: BonChargeDocumentData }) {
           <MetaCard label="Date tournee" value={bon.dateCharge} />
           <MetaCard label="Commande source" value={bon.commande?.numeroBl || "Saisie manuelle"} />
         </View>
+
+        {bon.commande ? (
+          <View style={styles.metaGrid}>
+            <MetaCard label="Client" value={bon.commande.client} />
+            <MetaCard label="Adresse livraison" value={bon.commande.adresse} />
+            <MetaCard label="Ville" value={bon.commande.ville} />
+          </View>
+        ) : null}
 
         <View style={styles.metaGrid}>
           <MetaCard label="Saisi par" value={bon.createur} />

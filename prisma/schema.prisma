@@ -167,6 +167,7 @@ model Client {
   id            String    @id @default(cuid())
   nom           String    @db.VarChar(180)
   region_ville  String    @db.VarChar(120)
+  adresse       String?   @db.VarChar(255)
   telephone     String?   @db.VarChar(40)
   commercial_id String
   actif         Boolean   @default(true)
@@ -186,6 +187,7 @@ model ClientExterne {
   id           String    @id @default(cuid())
   nom          String    @db.VarChar(180)
   region_ville String    @db.VarChar(120)
+  adresse      String?   @db.VarChar(255)
   telephone    String?   @db.VarChar(40)
   actif        Boolean   @default(true)
   created_at   DateTime  @default(now()) @db.DateTime(3)

@@ -66,6 +66,7 @@ describe("clients commercial", () => {
     const resultat = await creerClientCommercial({
       nom: "Boucherie Atlas",
       regionVille: "Casablanca",
+      adresse: "Rue 1 Casablanca",
       telephone: "06 00 00 00 00",
     });
 
@@ -74,6 +75,7 @@ describe("clients commercial", () => {
       data: {
         nom: "Boucherie Atlas",
         region_ville: "Casablanca",
+        adresse: "Rue 1 Casablanca",
         telephone: "06 00 00 00 00",
         commercial_id: "com-1",
       },
@@ -94,6 +96,7 @@ describe("clients commercial", () => {
     const resultat = await creerClientCommercial({
       nom: "Boucherie Atlas",
       regionVille: "Casablanca",
+      adresse: "Rue 1 Casablanca",
     });
 
     expect(resultat.ok).toBe(false);
@@ -107,6 +110,7 @@ describe("clients commercial", () => {
     txMock.client.findFirst.mockResolvedValue({
       nom: "Client Sud",
       region_ville: "Rabat",
+      adresse: "Avenue Rabat",
       telephone: null,
       commercial_id: "com-2",
       actif: true,
@@ -117,6 +121,7 @@ describe("clients commercial", () => {
         id: "client-autre",
         nom: "Client Sud",
         regionVille: "Rabat",
+        adresse: "Avenue Rabat",
       }),
     ).rejects.toThrow("NEXT_REDIRECT:/403");
 
@@ -128,6 +133,7 @@ describe("clients commercial", () => {
     txMock.client.findFirst.mockResolvedValue({
       nom: "Boucherie Atlas",
       region_ville: "Casablanca",
+      adresse: "Rue 1 Casablanca",
       telephone: "06",
       commercial_id: "com-1",
     });

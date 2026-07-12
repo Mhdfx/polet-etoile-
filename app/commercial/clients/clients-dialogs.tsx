@@ -51,6 +51,7 @@ type DialogueClientCommercialProps = {
     id: string;
     nom: string;
     regionVille: string;
+    adresseBrute: string;
     telephoneBrut: string;
   };
 };
@@ -64,6 +65,7 @@ export function DialogueClientCommercial({
   const edition = Boolean(client);
   const [nom, setNom] = useState(client?.nom ?? "");
   const [regionVille, setRegionVille] = useState(client?.regionVille ?? "");
+  const [adresse, setAdresse] = useState(client?.adresseBrute ?? "");
   const [telephone, setTelephone] = useState(client?.telephoneBrut ?? "");
   const [erreurs, setErreurs] = useState<ErreursChamps>({});
   const [messageErreur, setMessageErreur] = useState<string>();
@@ -75,7 +77,7 @@ export function DialogueClientCommercial({
     setMessageErreur(undefined);
 
     startTransition(async () => {
-      const entree = { id: client?.id, nom, regionVille, telephone };
+      const entree = { id: client?.id, nom, regionVille, adresse, telephone };
       const resultat: ResultatAction = client
         ? await modifierClientCommercial(entree)
         : await creerClientCommercial(entree);
@@ -135,6 +137,16 @@ export function DialogueClientCommercial({
                 ))}
               </SelectContent>
             </Select>
+          </Champ>
+
+          <Champ id="client-adresse" label="Adresse" obligatoire erreur={erreurs.adresse}>
+            <Input
+              id="client-adresse"
+              value={adresse}
+              onChange={(evenement) => setAdresse(evenement.target.value)}
+              placeholder="Ex. Lotissement Al Amal, rue 12"
+              aria-invalid={Boolean(erreurs.adresse)}
+            />
           </Champ>
 
           <Champ id="client-telephone" label="Telephone" erreur={erreurs.telephone}>

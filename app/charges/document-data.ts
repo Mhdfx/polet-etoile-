@@ -24,6 +24,9 @@ export type BonChargeDocumentData = {
   commande?: {
     id: string;
     numeroBl: string;
+    client: string;
+    ville: string;
+    adresse: string;
   };
   commentaire?: string;
   totalKg: string;
@@ -42,7 +45,14 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
       date_charge: true,
       commentaire: true,
       created_at: true,
-      commande: { select: { id: true, numero_bl: true } },
+      commande: {
+        select: {
+          id: true,
+          numero_bl: true,
+          client: { select: { nom: true, region_ville: true, adresse: true } },
+          client_externe: { select: { nom: true, region_ville: true, adresse: true } },
+        },
+      },
       commercial: { select: { nom_complet: true } },
       createur: { select: { nom_complet: true } },
       lignes: {
@@ -101,6 +111,10 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
       ? {
           id: bon.commande.id,
           numeroBl: bon.commande.numero_bl,
+          client: (bon.commande.client ?? bon.commande.client_externe)?.nom ?? "-",
+          ville:
+            (bon.commande.client ?? bon.commande.client_externe)?.region_ville ?? "-",
+          adresse: (bon.commande.client ?? bon.commande.client_externe)?.adresse ?? "-",
         }
       : undefined,
     commentaire: bon.commentaire ?? undefined,
