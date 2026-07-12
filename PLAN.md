@@ -682,3 +682,15 @@ schema freeze explicite par Mehdi et deploiement.
   dashboard avec rankings, creation client rapide avec adresse, creation
   commande, detail BL, PDF BL avec adresse, creation bon de charge et lien PDF,
   clients admin avec colonne adresse.
+
+## Mise a jour UI - style sidebar - 12/07/2026
+
+- [x] Refaire le style de la sidebar desktop : largeur plus confortable,
+  gradient bleu, logo plus propre, et ombre laterale discrete.
+- [x] Ameliorer les entrees de navigation : icones dans pastilles, active state
+  blanc plus lisible, hover/focus plus nets, texte tronque proprement.
+- [x] Remplacer le gros scrollbar natif par un scrollbar fin et discret.
+- [x] Aligner le squelette de chargement avec la nouvelle largeur sidebar.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] Verification navigateur `http://localhost:3115/admin` : desktop sidebar
+  visible sans erreur console, mobile garde la sidebar masquee.

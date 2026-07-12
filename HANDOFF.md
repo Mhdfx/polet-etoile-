@@ -1140,3 +1140,21 @@ Note QA :
   Un nouvel onglet et les captures visuelles confirmaient que l'app restait
   fonctionnelle. Le endpoint bon de charge est attendu en telechargement, pas en
   preview inline.
+
+## Addendum Codex - style sidebar - 12/07/2026
+
+Demande client traitee :
+
+- Sidebar desktop retravaillee dans `components/app-shell.tsx` : largeur
+  `248px`, fond bleu en gradient, logo plus lisible, active state blanc,
+  icones dans pastilles, hover/focus plus nets et scrollbar fin.
+- `components/squelette-page.tsx` aligne le placeholder de chargement sur la
+  nouvelle largeur pour eviter un saut visuel.
+
+Verification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` OK.
+- Navigateur production local `http://localhost:3115/admin` : sidebar desktop
+  visible, active state propre, scrollbar discret, aucune erreur console.
+- Viewport mobile `390x844` : aside desktop masque comme attendu, navigation
+  mobile conservee, aucune erreur console.
