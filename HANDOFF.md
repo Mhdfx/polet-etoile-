@@ -1014,3 +1014,33 @@ Verification locale :
 - Serveur prod local redemarre sur `:3107`.
 - Smoke navigateur sur `/admin/commandes/nouvelle` : page chargee, option admin
   presente, bouton `Ajouter une ligne` fonctionne, aucune erreur console.
+
+## Addendum Codex - finitions production villes, paiements, quantites, cachet BL - 12/07/2026
+
+Corrections appliquees apres QA live VPS :
+
+- Liste villes Maroc : `lib/villes.ts` fusionne maintenant les villes stockees
+  en base avec la liste code de reference. Une ancienne valeur production
+  `villes_maroc` limitee a 15 villes ne peut donc plus masquer `Oualidia`,
+  `Akchour`, `Taroudannt` et le reste du catalogue.
+- Paiement commande : `app/commandes/paiement-form.tsx` force un reload court
+  apres mutation reussie, pour garantir que `Paye`, `Reste`, `Statut` et la
+  ligne paiement visible se reconciliant immediatement apres un seul clic.
+- Quantites UI : les details commandes admin/commercial et les retours
+  admin/commercial utilisent `formatQuantite`, donc affichage francais
+  `2,000 kg` au lieu de `2.000 kg`.
+- PDF BL : ajout de `public/cachet.png` et integration dans
+  `app/commandes/bon-livraison-pdf.tsx`. Le cachet reel est affiche dans le bas
+  du BL, avec fallback texte si le fichier est absent.
+
+Verification locale build production `http://localhost:3110` :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Navigateur : dialogue `Nouveau client` affiche 450 villes et contient
+  `Akchour`, `Oualidia`, `Taroudannt`.
+- Navigateur : detail commande affiche `2,000 kg` avec virgule.
+- Navigateur : ajout paiement unique affiche apres reload `Paye : 1,00 DH`,
+  `Reste : 35,00 DH` et la ligne paiement.
+- PDF BL local rendu en PNG depuis `/admin/commandes/.../pdf` : cachet reel
+  visible en bas, layout A4 conserve, footer present.

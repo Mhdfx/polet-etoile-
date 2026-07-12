@@ -17,6 +17,7 @@ export type CommandeDocumentData = {
     adresse?: string;
     telephone?: string;
     logo?: string;
+    cachet?: string;
   };
   id: string;
   numeroBl: string;
@@ -114,6 +115,7 @@ export async function chargerCommandeDocument(
       adresse: params.get("adresse"),
       telephone: params.get("telephone"),
       logo: await chargerLogoDataUri(params.get("logo_url")),
+      cachet: await chargerCachetDataUri(),
     },
     id: commande.id,
     numeroBl: commande.numero_bl,
@@ -262,6 +264,16 @@ export async function chargerLogoDataUri(cheminPublic?: string): Promise<string 
     const cheminDisque = path.join(process.cwd(), "public", ...relatif);
     const contenu = await readFile(cheminDisque);
     return `data:${mime};base64,${contenu.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function chargerCachetDataUri(): Promise<string | undefined> {
+  try {
+    const cheminDisque = path.join(process.cwd(), "public", "cachet.png");
+    const contenu = await readFile(cheminDisque);
+    return `data:image/png;base64,${contenu.toString("base64")}`;
   } catch {
     return undefined;
   }

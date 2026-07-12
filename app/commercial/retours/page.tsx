@@ -15,7 +15,7 @@ import {
 import { RetourForm } from "@/app/retours/retour-form";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
-import { formatDateHeure } from "@/lib/format";
+import { formatDateHeure, formatQuantite } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
 
 type ParametresRecherche = Promise<{ debut?: string; fin?: string }>;
@@ -125,7 +125,7 @@ export default async function RetoursCommercialPage({
                     <TableCell>{formatDateHeure(retour.created_at)}</TableCell>
                     <TableCell>{retour.produit.nom}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {retour.quantite_kg.toFixed(3)} kg
+                      {formatQuantite(retour.quantite_kg)}
                     </TableCell>
                     <TableCell>{retour.commentaire ?? "-"}</TableCell>
                   </TableRow>

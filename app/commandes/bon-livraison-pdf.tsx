@@ -270,6 +270,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  stampImage: {
+    width: 98,
+    height: 98,
+    objectFit: "contain",
+  },
   stamp: {
     width: 82,
     height: 82,
@@ -427,11 +432,16 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
           </View>
 
           <View style={styles.stampWrap}>
-            <View style={styles.stamp}>
-              <Text style={styles.stampText}>{commande.societe.raisonSociale}</Text>
-              <Text style={styles.stampText}>RC {commande.societe.rc || "-"}</Text>
-              <Text style={styles.stampText}>ICE {commande.societe.ice || "-"}</Text>
-            </View>
+            {commande.societe.cachet ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={commande.societe.cachet} style={styles.stampImage} />
+            ) : (
+              <View style={styles.stamp}>
+                <Text style={styles.stampText}>{commande.societe.raisonSociale}</Text>
+                <Text style={styles.stampText}>RC {commande.societe.rc || "-"}</Text>
+                <Text style={styles.stampText}>ICE {commande.societe.ice || "-"}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.netBox}>

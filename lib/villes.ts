@@ -482,7 +482,13 @@ function parserListeVilles(valeur?: string | null): string[] {
       .map((ville) => ville.trim())
       .filter(Boolean);
 
-    return villes.length > 0 ? villes : VILLES_MAROC_DEFAUT;
+    if (villes.length === 0) {
+      return VILLES_MAROC_DEFAUT;
+    }
+
+    return Array.from(new Set([...villes, ...VILLES_MAROC_DEFAUT])).sort((a, b) =>
+      a.localeCompare(b, "fr", { sensitivity: "base" }),
+    );
   } catch {
     return VILLES_MAROC_DEFAUT;
   }
