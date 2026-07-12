@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Target,
   Truck,
+  Trash2,
   UserCog,
   Users,
 } from "lucide-react";
@@ -48,6 +49,7 @@ const navigationAdmin: NavigationItem[] = [
   },
   { label: "Objectifs", icon: Target, href: "/admin/objectifs", groupe: "pilotage" },
   { label: "Audit", icon: FileText, href: "/admin/audit", groupe: "pilotage" },
+  { label: "Corbeille", icon: Trash2, href: "/admin/corbeille", groupe: "pilotage" },
   {
     label: "Historique admins",
     icon: History,

@@ -63,6 +63,9 @@ export default async function ProduitsPage({
         <Button variant="outline" asChild>
           <Link href="/admin/produits/prix">Prix en masse</Link>
         </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/produits/tarifs">Liste des prix PDF</Link>
+        </Button>
       </div>
       <ProduitsTable
         lignes={lignes}
