@@ -93,6 +93,11 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
+              <Link href={`/admin/commandes/${commande.id}/modifier`}>
+                Modifier BL
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank">
                 PDF BL
               </Link>

@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { DateTime } from "luxon";
 import type { Prisma, TypeCommande } from "@prisma/client";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { attribuerNumeroBL } from "@/lib/bl";
@@ -19,6 +20,7 @@ import {
   schemaAjoutPaiement,
   schemaCreationCommandeAdmin,
   schemaCreationCommandeCommercial,
+  schemaModificationCommandeAdmin,
 } from "@/lib/validations/commande";
 
 const MESSAGE_ERREUR_SERVEUR =
@@ -321,7 +323,8 @@ export async function ajouterPaiementCommande(
   try {
     const ip = await adresseIpRequete();
 
-    const resultat = await prisma.$transaction(async (tx) => {
+    const resultat = await prisma.$transaction(
+      async (tx): Promise<ResultatMutationCommande> => {
       const verrou = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM commandes
         WHERE id = ${commandeId} AND deleted_at IS NULL
@@ -395,8 +398,9 @@ export async function ajouterPaiementCommande(
         ip,
       );
 
-      return { ok: true as const };
-    });
+        return { ok: true };
+      },
+    );
 
     if (resultat.ok) {
       revalidatePath(`/admin/commandes/${commandeId}`);
@@ -407,6 +411,232 @@ export async function ajouterPaiementCommande(
     return resultat;
   } catch (erreur) {
     return erreurServeurMutation(erreur, "paiement");
+  }
+}
+
+export async function modifierCommandeAdmin(
+  entree: unknown,
+): Promise<ResultatMutationCommande> {
+  const admin = await requireAdmin();
+  const validation = schemaModificationCommandeAdmin.safeParse(entree);
+
+  if (!validation.success) {
+    return { ok: false, erreurs: erreursParChamp(validation.error) };
+  }
+
+  const {
+    commandeId,
+    commercialId,
+    typeClient,
+    clientId,
+    clientExterneId,
+    dateCommande,
+    lignes,
+    totalAnnonce,
+  } = validation.data;
+  const typeCommande: TypeCommande = typeClient === "EXTERNE" ? "EXTERNE" : "STANDARD";
+
+  try {
+    const ip = await adresseIpRequete();
+    const resultat = await prisma.$transaction(
+      async (tx): Promise<ResultatMutationCommande> => {
+      const commande = await tx.commande.findFirst({
+        where: { id: commandeId, deleted_at: null },
+        select: {
+          id: true,
+          numero_bl: true,
+          utilisateur_id: true,
+          client_id: true,
+          client_externe_id: true,
+          type_commande: true,
+          date_commande: true,
+          bon_charge: { select: { id: true, numero_bc: true, deleted_at: true } },
+          lignes: {
+            where: { deleted_at: null },
+            select: {
+              id: true,
+              produit_id: true,
+              quantite: true,
+              prix_unitaire: true,
+              prix_net: true,
+            },
+          },
+          paiements: { select: { montant: true } },
+        },
+      });
+
+      if (!commande) {
+        return { ok: false as const, message: "Commande introuvable" };
+      }
+
+      if (commande.bon_charge && !commande.bon_charge.deleted_at) {
+        return {
+          ok: false as const,
+          message:
+            `Supprimez d'abord le bon de charge ${commande.bon_charge.numero_bc} avant de modifier ce BL.`,
+        };
+      }
+
+      if (!(await verifierResponsableCommandeActif(tx, commercialId))) {
+        return { ok: false as const, erreurs: { commercialId: "Responsable introuvable" } };
+      }
+
+      if (typeCommande === "STANDARD") {
+        if (!clientId || !(await verifierClientStandard(tx, clientId, commercialId))) {
+          return { ok: false as const, erreurs: { clientId: "Client introuvable" } };
+        }
+      }
+
+      if (typeCommande === "EXTERNE") {
+        if (!clientExterneId || !(await verifierClientExterne(tx, clientExterneId))) {
+          return {
+            ok: false as const,
+            erreurs: { clientExterneId: "Client externe introuvable" },
+          };
+        }
+      }
+
+      const produits = await tx.produit.findMany({
+        where: {
+          id: { in: lignes.map((ligne) => ligne.produitId) },
+          actif: true,
+          deleted_at: null,
+        },
+        select: { id: true, prix_reference: true },
+      });
+
+      let commandeCalculee;
+      try {
+        commandeCalculee = calculerCommande(lignes, produits);
+      } catch (erreur) {
+        if (erreur instanceof ProduitCommandeIntrouvable) {
+          return {
+            ok: false as const,
+            message:
+              "Un produit est inactif ou introuvable. Rechargez la page avant de continuer.",
+          };
+        }
+
+        if (erreur instanceof ProduitCommandeDuplique) {
+          return {
+            ok: false as const,
+            message: "Chaque produit ne peut apparaitre qu'une seule fois par commande.",
+          };
+        }
+
+        throw erreur;
+      }
+
+      if (totalAnnonce && !totalsIdentiques(totalAnnonce, commandeCalculee.total)) {
+        return {
+          ok: false as const,
+          message:
+            "Le total envoye ne correspond pas au total recalcule par le serveur. Rechargez la commande.",
+        };
+      }
+
+      const dejaPaye = sommerMontants(commande.paiements.map((paiement) => paiement.montant));
+      if (dejaPaye.gt(commandeCalculee.total)) {
+        return {
+          ok: false as const,
+          message:
+            `Le nouveau total (${commandeCalculee.total} DH) ne peut pas etre inferieur au montant deja paye (${dejaPaye.toFixed(2)} DH).`,
+        };
+      }
+
+      const dateSelectionnee = DateTime.fromISO(dateCommande, {
+        zone: "Africa/Casablanca",
+      });
+
+      if (!dateSelectionnee.isValid) {
+        return { ok: false as const, erreurs: { dateCommande: "Date invalide" } };
+      }
+
+      const dateCommandeStable = DateTime.utc(
+        dateSelectionnee.year,
+        dateSelectionnee.month,
+        dateSelectionnee.day,
+        12,
+      ).toJSDate();
+
+      const avant = {
+        numero_bl: commande.numero_bl,
+        utilisateur_id: commande.utilisateur_id,
+        client_id: commande.client_id,
+        client_externe_id: commande.client_externe_id,
+        type_commande: commande.type_commande,
+        date_commande: commande.date_commande,
+        lignes: commande.lignes.map((ligne) => ({
+          produit_id: ligne.produit_id,
+          quantite: ligne.quantite.toString(),
+          prix_unitaire: ligne.prix_unitaire.toString(),
+          prix_net: ligne.prix_net.toString(),
+        })),
+      };
+      const maintenant = new Date();
+
+      await tx.commande.update({
+        where: { id: commandeId },
+        data: {
+          utilisateur_id: commercialId,
+          type_commande: typeCommande,
+          client_id: typeCommande === "STANDARD" ? clientId : null,
+          client_externe_id: typeCommande === "EXTERNE" ? clientExterneId : null,
+          date_commande: dateCommandeStable,
+        },
+      });
+      await tx.ligneCommande.updateMany({
+        where: { commande_id: commandeId, deleted_at: null },
+        data: { deleted_at: maintenant },
+      });
+      await tx.ligneCommande.createMany({
+        data: commandeCalculee.lignes.map((ligne) => ({
+          commande_id: commandeId,
+          produit_id: ligne.produitId,
+          quantite: ligne.quantite,
+          prix_unitaire: ligne.prixUnitaire,
+          prix_net: ligne.prixNet,
+        })),
+      });
+
+      await ecrireAudit(
+        tx,
+        {
+          utilisateurId: admin.id,
+          action: "commande.modification",
+          entite: "commandes",
+          entiteId: commandeId,
+          avant,
+          apres: {
+            numero_bl: commande.numero_bl,
+            utilisateur_id: commercialId,
+            client_id: typeCommande === "STANDARD" ? clientId : null,
+            client_externe_id: typeCommande === "EXTERNE" ? clientExterneId : null,
+            type_commande: typeCommande,
+            date_commande: dateSelectionnee.toISODate(),
+            total: commandeCalculee.total,
+            lignes: commandeCalculee.lignes,
+          },
+        },
+        ip,
+      );
+
+        return { ok: true };
+      },
+    );
+
+    if (resultat.ok) {
+      revalidatePath(`/admin/commandes/${commandeId}`);
+      revalidatePath(`/admin/commandes/${commandeId}/modifier`);
+      revalidatePath("/admin/commandes");
+      revalidatePath("/commercial/commandes");
+      revalidatePath("/admin");
+      revalidatePath("/commercial");
+    }
+
+    return resultat;
+  } catch (erreur) {
+    return erreurServeurMutation(erreur, "modification");
   }
 }
 

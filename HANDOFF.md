@@ -3,7 +3,7 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 11/07/2026.
+Derniere mise a jour : 12/07/2026.
 Statut : **code CDC pret pour tests locaux, corrections post-QA navigateur appliquees et retestees - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
@@ -1044,3 +1044,50 @@ Verification locale build production `http://localhost:3110` :
   `Reste : 35,00 DH` et la ligne paiement.
 - PDF BL local rendu en PNG depuis `/admin/commandes/.../pdf` : cachet reel
   visible en bas, layout A4 conserve, footer present.
+
+## Addendum Codex - BL modifiables, tarifs PDF et corbeille - 12/07/2026
+
+Demandes client traitees :
+
+- Cachet : `public/cachet.png` a ete remplace par l'image transparente
+  `cachetnobg.png`. Les PDF BL et la liste des prix utilisent donc le cachet
+  sans fond.
+- BL admin : chaque detail commande admin expose maintenant `Modifier BL` vers
+  `/admin/commandes/[id]/modifier`. La modification conserve le numero BL,
+  recalcule les lignes/prix cote serveur, audite `commande.modification` et
+  bloque la modification si un bon de charge actif existe deja. Dans ce cas,
+  l'admin doit supprimer le BC avant de modifier le BL.
+- Suppression BL : le bouton existant `Supprimer la commande` reste la voie de
+  suppression logique. Les lignes de commande sont aussi marquees supprimees.
+- Creation admin : le responsable d'une commande peut etre un `ADMIN` ou un
+  `COMMERCIAL`, avec clients standards rattaches au responsable choisi.
+- Liste des prix : nouvelle section admin `/admin/produits/tarifs` et PDF
+  `/admin/produits/tarifs/pdf`, avec les produits actifs sur une seule page A4,
+  watermark Coq Plus, cachet, note et footer societe.
+- Corbeille : nouvelle section `/admin/corbeille`, visible dans la sidebar,
+  listant les elements soft-delete et les traces de suppression/fusion. La
+  restauration automatique est volontairement desactivee pour ne pas casser les
+  liens commandes, paiements et bons.
+- Date BL modifiee : stockage stabilise a midi UTC pour eviter les decalages de
+  jour sur un champ date-only stocke dans une colonne DateTime MySQL.
+
+Verification locale build production :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Navigateur `http://localhost:3114` :
+  - creation d'une commande admin rattachee a `Administrateur (admin) - Admin`
+    avec client rapide `Oualidia`, produit, quantite et total recalcules.
+  - detail BL cree : `Modifier BL`, `PDF BL`, `Bon de charge` et
+    `Supprimer la commande` visibles.
+  - modification BL sans BC actif : quantite `2,300 kg`, total `41,40 DH`,
+    redirection detail OK, date affichee `12/07/2026`.
+  - modification BL avec BC actif : blocage attendu avec message demandant de
+    supprimer le bon de charge avant modification.
+  - `/admin/produits/tarifs` : 26 produits actifs, lien PDF visible.
+  - `/admin/produits/tarifs/pdf` : PDF rendu en navigateur, une seule page
+    (`1 / 1`), cachet visible dans la miniature.
+  - `/admin/commandes/[id]/pdf` : BL rendu en navigateur, cachet transparent
+    visible en bas du document.
+  - `/admin/corbeille` : page chargee, colonnes Type/Element/Details/Supprime
+    le/Supprime par/Trace, aucune erreur console.

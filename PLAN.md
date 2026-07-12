@@ -640,3 +640,22 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Tester 16 routes admin et 7 routes commercial a 375 px.
 - [x] TypeScript, lint, build production et 113/113 tests Vitest verts.
 - [x] Verification navigateur production sur `http://localhost:3107`.
+
+## Mise a jour client - BL modifiables, tarifs PDF, corbeille - 12/07/2026
+
+- [x] Remplacer le cachet PDF par `cachetnobg.png` via `public/cachet.png`.
+- [x] Ajouter la modification admin des BL par commande, avec recalcul serveur,
+  audit, conservation du numero BL et blocage si un bon de charge actif existe.
+- [x] Conserver la suppression logique de commande comme suppression BL.
+- [x] Permettre les commandes admin rattachees a un responsable admin.
+- [x] Ajouter `/admin/produits/tarifs` et le PDF `/admin/produits/tarifs/pdf`.
+- [x] Faire tenir la liste des prix active sur une seule page A4 avec cachet,
+  note et footer.
+- [x] Ajouter `/admin/corbeille` dans la navigation admin pour consulter les
+  elements supprimes et traces de suppression/fusion.
+- [x] Stabiliser les dates BL modifiees pour eviter les decalages timezone.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
+- [x] Verification navigateur build production `http://localhost:3114` :
+  creation commande admin + client Oualidia, modification BL, blocage BL avec BC,
+  PDF tarifs 1 page, PDF BL avec cachet, corbeille sans erreur console.

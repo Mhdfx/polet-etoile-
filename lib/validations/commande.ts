@@ -79,6 +79,13 @@ export const schemaCreationCommandeAdmin = baseCommande
     }
   });
 
+export const schemaModificationCommandeAdmin = schemaCreationCommandeAdmin.extend({
+  commandeId: champId,
+  dateCommande: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date de commande invalide"),
+});
+
 export const schemaCreationCommande = z.discriminatedUnion("source", [
   schemaCreationCommandeCommercial.extend({ source: z.literal("COMMERCIAL") }),
   schemaCreationCommandeAdmin.extend({ source: z.literal("ADMIN") }),
@@ -115,4 +122,5 @@ export type CreationCommandeCommercial = z.infer<
   typeof schemaCreationCommandeCommercial
 >;
 export type CreationCommandeAdmin = z.infer<typeof schemaCreationCommandeAdmin>;
+export type ModificationCommandeAdmin = z.infer<typeof schemaModificationCommandeAdmin>;
 export type AjoutPaiement = z.infer<typeof schemaAjoutPaiement>;
