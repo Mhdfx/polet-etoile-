@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
-import { formatDateHeure } from "@/lib/format";
+import { formatDateHeure, formatQuantite } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 
 type ParametresRecherche = Promise<{ debut?: string; fin?: string }>;
@@ -113,7 +113,7 @@ export default async function RetoursAdminPage({
                     <TableCell>{retour.utilisateur.nom_complet}</TableCell>
                     <TableCell>{retour.produit.nom}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {retour.quantite_kg.toFixed(3)} kg
+                      {formatQuantite(retour.quantite_kg)}
                     </TableCell>
                     <TableCell>{retour.commentaire ?? "-"}</TableCell>
                   </TableRow>

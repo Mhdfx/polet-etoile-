@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
 import { prisma } from "@/lib/db";
-import { formatDateHeure, formatMontant } from "@/lib/format";
+import { formatDateHeure, formatMontant, formatQuantite } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -125,7 +125,7 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
                 <TableRow key={ligne.id}>
                   <TableCell>{ligne.produit.nom}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {ligne.quantite.toFixed(3)} kg
+                    {formatQuantite(ligne.quantite)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatMontant(ligne.prix_unitaire)}
