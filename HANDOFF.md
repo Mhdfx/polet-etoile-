@@ -1158,3 +1158,29 @@ Verification :
   visible, active state propre, scrollbar discret, aucune erreur console.
 - Viewport mobile `390x844` : aside desktop masque comme attendu, navigation
   mobile conservee, aucune erreur console.
+
+## Addendum Codex - liste villes CTM Maroc - 12/07/2026
+
+Demande client traitee :
+
+- `lib/villes.ts` remplace l'ancienne liste longue par la liste CTM fournie par
+  le client. La liste collee contient 122 entrees uniques.
+- `listerVillesMaroc()` retourne maintenant cette liste canonique directement,
+  sans fusionner avec l'ancien parametre base. Cela evite qu'une ancienne valeur
+  `villes_maroc` en production rajoute des villes non souhaitees.
+- Migration MySQL ajoutee :
+  `prisma/migrations/20260712193000_ctm_villes_maroc/migration.sql`, pour
+  remettre aussi `parametres_systeme.villes_maroc` sur la liste CTM au
+  deploiement.
+
+Verification :
+
+- Check local de la liste : 122 entrees, 122 uniques, avec `Oualidia`,
+  `Taroudant`, `Agdez`, `Tetouan`, `M'Hamid El Ghizlane` et
+  `Centre 44 ouled dlim` presents.
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Note : `npx prisma migrate deploy` local n'a pas pu etre execute car MySQL
+  local refusait `::1:3306` puis `127.0.0.1:3306`; la migration sera appliquee
+  par le conteneur au demarrage VPS, ou peut etre relancee localement quand
+  MySQL repond.

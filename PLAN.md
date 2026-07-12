@@ -694,3 +694,18 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 - [x] Verification navigateur `http://localhost:3115/admin` : desktop sidebar
   visible sans erreur console, mobile garde la sidebar masquee.
+
+## Mise a jour donnees - villes CTM Maroc - 12/07/2026
+
+- [x] Remplacer la liste Maroc existante par la liste CTM fournie par le client
+  dans `lib/villes.ts`.
+- [x] Rendre cette liste canonique pour les dropdowns client/commande afin
+  qu'une ancienne valeur `villes_maroc` en base ne rajoute plus d'anciennes
+  villes.
+- [x] Ajouter une migration MySQL qui met a jour `parametres_systeme.villes_maroc`
+  avec la liste CTM pendant le deploiement.
+- [x] Verification liste : 122 entrees uniques chargees, avec `Oualidia`,
+  `Taroudant`, `Agdez`, `Tetouan`, `M'Hamid El Ghizlane` et
+  `Centre 44 ouled dlim`.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
