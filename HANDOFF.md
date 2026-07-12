@@ -1091,3 +1091,52 @@ Verification locale build production :
     visible en bas du document.
   - `/admin/corbeille` : page chargee, colonnes Type/Element/Details/Supprime
     le/Supprime par/Trace, aucune erreur console.
+
+## Addendum Codex - ranking dashboard et adresses clients - 12/07/2026
+
+Demandes client traitees :
+
+- Dashboard admin : ajout de cinq panels de ranking dans `/admin` :
+  commerciaux, meilleurs produits, villes les plus fortes, meilleurs clients et
+  clients a encaisser.
+- Les classements utilisent les commandes de la periode filtree et recalculent
+  CA, quantites, nombre de BL et reste du via les helpers Decimal existants.
+- Clients : ajout du champ `adresse` sur `clients` et `clients_externes`, avec
+  migration MySQL `20260712171000_client_adresse`.
+- Creation/modification client admin et commercial : adresse obligatoire dans
+  les dialogues et auditee avec les autres champs.
+- Creation commande : le dialogue client rapide demande maintenant l'adresse et
+  la stocke avant d'ajouter les produits.
+- Seed/demo : les clients de demonstration recoivent aussi une adresse en create
+  et en update, afin de ne pas recreer de fiches incompletes.
+- PDF BL : l'adresse apparait dans le cadre client et dans le site de livraison.
+- PDF bon de charge : quand le bon vient d'une commande, le PDF affiche le
+  client, la ville et l'adresse de livraison.
+
+Verification locale build production :
+
+- `npx prisma generate`, `npx prisma migrate deploy`, `npx tsc --noEmit`,
+  `npm run lint`, `npm run test` (133/133), `npm run build` OK.
+- Navigateur `http://localhost:3115` :
+  - dashboard admin charge, KPI existants visibles, panels rankings produits et
+    villes visibles, sans erreur console.
+  - creation client rapide `QA Adresse ...` avec ville `Oualidia` et adresse
+    `12 Rue Test Adresse, Quartier Centre`.
+  - creation commande `CP-000003`, produit `Abats de poulet`, quantite
+    `1,500 kg`, total `27,00 DH`.
+  - detail commande : client, ville, ligne produit, total et bouton
+    `Bon de charge` visibles.
+  - PDF BL `CP-000003` : adresse visible dans le cadre client et dans le site de
+    livraison.
+  - bon de charge `BC-000002` cree depuis la commande, detail charge visible et
+    lien `/admin/charges/[id]/pdf` present.
+  - page clients admin filtree : colonne `Adresse` visible avec l'adresse du
+    client de test.
+
+Note QA :
+
+- Apres une navigation directe vers un PDF bon de charge en `attachment`, le
+  wrapper navigateur Codex a parfois renvoye un DOM vide sur l'onglet courant.
+  Un nouvel onglet et les captures visuelles confirmaient que l'app restait
+  fonctionnelle. Le endpoint bon de charge est attendu en telechargement, pas en
+  preview inline.

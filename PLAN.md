@@ -659,3 +659,26 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Verification navigateur build production `http://localhost:3114` :
   creation commande admin + client Oualidia, modification BL, blocage BL avec BC,
   PDF tarifs 1 page, PDF BL avec cachet, corbeille sans erreur console.
+
+## Mise a jour client - ranking dashboard et adresses clients - 12/07/2026
+
+- [x] Ajouter des classements au dashboard admin : commerciaux, produits vendus,
+  villes, clients et clients a encaisser.
+- [x] Calculer les rankings depuis les commandes reelles de la periode filtree,
+  avec chiffres d'affaires, quantites, nombre de BL et restes dus.
+- [x] Ajouter `adresse` aux clients standards et clients externes dans Prisma,
+  validations Zod, actions admin/commercial, listes, fiches detail et dialogues.
+- [x] Ajouter l'adresse au client rapide dans la creation de commande
+  admin/commercial.
+- [x] Aligner les clients seed/demo avec des adresses pour eviter de recreer
+  des donnees incompletes.
+- [x] Afficher l'adresse client dans le PDF BL et le site de livraison.
+- [x] Afficher l'adresse de livraison dans le PDF bon de charge lie a une
+  commande.
+- [x] Verification : `npx prisma generate`, `npx prisma migrate deploy`,
+  `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build`.
+- [x] Verification navigateur build production `http://localhost:3115` :
+  dashboard avec rankings, creation client rapide avec adresse, creation
+  commande, detail BL, PDF BL avec adresse, creation bon de charge et lien PDF,
+  clients admin avec colonne adresse.

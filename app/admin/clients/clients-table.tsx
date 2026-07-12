@@ -24,6 +24,8 @@ export type LigneClientAdmin = {
   id: string;
   nom: string;
   regionVille: string;
+  adresse: string;
+  adresseBrute: string;
   telephone: string;
   telephoneBrut: string;
   commercialId: string;
@@ -37,6 +39,8 @@ export type LigneClientExterne = {
   id: string;
   nom: string;
   regionVille: string;
+  adresse: string;
+  adresseBrute: string;
   telephone: string;
   telephoneBrut: string;
   actif: boolean;
@@ -157,6 +161,7 @@ export function AdminClientsTable({
         ),
       },
       { accessorKey: "regionVille", header: "Ville" },
+      { accessorKey: "adresse", header: "Adresse" },
       { accessorKey: "telephone", header: "Telephone" },
       {
         accessorKey: "commercial",
@@ -235,6 +240,7 @@ export function AdminClientsTable({
         ),
       },
       { accessorKey: "regionVille", header: "Ville" },
+      { accessorKey: "adresse", header: "Adresse" },
       { accessorKey: "telephone", header: "Telephone" },
       {
         accessorKey: "actif",

@@ -28,6 +28,7 @@ export default async function ClientsCommercialPage({
           OR: [
             { nom: { contains: recherche } },
             { region_ville: { contains: recherche } },
+            { adresse: { contains: recherche } },
             { telephone: { contains: recherche } },
           ],
         }
@@ -45,6 +46,7 @@ export default async function ClientsCommercialPage({
         id: true,
         nom: true,
         region_ville: true,
+        adresse: true,
         telephone: true,
         actif: true,
         updated_at: true,
@@ -66,6 +68,8 @@ export default async function ClientsCommercialPage({
           id: client.id,
           nom: client.nom,
           regionVille: client.region_ville,
+          adresse: client.adresse ?? "-",
+          adresseBrute: client.adresse ?? "",
           telephone: client.telephone ?? "-",
           telephoneBrut: client.telephone ?? "",
           actif: client.actif,

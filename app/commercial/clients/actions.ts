@@ -34,7 +34,7 @@ export async function creerClientCommercial(
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { nom, regionVille, telephone } = validation.data;
+  const { nom, regionVille, adresse, telephone } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -56,6 +56,7 @@ export async function creerClientCommercial(
         data: {
           nom,
           region_ville: regionVille,
+          adresse,
           telephone,
           commercial_id: commercial.id,
         },
@@ -68,7 +69,7 @@ export async function creerClientCommercial(
           action: "client.creation",
           entite: "clients",
           entiteId: client.id,
-          apres: { nom, region_ville: regionVille, telephone, commercial_id: commercial.id },
+          apres: { nom, region_ville: regionVille, adresse, telephone, commercial_id: commercial.id },
         },
         ip,
       );
@@ -97,7 +98,7 @@ export async function modifierClientCommercial(
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { id, nom, regionVille, telephone } = validation.data;
+  const { id, nom, regionVille, adresse, telephone } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -108,6 +109,7 @@ export async function modifierClientCommercial(
         select: {
           nom: true,
           region_ville: true,
+          adresse: true,
           telephone: true,
           commercial_id: true,
           actif: true,
@@ -141,7 +143,7 @@ export async function modifierClientCommercial(
 
       await tx.client.update({
         where: { id },
-        data: { nom, region_ville: regionVille, telephone },
+        data: { nom, region_ville: regionVille, adresse, telephone },
       });
 
       await ecrireAudit(
@@ -152,7 +154,7 @@ export async function modifierClientCommercial(
           entite: "clients",
           entiteId: id,
           avant: existant,
-          apres: { nom, region_ville: regionVille, telephone },
+          apres: { nom, region_ville: regionVille, adresse, telephone },
         },
         ip,
       );
@@ -188,7 +190,7 @@ export async function supprimerClientCommercial(id: string): Promise<ResultatAct
     const resultat = await prisma.$transaction(async (tx) => {
       const existant = await tx.client.findFirst({
         where: { id, deleted_at: null },
-        select: { nom: true, region_ville: true, telephone: true, commercial_id: true },
+        select: { nom: true, region_ville: true, adresse: true, telephone: true, commercial_id: true },
       });
 
       if (!existant) {

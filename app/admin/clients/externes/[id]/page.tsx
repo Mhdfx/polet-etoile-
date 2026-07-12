@@ -31,6 +31,7 @@ export default async function ClientExterneAdminDetailPage({ params }: PageProps
       id: true,
       nom: true,
       region_ville: true,
+      adresse: true,
       telephone: true,
       commandes: {
         where: { deleted_at: null },
@@ -88,8 +89,9 @@ export default async function ClientExterneAdminDetailPage({ params }: PageProps
         </div>
 
         <section className="rounded-lg bg-card p-4 text-sm shadow-sm ring-1 ring-border">
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-3">
             <p><span className="text-muted-foreground">Ville : </span>{client.region_ville}</p>
+            <p><span className="text-muted-foreground">Adresse : </span>{client.adresse ?? "-"}</p>
             <p><span className="text-muted-foreground">Telephone : </span>{client.telephone ?? "-"}</p>
           </div>
         </section>
@@ -146,4 +148,3 @@ export default async function ClientExterneAdminDetailPage({ params }: PageProps
     </AppShell>
   );
 }
-

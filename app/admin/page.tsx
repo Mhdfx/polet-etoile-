@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Decimal from "decimal.js";
 import type { Prisma } from "@prisma/client";
 import { DateTime } from "luxon";
 import {
@@ -8,11 +9,15 @@ import {
   ClipboardList,
   FileText,
   History,
+  MapPin,
+  Package,
   Scale,
   Settings,
   Target,
   TrendingUp,
+  Trophy,
   UserCog,
+  Users,
 } from "lucide-react";
 import { AppShell, Panel } from "@/components/app-shell";
 import { CarteKPI } from "@/components/carte-kpi";
@@ -21,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { bornesJourneeInclusive, FUSEAU_APPLICATION } from "@/lib/dates";
+import { calculerResteDu, sommerMontants, sommerQuantites } from "@/lib/decimal";
 import { prisma } from "@/lib/db";
 import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
 import {
@@ -44,6 +50,101 @@ const raccourcisAdmin = [
   { label: "Toutes les commandes", href: "/admin/commandes", icon: ClipboardList },
   { label: "Audit KPIs", href: "/admin/kpi", icon: BarChart3 },
 ];
+
+type LigneClassement = {
+  cle: string;
+  label: string;
+  detail?: string;
+  ca: Decimal;
+  quantite: Decimal;
+  commandes: Set<string>;
+  reste: Decimal;
+};
+
+function nouvelleLigneClassement(
+  cle: string,
+  label: string,
+  detail?: string,
+): LigneClassement {
+  return {
+    cle,
+    label,
+    detail,
+    ca: new Decimal(0),
+    quantite: new Decimal(0),
+    commandes: new Set<string>(),
+    reste: new Decimal(0),
+  };
+}
+
+function topClassement(
+  map: Map<string, LigneClassement>,
+  tri: "ca" | "quantite" | "commandes" | "reste" = "ca",
+  limite = 5,
+): LigneClassement[] {
+  return [...map.values()]
+    .sort((a, b) => {
+      if (tri === "commandes") {
+        return b.commandes.size - a.commandes.size;
+      }
+
+      return b[tri].cmp(a[tri]);
+    })
+    .slice(0, limite);
+}
+
+function RankingPanel({
+  title,
+  eyebrow,
+  lignes,
+  valeur,
+  icon: Icon,
+}: {
+  title: string;
+  eyebrow: string;
+  lignes: LigneClassement[];
+  valeur: "ca" | "quantite" | "commandes" | "reste";
+  icon: typeof Trophy;
+}) {
+  return (
+    <Panel title={title} eyebrow={eyebrow}>
+      <div className="grid gap-2">
+        {lignes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune donnée sur cette période.</p>
+        ) : (
+          lignes.map((ligne, index) => (
+            <div
+              key={ligne.cle}
+              className="grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-md border border-border bg-background/60 px-3 py-2"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+                {index + 1}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{ligne.label}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {ligne.detail ?? `${ligne.commandes.size} BL`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-right">
+                <Icon className="hidden h-4 w-4 text-primary sm:block" />
+                <p className="text-sm font-semibold tabular-nums">
+                  {valeur === "ca"
+                    ? formatMontant(ligne.ca)
+                    : valeur === "quantite"
+                      ? formatQuantite(ligne.quantite)
+                      : valeur === "reste"
+                        ? formatMontant(ligne.reste)
+                        : ligne.commandes.size}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </Panel>
+  );
+}
 
 type ParametresRecherche = Promise<{
   debut?: string;
@@ -114,11 +215,20 @@ export default async function AdminPage({
               },
             },
             select: {
+              id: true,
               date_commande: true,
+              utilisateur: { select: { id: true, nom_complet: true, nom_utilisateur: true } },
+              client: { select: { id: true, nom: true, region_ville: true } },
+              client_externe: { select: { id: true, nom: true, region_ville: true } },
               lignes: {
                 where: { deleted_at: null },
-                select: { prix_net: true, quantite: true },
+                select: {
+                  prix_net: true,
+                  quantite: true,
+                  produit: { select: { id: true, nom: true, categorie: true } },
+                },
               },
+              paiements: { select: { montant: true } },
             },
           })
         : Promise.resolve([]),
@@ -148,6 +258,77 @@ export default async function AdminPage({
   );
   const kpiPeriode = calculerKpiPeriode(commandesPeriode);
   const impaye = calculerImpayeTotal(commandesImpaye);
+  const classementCommerciaux = new Map<string, LigneClassement>();
+  const classementProduits = new Map<string, LigneClassement>();
+  const classementVilles = new Map<string, LigneClassement>();
+  const classementClients = new Map<string, LigneClassement>();
+  const classementRisquePaiement = new Map<string, LigneClassement>();
+
+  for (const commande of commandesPeriode) {
+    const totalCommande = sommerMontants(
+      commande.lignes.map((ligne) => ligne.prix_net),
+    );
+    const quantiteCommande = sommerQuantites(
+      commande.lignes.map((ligne) => ligne.quantite),
+    );
+    const resteCommande = calculerResteDu(
+      totalCommande,
+      commande.paiements.map((paiement) => paiement.montant),
+    );
+    const clientCommande = commande.client ?? commande.client_externe;
+    const cleClient = clientCommande
+      ? `${commande.client ? "client" : "externe"}:${clientCommande.id}`
+      : "client:inconnu";
+    const nomClient = clientCommande?.nom ?? "Client inconnu";
+    const ville = clientCommande?.region_ville ?? "Ville non renseignee";
+    const commercialLabel = `${commande.utilisateur.nom_complet} (${commande.utilisateur.nom_utilisateur})`;
+
+    const ligneCommercial =
+      classementCommerciaux.get(commande.utilisateur.id) ??
+      nouvelleLigneClassement(commande.utilisateur.id, commercialLabel);
+    ligneCommercial.ca = ligneCommercial.ca.plus(totalCommande);
+    ligneCommercial.quantite = ligneCommercial.quantite.plus(quantiteCommande);
+    ligneCommercial.commandes.add(commande.id);
+    ligneCommercial.reste = ligneCommercial.reste.plus(resteCommande);
+    classementCommerciaux.set(commande.utilisateur.id, ligneCommercial);
+
+    const ligneVille =
+      classementVilles.get(ville) ?? nouvelleLigneClassement(ville, ville);
+    ligneVille.ca = ligneVille.ca.plus(totalCommande);
+    ligneVille.quantite = ligneVille.quantite.plus(quantiteCommande);
+    ligneVille.commandes.add(commande.id);
+    ligneVille.reste = ligneVille.reste.plus(resteCommande);
+    classementVilles.set(ville, ligneVille);
+
+    const ligneClient =
+      classementClients.get(cleClient) ??
+      nouvelleLigneClassement(cleClient, nomClient, ville);
+    ligneClient.ca = ligneClient.ca.plus(totalCommande);
+    ligneClient.quantite = ligneClient.quantite.plus(quantiteCommande);
+    ligneClient.commandes.add(commande.id);
+    ligneClient.reste = ligneClient.reste.plus(resteCommande);
+    classementClients.set(cleClient, ligneClient);
+    classementRisquePaiement.set(cleClient, ligneClient);
+
+    for (const ligne of commande.lignes) {
+      const cleProduit = ligne.produit.id;
+      const ligneProduit =
+        classementProduits.get(cleProduit) ??
+        nouvelleLigneClassement(cleProduit, ligne.produit.nom, ligne.produit.categorie);
+      ligneProduit.ca = ligneProduit.ca.plus(ligne.prix_net);
+      ligneProduit.quantite = ligneProduit.quantite.plus(ligne.quantite);
+      ligneProduit.commandes.add(commande.id);
+      classementProduits.set(cleProduit, ligneProduit);
+    }
+  }
+
+  const topCommerciaux = topClassement(classementCommerciaux, "ca");
+  const topProduits = topClassement(classementProduits, "quantite");
+  const topVilles = topClassement(classementVilles, "ca");
+  const topClients = topClassement(classementClients, "ca");
+  const topRestes = topClassement(classementRisquePaiement, "reste").filter((ligne) =>
+    ligne.reste.gt(0),
+  );
 
   const periodeMois = `Du ${formatDate(bornesMois.debutUtc)} au ${formatDate(maintenant.toJSDate())}`;
   const nomCommercial = commercial
@@ -264,6 +445,44 @@ export default async function AdminPage({
             </div>
           </section>
         ) : null}
+
+        <section className="grid gap-4 xl:grid-cols-3">
+          <RankingPanel
+            title="Ranking commerciaux"
+            eyebrow="Top CA sur la periode"
+            lignes={topCommerciaux}
+            valeur="ca"
+            icon={Trophy}
+          />
+          <RankingPanel
+            title="Best sellers produits"
+            eyebrow="Top volumes vendus"
+            lignes={topProduits}
+            valeur="quantite"
+            icon={Package}
+          />
+          <RankingPanel
+            title="Villes les plus fortes"
+            eyebrow="Top CA par ville"
+            lignes={topVilles}
+            valeur="ca"
+            icon={MapPin}
+          />
+          <RankingPanel
+            title="Meilleurs clients"
+            eyebrow="Top CA client"
+            lignes={topClients}
+            valeur="ca"
+            icon={Users}
+          />
+          <RankingPanel
+            title="Clients a encaisser"
+            eyebrow="Plus gros restes dus"
+            lignes={topRestes}
+            valeur="reste"
+            icon={AlertTriangle}
+          />
+        </section>
 
         <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
           <Panel

@@ -22,6 +22,8 @@ export type LigneClientCommercial = {
   id: string;
   nom: string;
   regionVille: string;
+  adresse: string;
+  adresseBrute: string;
   telephone: string;
   telephoneBrut: string;
   actif: boolean;
@@ -96,6 +98,7 @@ export function ClientsCommercialTable({
         ),
       },
       { accessorKey: "regionVille", header: "Ville" },
+      { accessorKey: "adresse", header: "Adresse" },
       { accessorKey: "telephone", header: "Telephone" },
       {
         accessorKey: "actif",

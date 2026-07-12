@@ -25,6 +25,7 @@ export type CommandeDocumentData = {
   client: string;
   codeClient: string;
   ville: string;
+  adresseClient: string;
   commercial: string;
   totalHt: string;
   tva: string;
@@ -53,8 +54,8 @@ export async function chargerCommandeDocument(
       numero_bl: true,
       utilisateur_id: true,
       date_commande: true,
-      client: { select: { id: true, nom: true, region_ville: true } },
-      client_externe: { select: { id: true, nom: true, region_ville: true } },
+      client: { select: { id: true, nom: true, region_ville: true, adresse: true } },
+      client_externe: { select: { id: true, nom: true, region_ville: true, adresse: true } },
       utilisateur: { select: { nom_complet: true } },
       lignes: {
         where: { deleted_at: null },
@@ -123,6 +124,7 @@ export async function chargerCommandeDocument(
     client: client?.nom ?? "-",
     codeClient: client ? codeClientDocument(client.id, Boolean(commande.client_externe)) : "",
     ville: client?.region_ville ?? "-",
+    adresseClient: client?.adresse ?? "-",
     commercial: commande.utilisateur.nom_complet,
     totalHt: formatMontantPdf(totalHt),
     tva: formatMontantPdf(montantTva),

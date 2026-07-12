@@ -86,6 +86,7 @@ describe("clients admin", () => {
     const resultat = await creerClientAdmin({
       nom: "Boucherie Atlas",
       regionVille: "Casablanca",
+      adresse: "Rue 1 Casablanca",
       commercialId: "com-1",
     });
 
@@ -104,6 +105,7 @@ describe("clients admin", () => {
     const resultat = await creerClientAdmin({
       nom: "Boucherie Atlas",
       regionVille: "Casablanca",
+      adresse: "Rue 1 Casablanca",
       telephone: "06 00 00 00 00",
       commercialId: "com-1",
     });
@@ -113,6 +115,7 @@ describe("clients admin", () => {
       data: {
         nom: "Boucherie Atlas",
         region_ville: "Casablanca",
+        adresse: "Rue 1 Casablanca",
         telephone: "06 00 00 00 00",
         commercial_id: "com-1",
       },
@@ -137,6 +140,7 @@ describe("clients admin", () => {
     const resultat = await creerClientAdmin({
       nom: "Client Admin",
       regionVille: "Rabat",
+      adresse: "Avenue Rabat",
       commercialId: "admin-owner",
     });
 
@@ -154,6 +158,7 @@ describe("clients admin", () => {
       data: {
         nom: "Client Admin",
         region_ville: "Rabat",
+        adresse: "Avenue Rabat",
         telephone: undefined,
         commercial_id: "admin-owner",
       },
@@ -164,6 +169,7 @@ describe("clients admin", () => {
     txMock.clientExterne.findFirst.mockResolvedValue({
       nom: "Traiteur Centre",
       region_ville: "Rabat",
+      adresse: "Centre Rabat",
       telephone: null,
     });
 
