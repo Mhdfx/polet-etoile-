@@ -1303,3 +1303,29 @@ Verification :
   en-tetes verifies (`Date reglement` absent, `Facture` present), BL et
   Facture pointent vers le meme PDF, largeur document `1265` pour viewport
   `1280`.
+
+## Addendum Codex - PDF liste des prix Coq Plus - 13/07/2026
+
+Demande client traitee :
+
+- Page concernee : `/admin/produits/tarifs`, bouton de telechargement
+  `/admin/produits/tarifs/pdf`.
+- Le PDF de tarifs a ete remplace par une mise en page rouge proche de la
+  reference fournie : marque Coq Plus en haut, date dans un pill rouge, titre
+  `LISTE DES PRIX`, table rouge avec numeros d'articles, watermark discret,
+  note de changement de tarif et footer contact rouge.
+- Le rendu ne depend pas d'un logo uploade : si aucun `logo_url` PDF n'est
+  disponible, le template dessine un wordmark Coq Plus directement dans le PDF.
+- Les icones speciales ont ete remplacees par des marqueurs ASCII (`!`, `A`,
+  `T`, `IF`) pour eviter les glyphes manquants dans le moteur PDF.
+- Le document limite l'affichage a 26 produits pour tenir sur une seule page A4,
+  comme la maquette fournie.
+
+Verification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Telechargement local authentifie de `/admin/produits/tarifs/pdf`.
+- Rendu PNG via Poppler dans `tmp/pdfs/tarifs-coq-plus-1.png`.
+- `pdfinfo` confirme `Pages: 1`, `Page size: A4`.
+- Inspection visuelle : table lisible, footer dans la page, aucun glyph manquant.

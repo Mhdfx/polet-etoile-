@@ -779,3 +779,17 @@ schema freeze explicite par Mehdi et deploiement.
   vers `/pdf`, largeur document `1265` pour viewport `1280`.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.
+
+## Correction PDF - liste des prix Coq Plus - 13/07/2026
+
+- [x] Refaire le PDF `/admin/produits/tarifs/pdf` dans le style rouge fourni :
+  logo/wordmark Coq Plus, pill date, titre `LISTE DES PRIX`, table rouge,
+  numerotation des articles, watermark leger et footer contact rouge.
+- [x] Conserver la meme route et les memes donnees catalogue actives.
+- [x] Garder le document sur une seule page A4 avec 26 produits.
+- [x] Eviter les glyphes PDF non supportes en utilisant des marqueurs ASCII
+  propres dans la note et le footer.
+- [x] Verification PDF : telechargement local authentifie, rendu PNG via
+  Poppler, `pdfinfo` confirme `Pages: 1`, inspection visuelle OK.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
