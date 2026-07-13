@@ -28,7 +28,6 @@ export type TarifsDocumentData = {
 };
 
 const ROUGE = "#c90f1d";
-const ROUGE_FONCE = "#99111a";
 const NOIR = "#1f1f25";
 const GRIS_LIGNE = "#d5d9df";
 
@@ -88,118 +87,36 @@ const styles = StyleSheet.create({
     borderRightWidth: 5,
     borderColor: "#ffffff",
   },
-  dotPatternTop: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: 56,
-    height: 56,
-  },
-  dotPatternBottom: {
-    position: "absolute",
-    right: 0,
-    bottom: 52,
-    width: 56,
-    height: 56,
-  },
   header: {
     alignItems: "center",
     marginBottom: 5,
   },
-  logoImage: {
-    width: 105,
+  logoWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: 74,
+    marginBottom: 2,
+  },
+  logo: {
+    width: 74,
     height: 74,
     objectFit: "contain",
   },
   logoFallback: {
+    width: 74,
+    height: 58,
+    border: `2 solid ${ROUGE}`,
+    borderRadius: 4,
     alignItems: "center",
-    width: 120,
-  },
-  roosterMark: {
-    position: "relative",
-    width: 72,
-    height: 42,
-    marginBottom: 1,
-  },
-  roosterBody: {
-    position: "absolute",
-    left: 24,
-    top: 14,
-    width: 34,
-    height: 24,
-    borderRadius: 18,
-    backgroundColor: ROUGE,
-  },
-  roosterNeck: {
-    position: "absolute",
-    left: 35,
-    top: 5,
-    width: 16,
-    height: 30,
-    borderRadius: 12,
-    backgroundColor: ROUGE_FONCE,
-  },
-  roosterCombA: {
-    position: "absolute",
-    left: 25,
-    top: 0,
-    width: 13,
-    height: 13,
-    borderRadius: 8,
-    backgroundColor: ROUGE,
-  },
-  roosterCombB: {
-    position: "absolute",
-    left: 36,
-    top: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 8,
-    backgroundColor: ROUGE,
-  },
-  roosterCombC: {
-    position: "absolute",
-    left: 48,
-    top: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 8,
-    backgroundColor: ROUGE,
-  },
-  roosterBeak: {
-    position: "absolute",
-    left: 53,
-    top: 14,
-    width: 14,
-    height: 7,
-    borderRadius: 2,
-    backgroundColor: "#f3a01c",
-  },
-  roosterEye: {
-    position: "absolute",
-    left: 48,
-    top: 13,
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: NOIR,
-  },
-  brandLine: {
-    flexDirection: "row",
-    alignItems: "baseline",
     justifyContent: "center",
+    backgroundColor: "#ffffff",
   },
-  brandBlack: {
-    color: NOIR,
-    fontSize: 18,
-    fontWeight: 800,
-    letterSpacing: -0.2,
-  },
-  brandRed: {
+  logoFallbackText: {
+    marginTop: 2,
     color: ROUGE,
-    fontSize: 18,
-    fontWeight: 800,
-    letterSpacing: -0.2,
+    fontSize: 9,
+    fontWeight: 700,
+    textAlign: "center",
   },
   datePill: {
     alignSelf: "center",
@@ -384,24 +301,13 @@ const styles = StyleSheet.create({
 });
 
 const WATERMARKS = [
-  [16, 20],
-  [170, 20],
-  [324, 20],
-  [38, 102],
-  [228, 102],
-  [424, 102],
-  [4, 198],
-  [176, 198],
-  [358, 198],
-  [36, 302],
-  [226, 302],
-  [416, 302],
-  [8, 408],
-  [174, 408],
-  [360, 408],
-  [38, 516],
-  [228, 516],
-  [416, 516],
+  [22, 34],
+  [250, 34],
+  [406, 116],
+  [36, 238],
+  [392, 330],
+  [56, 494],
+  [318, 548],
 ] as const;
 
 export function TarifsPdf({ data }: { data: TarifsDocumentData }) {
@@ -412,12 +318,16 @@ export function TarifsPdf({ data }: { data: TarifsDocumentData }) {
         <WatermarkLayer />
 
         <View style={styles.header}>
-          {data.societe.logo ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={data.societe.logo} style={styles.logoImage} />
-          ) : (
-            <LogoFallback />
-          )}
+          <View style={styles.logoWrap}>
+            {data.societe.logo ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={data.societe.logo} style={styles.logo} />
+            ) : (
+              <View style={styles.logoFallback}>
+                <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.datePill}>
@@ -471,35 +381,7 @@ function BackgroundDecor() {
     <>
       <View style={styles.topRightShape} />
       <View style={styles.bottomLeftShape} />
-      <DotPattern position="top" />
-      <DotPattern position="bottom" />
     </>
-  );
-}
-
-function DotPattern({ position }: { position: "top" | "bottom" }) {
-  const points = Array.from({ length: 7 }, (_, row) =>
-    Array.from({ length: 7 }, (__, col) => [col * 7 + 2, row * 7 + 2]),
-  ).flat();
-
-  return (
-    <View style={position === "top" ? styles.dotPatternTop : styles.dotPatternBottom}>
-      {points.map(([cx, cy]) => (
-        <View
-          key={`${cx}-${cy}`}
-          style={{
-            position: "absolute",
-            left: cx,
-            top: cy,
-            width: 1.7,
-            height: 1.7,
-            borderRadius: 1,
-            backgroundColor: ROUGE,
-            opacity: 0.65,
-          }}
-        />
-      ))}
-    </View>
   );
 }
 
@@ -515,25 +397,6 @@ function WatermarkLayer() {
   );
 }
 
-function LogoFallback() {
-  return (
-    <View style={styles.logoFallback}>
-      <View style={styles.roosterMark}>
-        <View style={styles.roosterBody} />
-        <View style={styles.roosterNeck} />
-        <View style={styles.roosterCombA} />
-        <View style={styles.roosterCombB} />
-        <View style={styles.roosterCombC} />
-        <View style={styles.roosterBeak} />
-        <View style={styles.roosterEye} />
-      </View>
-      <View style={styles.brandLine}>
-        <Text style={styles.brandBlack}>COQ </Text>
-        <Text style={styles.brandRed}>PLUS</Text>
-      </View>
-    </View>
-  );
-}
 
 function Footer({ data }: { data: TarifsDocumentData }) {
   const telephone = data.societe.telephone || "+212 626 18 40 88";
