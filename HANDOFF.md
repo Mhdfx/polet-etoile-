@@ -1329,3 +1329,27 @@ Verification :
 - Rendu PNG via Poppler dans `tmp/pdfs/tarifs-coq-plus-1.png`.
 - `pdfinfo` confirme `Pages: 1`, `Page size: A4`.
 - Inspection visuelle : table lisible, footer dans la page, aucun glyph manquant.
+
+## Addendum Codex - logo facture sur PDF tarifs - 13/07/2026
+
+Demande client traitee :
+
+- Page concernee : `/admin/produits/tarifs`, bouton de telechargement
+  `/admin/produits/tarifs/pdf`.
+- Le PDF tarifs garde le style rouge deja valide, mais le haut de page utilise
+  maintenant le meme traitement logo que les documents BL/facture :
+  `societe.logo` si disponible, sinon un fallback sobre `COQ PLUS`.
+- Le logo dessine en React PDF et la grille de points decoratifs ont ete retires.
+  Le watermark est reduit a quelques occurrences pour limiter le cout de rendu
+  tout en conservant l'identite visuelle.
+
+Verification effectuee apres cette modification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Rendu direct du PDF avec les donnees locales : 26 produits, environ 397 ms
+  pour `renderToBuffer`, fichier `tmp/pdfs/tarifs-coq-plus-logo-facture.pdf`.
+- `pdfinfo` confirme `Pages: 1`, `Page size: A4`.
+- Rendu PNG via Poppler dans
+  `tmp/pdfs/tarifs-coq-plus-logo-facture-1.png` et inspection visuelle OK :
+  logo/fallback partage en haut, table lisible, footer dans la page.

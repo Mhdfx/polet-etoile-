@@ -793,3 +793,16 @@ schema freeze explicite par Mehdi et deploiement.
   Poppler, `pdfinfo` confirme `Pages: 1`, inspection visuelle OK.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.
+
+## Ajustement PDF tarifs - logo facture et performance - 13/07/2026
+
+- [x] Remplacer le logo dessine propre au PDF tarifs par le meme bloc logo que
+  les documents BL/facture : image societe si disponible, fallback `COQ PLUS`
+  identique dans l'esprit documentaire.
+- [x] Garder le style rouge valide par le client : date, titre, table, watermark
+  leger et footer.
+- [x] Reduire les elements decoratifs couteux du PDF tarifs pour accelerer la
+  generation : suppression de la grille de points et watermark reduit.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`, rendu PDF local mesure a environ 397 ms,
+  `pdfinfo` confirme une seule page A4 et inspection PNG OK.
