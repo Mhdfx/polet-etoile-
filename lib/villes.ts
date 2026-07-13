@@ -1,5 +1,6 @@
 // Liste officielle CTM Maroc fournie par le client
-// (booking.ctm.ma). Cette liste est volontairement
+// (booking.ctm.ma), completee par les villes demandees par le client final.
+// Cette liste est volontairement
 // canonique: une ancienne valeur stockee en base ne doit plus ajouter
 // d'anciennes villes au dropdown.
 export const VILLES_MAROC_DEFAUT = [
@@ -24,6 +25,7 @@ export const VILLES_MAROC_DEFAUT = [
   "Ben Hadifa",
   "Beni Mathar",
   "Beni Mellal",
+  "Beni yakhlef",
   "Berkane",
   "Bouarfa",
   "Boufakrane",
@@ -36,6 +38,7 @@ export const VILLES_MAROC_DEFAUT = [
   "Chefchaouen",
   "Cherafate",
   "Dakhla",
+  "Dar bouazza",
   "Dardara",
   "Driouch",
   "Echemmaia",
@@ -43,6 +46,7 @@ export const VILLES_MAROC_DEFAUT = [
   "El hajeb",
   "Erfoud",
   "Errachidia",
+  "Errahma",
   "Essaouira",
   "Fes",
   "Figuig",
@@ -88,11 +92,13 @@ export const VILLES_MAROC_DEFAUT = [
   "Rissani",
   "Safi",
   "Saidia",
+  "Sale",
   "Salé",
   "Sebt Gzoula",
   "Sidi Bennour",
   "Sidi Ifni",
   "Sidi Kacem",
+  "Sidi rahal",
   "Sidi Smail",
   "Skoura",
   "Smara",
@@ -101,9 +107,11 @@ export const VILLES_MAROC_DEFAUT = [
   "Tagounite",
   "Taliouine",
   "Tamanar",
+  "Tamaris",
   "Tamansourt",
   "Tamegroute",
   "Tamelelt",
+  "Temara",
   "Tamorot",
   "Tan Tan",
   "Tanger",

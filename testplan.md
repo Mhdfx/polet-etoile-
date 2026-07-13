@@ -8,6 +8,74 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
+## Campagne 13/07/2026 - test complet local production apres correction client auto-select
+
+Build production teste dans l'in-app browser sur `http://localhost:3120`, avec
+BDD Docker MySQL `127.0.0.1:3307`. Objectif : verifier les routes principales,
+les permissions, les creations de commandes admin/commercial, paiement, bon de
+charge et villes.
+
+Donnees QA creees : prefixe `QA-ALL-*` et `QA-ALL-FLOW-*`.
+
+### Verification technique
+
+- [x] `npx tsc --noEmit` : PASS.
+- [x] `npm run lint` : PASS.
+- [x] `npm run test` : PASS, **133/133 tests**.
+- [x] `npm run build` : PASS.
+
+### Routes et permissions
+
+- [x] Routes admin chargees sans crash ni 403 inattendu :
+  `/admin`, `/admin/produits`, `/admin/produits/categories`,
+  `/admin/produits/prix`, `/admin/produits/tarifs`, `/admin/commandes`,
+  `/admin/commandes/nouvelle`, `/admin/charges`, `/admin/charges/nouveau`,
+  `/admin/paiements`, `/admin/clients`, `/admin/clients/fusion`,
+  `/admin/retours`, `/admin/kpi`, `/admin/rapprochement`,
+  `/admin/utilisateurs`, `/admin/objectifs`, `/admin/audit`,
+  `/admin/corbeille`, `/admin/historique-admins`, `/admin/sessions`,
+  `/admin/parametres`, `/admin/exports`.
+- [x] Routes commercial chargees sans crash :
+  `/commercial`, `/commercial/clients`, `/commercial/commandes`,
+  `/commercial/commandes/nouvelle`, `/commercial/commandes/externes`,
+  `/commercial/retours`, `/commercial/kpi`.
+- [x] Permission : utilisateur `com1` bloque de `/admin/produits` avec `/403`.
+- [x] Console navigateur : aucune erreur JavaScript sur les onglets testes.
+
+### Flux metier verifies
+
+- [x] Admin nouvelle commande : creation client rapide
+  `QA-ALL-FLOW-1783934466066 Admin Client`, selection auto OK, produit
+  `Abats de poulet`, quantite `1,000 kg`, total apercu `18,00 DH`,
+  commande creee `CP-000012`.
+- [x] Commercial nouvelle commande : creation client rapide
+  `QA-ALL-FLOW-1783934362666 Com Client`, selection auto OK, produit
+  `Abats de poulet`, quantite `1,000 kg`, commande creee `CP-000010`.
+- [x] Detail commande admin `CP-000012` : client, ville, ligne produit, total,
+  lien PDF BL, bouton bon de charge et formulaire paiement presents.
+- [x] Paiement admin sur `CP-000012` : montant `18,00 DH`, reference
+  `QA PAY 1783934608350`; statut passe a `Reglee`, `Paye : 18,00 DH`,
+  `Reste : 0,00 DH`.
+- [x] Bon de charge depuis `CP-000012` : creation `BC-000002`, detail ouvert,
+  client livraison, ville `Temara`, adresse `Rue QA Admin Flow, Temara` et total
+  charge `1,000 kg` affiches.
+- [x] Bon de charge : lien `Telecharger PDF` present vers
+  `/admin/charges/cmrj0mg5y000suku9vkur7gkr/pdf`.
+- [x] Villes nouvelle commande : 129 villes dans le select ; aucune ville
+  demandee manquante (`Benslimane`, `Bouznika`, `Sale`, `Temara`,
+  `Beni yakhlef`, `Tamaris`, `Dar bouazza`, `Sidi rahal`, `Errahma`,
+  `Oualidia`, `Taroudant`).
+
+### Limites de cette passe
+
+- [ ] PDF BL visuel : la route `/admin/commandes/[id]/pdf` ouvre bien l'URL,
+  mais l'in-app browser n'expose pas le contenu PDF pour inspection DOM. A
+  verifier visuellement avec un rendu PDF/export fichier si besoin.
+- [ ] Cette passe n'a pas supprime de donnees metier ; les donnees QA restent
+  en base locale pour inspection.
+
+---
+
 ## Campagne 11/07/2026 - facture/BL PDF modele client
 
 Objectif : adapter le PDF BL/facture au modele fourni dans `image.png` et
