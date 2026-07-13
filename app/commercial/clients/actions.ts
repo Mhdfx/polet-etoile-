@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
@@ -15,7 +16,18 @@ import {
 const MESSAGE_ERREUR_SERVEUR =
   "Une erreur est survenue. Reessayez ou contactez l'administrateur.";
 
-function erreurServeur(erreur: unknown, action: string): ResultatAction {
+type ClientCreeAction = {
+  client: {
+    id: string;
+    nom: string;
+    ville: string;
+  };
+};
+
+function erreurServeur<TSucces extends object = object>(
+  erreur: unknown,
+  action: string,
+): ResultatAction<TSucces> {
   const idErreur = randomUUID().slice(0, 8);
   console.error(`[clients-commercial:${action}] erreur ${idErreur}`, erreur);
 
@@ -26,7 +38,7 @@ class AccesClientInterdit extends Error {}
 
 export async function creerClientCommercial(
   entree: unknown,
-): Promise<ResultatAction> {
+): Promise<ResultatAction<ClientCreeAction>> {
   const commercial = await requireCommercial();
   const validation = schemaCreationClientCommercial.safeParse(entree);
 
@@ -34,7 +46,8 @@ export async function creerClientCommercial(
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { nom, regionVille, adresse, telephone } = validation.data;
+  const { nom, regionVille, adresse, telephone, selectionCommande } =
+    validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -74,12 +87,31 @@ export async function creerClientCommercial(
         ip,
       );
 
-      return { ok: true as const };
+      return {
+        ok: true as const,
+        client: {
+          id: client.id,
+          nom,
+          ville: regionVille,
+        },
+      };
     });
 
     if (resultat.ok) {
       revalidatePath("/commercial/clients");
       revalidatePath("/admin/clients");
+      if (selectionCommande) {
+        const cookieStore = await cookies();
+        cookieStore.set(
+          "commande_client_selection_commercial",
+          resultat.client.id,
+          {
+            path: "/commercial/commandes/nouvelle",
+            maxAge: 120,
+            sameSite: "lax",
+          },
+        );
+      }
     }
 
     return resultat;

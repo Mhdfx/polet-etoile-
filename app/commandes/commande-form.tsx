@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { creerClientAdmin } from "@/app/admin/clients/actions";
 import { creerClientCommercial } from "@/app/commercial/clients/actions";
@@ -77,6 +76,7 @@ type CommandeFormProps =
       produits: OptionProduit[];
       clients: OptionClient[];
       villes: string[];
+      clientSelectionInitiale?: string | null;
     }
   | {
       mode: "admin";
@@ -85,6 +85,7 @@ type CommandeFormProps =
       clientsExternes: OptionClient[];
       commerciaux: OptionCommercial[];
       villes: string[];
+      clientSelectionInitiale?: string | null;
     };
 
 function nouvelleLigne(): LigneFormulaire {
@@ -92,7 +93,6 @@ function nouvelleLigne(): LigneFormulaire {
 }
 
 export function CommandeForm(props: CommandeFormProps) {
-  const router = useRouter();
   const [clientId, setClientId] = useState("");
   const [clientExterneId, setClientExterneId] = useState("");
   const [commercialId, setCommercialId] = useState(
@@ -110,6 +110,7 @@ export function CommandeForm(props: CommandeFormProps) {
   const [nouveauClientTelephone, setNouveauClientTelephone] = useState("");
   const [erreursClient, setErreursClient] = useState<Record<string, string>>({});
   const [messageClient, setMessageClient] = useState<string>();
+  const [clientsCreesInline, setClientsCreesInline] = useState<OptionClient[]>([]);
   const [enCours, setEnCours] = useState(false);
   const [clientEnCours, setClientEnCours] = useState(false);
   const [brouillonCharge, setBrouillonCharge] = useState(false);
@@ -120,6 +121,16 @@ export function CommandeForm(props: CommandeFormProps) {
     [props.produits],
   );
   const cleBrouillon = `commande-brouillon-${props.mode}`;
+  const cookieSelectionClient =
+    props.mode === "admin"
+      ? {
+          nom: "commande_client_selection_admin",
+          chemin: "/admin/commandes/nouvelle",
+        }
+      : {
+          nom: "commande_client_selection_commercial",
+          chemin: "/commercial/commandes/nouvelle",
+        };
 
   useEffect(() => {
     const raw = window.localStorage.getItem(cleBrouillon);
@@ -174,6 +185,42 @@ export function CommandeForm(props: CommandeFormProps) {
   ]);
 
   useEffect(() => {
+    if (!brouillonCharge || !props.clientSelectionInitiale) {
+      return;
+    }
+
+    setTypeClient("STANDARD");
+    setClientExterneId("");
+    setClientId(props.clientSelectionInitiale);
+    setErreurs((actuelles) => {
+      const prochaines = { ...actuelles };
+      delete prochaines.clientId;
+      delete prochaines.clientExterneId;
+      return prochaines;
+    });
+    window.localStorage.setItem(
+      cleBrouillon,
+      JSON.stringify({
+        clientId: props.clientSelectionInitiale,
+        clientExterneId: "",
+        commercialId,
+        typeClient: "STANDARD",
+        lignes,
+      } satisfies BrouillonCommande),
+    );
+    document.cookie = `${cookieSelectionClient.nom}=; Max-Age=0; path=${cookieSelectionClient.chemin}; SameSite=Lax`;
+    setSucces("Client cree et selectionne. Vous pouvez ajouter les produits.");
+  }, [
+    brouillonCharge,
+    cleBrouillon,
+    commercialId,
+    cookieSelectionClient.chemin,
+    cookieSelectionClient.nom,
+    lignes,
+    props.clientSelectionInitiale,
+  ]);
+
+  useEffect(() => {
     function majStatut() {
       setEstHorsLigne(!window.navigator.onLine);
     }
@@ -188,10 +235,30 @@ export function CommandeForm(props: CommandeFormProps) {
     };
   }, []);
 
-  const clientsDisponibles =
-    props.mode === "admin"
-      ? props.clients.filter((client) => client.commercialId === commercialId)
-      : props.clients;
+  const clientsStandards = useMemo(() => {
+    const parId = new Map<string, OptionClient>();
+
+    for (const client of props.clients) {
+      parId.set(client.id, client);
+    }
+
+    for (const client of clientsCreesInline) {
+      parId.set(client.id, client);
+    }
+
+    return Array.from(parId.values());
+  }, [clientsCreesInline, props.clients]);
+
+  const clientsDisponibles = clientsStandards;
+
+  const commerciaux = props.mode === "admin" ? props.commerciaux : undefined;
+  const commerciauxParId = useMemo(
+    () =>
+      commerciaux
+        ? new Map(commerciaux.map((commercial) => [commercial.id, commercial.nom]))
+        : new Map<string, string>(),
+    [commerciaux],
+  );
 
   const totalApercu = useMemo(() => {
     const montants = lignes
@@ -236,6 +303,12 @@ export function CommandeForm(props: CommandeFormProps) {
 
   function selectionnerClient(valeur: string) {
     setClientId(valeur);
+    if (props.mode === "admin") {
+      const client = clientsStandards.find((option) => option.id === valeur);
+      if (client?.commercialId && client.commercialId !== commercialId) {
+        setCommercialId(client.commercialId);
+      }
+    }
     // Le message « Client cree, selectionnez-le » disparait une fois la
     // selection faite.
     setSucces(undefined);
@@ -296,6 +369,7 @@ export function CommandeForm(props: CommandeFormProps) {
       regionVille: nouveauClientVille,
       adresse: nouveauClientAdresse,
       telephone: nouveauClientTelephone,
+      selectionCommande: true,
       ...(props.mode === "admin" ? { commercialId } : {}),
     };
     const resultat =
@@ -310,12 +384,34 @@ export function CommandeForm(props: CommandeFormProps) {
       return;
     }
 
+    setClientsCreesInline((actuels) => [
+      ...actuels.filter((client) => client.id !== resultat.client.id),
+      resultat.client,
+    ]);
+    setTypeClient("STANDARD");
+    setClientExterneId("");
+    setClientId(resultat.client.id);
+    setErreurs((actuelles) => {
+      const prochaines = { ...actuelles };
+      delete prochaines.clientId;
+      delete prochaines.clientExterneId;
+      return prochaines;
+    });
+    window.localStorage.setItem(
+      cleBrouillon,
+      JSON.stringify({
+        clientId: resultat.client.id,
+        clientExterneId: "",
+        commercialId,
+        typeClient: "STANDARD",
+        lignes,
+      } satisfies BrouillonCommande),
+    );
     setNouveauClientNom("");
     setNouveauClientAdresse("");
     setNouveauClientTelephone("");
     setDialogueClientOuvert(false);
-    setSucces("Client cree. La liste a ete actualisee, selectionnez-le pour continuer.");
-    router.refresh();
+    setSucces("Client cree et selectionne. Vous pouvez ajouter les produits.");
   }
 
   return (
@@ -414,6 +510,9 @@ export function CommandeForm(props: CommandeFormProps) {
                   {clientsDisponibles.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.nom} - {client.ville}
+                      {props.mode === "admin" && client.commercialId
+                        ? ` - ${commerciauxParId.get(client.commercialId) ?? "Responsable"}`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -4,8 +4,8 @@
 > `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
 > rules. Keep all three aligned after each meaningful change.
 
-Current date: 11/07/2026
-Current status: **code fonctionnel + corrections post-QA navigateur terminees ; QA appareil, comparaison PDF/XLSX et deploiement restent separes**
+Current date: 13/07/2026
+Current status: **code fonctionnel + corrections post-QA navigateur terminees, incluant selection auto du client cree dans une commande ; QA appareil, comparaison PDF/XLSX et deploiement restent separes**
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -656,6 +656,7 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Stabiliser les dates BL modifiees pour eviter les decalages timezone.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.
+
 - [x] Verification navigateur build production `http://localhost:3114` :
   creation commande admin + client Oualidia, modification BL, blocage BL avec BC,
   PDF tarifs 1 page, PDF BL avec cachet, corbeille sans erreur console.
@@ -707,5 +708,59 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Verification liste : 122 entrees uniques chargees, avec `Oualidia`,
   `Taroudant`, `Agdez`, `Tetouan`, `M'Hamid El Ghizlane` et
   `Centre 44 ouled dlim`.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
+
+## Mise a jour client - bon de charge livraison et villes locales - 13/07/2026
+
+- [x] Afficher sur le detail admin d'un bon de charge lie a une commande :
+  client de livraison, ville et adresse de livraison.
+- [x] Confirmer que le PDF bon de charge conserve le client, la ville et
+  l'adresse via `app/charges/document-data.ts` et
+  `app/charges/bon-charge-pdf.tsx`.
+- [x] Verifier les villes demandees : `Benslimane` et `Bouznika` existaient
+  deja ; ajout de `Sale`, `Temara`, `Beni yakhlef`, `Tamaris`,
+  `Dar bouazza`, `Sidi rahal` et `Errahma`.
+- [x] Ajouter la migration MySQL
+  `20260713100000_villes_livraison_coq_plus` pour mettre a jour
+  `parametres_systeme.villes_maroc` en production.
+- [x] Verification liste : 129 entrees uniques et les 9 villes demandees
+  presentes.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
+
+## Correction QA - selection auto client commande - 13/07/2026
+
+- [x] Corriger le flux "Nouveau client" dans `/admin/commandes/nouvelle` :
+  apres creation rapide, le client cree est selectionne automatiquement dans
+  la commande.
+- [x] Appliquer la meme structure au flux commercial
+  `/commercial/commandes/nouvelle`.
+- [x] Server action clients : retour typé du client cree + cookie court de
+  handoff pour selection fiable apres rafraichissement RSC.
+- [x] Formulaire commande : consomme `clientSelectionInitiale`, nettoie le
+  cookie, met a jour le brouillon et garde l'option locale si la continuation
+  client repond directement.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.
+- [x] Retest navigateur local production `http://localhost:3118` :
+  client `QA FIX AutoSelect CLEAN ...` cree depuis la commande admin, selection
+  automatique confirmee, aucun message `Choisir un client standard`.
+
+## Correction production - liste clients commande admin - 13/07/2026
+
+- [x] Reproduire sur production `http://212.47.68.171/admin/commandes/nouvelle` :
+  responsable par defaut `Administrateur (admin) - Admin`, dropdown client avec
+  seulement 2 clients car la liste etait filtree par responsable courant.
+- [x] Confirmer que les autres clients existent en changeant de responsable :
+  `Commercial 1` affiche 4 clients, donc le probleme etait UI/filtre, pas une
+  perte de donnees.
+- [x] Corriger `app/commandes/commande-form.tsx` : en mode admin, afficher tous
+  les clients standards dans le select client.
+- [x] Quand l'admin choisit un client appartenant a un autre responsable,
+  basculer automatiquement le champ `Responsable` vers ce proprietaire pour
+  garder la validation serveur stricte.
+- [x] Ajouter le responsable dans le libelle des options client admin pour eviter
+  les doublons ambigus.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.

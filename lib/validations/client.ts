@@ -33,6 +33,7 @@ export const schemaCreationClientAdmin = z.object({
   adresse: champAdresse,
   telephone: champTelephone,
   commercialId: champId,
+  selectionCommande: z.boolean().optional(),
 });
 
 export const schemaModificationClientAdmin = schemaCreationClientAdmin.extend({
@@ -44,6 +45,7 @@ export const schemaCreationClientCommercial = z.object({
   regionVille: champVille,
   adresse: champAdresse,
   telephone: champTelephone,
+  selectionCommande: z.boolean().optional(),
 });
 
 export const schemaModificationClientCommercial =

@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 12/07/2026.
-Statut : **code CDC pret pour tests locaux, corrections post-QA navigateur appliquees et retestees - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
+Derniere mise a jour : 13/07/2026.
+Statut : **code CDC pret pour tests locaux, corrections post-QA navigateur appliquees et retestees, incluant selection auto du client cree dans une commande - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -1184,3 +1184,97 @@ Verification :
   local refusait `::1:3306` puis `127.0.0.1:3306`; la migration sera appliquee
   par le conteneur au demarrage VPS, ou peut etre relancee localement quand
   MySQL repond.
+
+## Addendum Codex - bon de charge livraison et villes locales - 13/07/2026
+
+Demandes client traitees :
+
+- Detail admin bon de charge `/admin/charges/[id]` : quand le bon vient d'une
+  commande, la page affiche maintenant le client de livraison, la ville et
+  l'adresse de livraison, en plus de la commande source, du commercial et des
+  quantites.
+- PDF bon de charge : le chargeur `app/charges/document-data.ts` incluait deja
+  le client, la ville et l'adresse de livraison ; le rendu PDF
+  `app/charges/bon-charge-pdf.tsx` conserve ces champs dans le document.
+- Liste villes : ajout des villes/secteurs demandes par le client final autour
+  de Casablanca/Rabat. `Benslimane` et `Bouznika` existaient deja ; ajout de
+  `Sale` (en plus de `Salé`), `Temara`, `Beni yakhlef`, `Tamaris`,
+  `Dar bouazza`, `Sidi rahal` et `Errahma`.
+- Nouvelle migration MySQL :
+  `prisma/migrations/20260713100000_villes_livraison_coq_plus/migration.sql`,
+  pour remettre `parametres_systeme.villes_maroc` a jour en production au
+  prochain demarrage/deploiement.
+
+Verification :
+
+- Check liste villes : 129 entrees uniques ; les 9 villes demandees sont
+  presentes (`Benslimane`, `Bouznika`, `Sale`, `Temara`, `Beni yakhlef`,
+  `Tamaris`, `Dar bouazza`, `Sidi rahal`, `Errahma`).
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+
+## Addendum Codex - selection auto client commande - 13/07/2026
+
+Bug QA traite :
+
+- Dans `/admin/commandes/nouvelle`, apres creation d'un client via le dialogue
+  `Nouveau client`, le client apparaissait dans la liste mais restait non
+  selectionne. Un submit immediat affichait `Choisir un client standard`.
+
+Correction :
+
+- `creerClientAdmin` et `creerClientCommercial` retournent maintenant le client
+  cree (`id`, `nom`, `ville`, et `commercialId` cote admin).
+- Quand la creation vient d'un formulaire de commande, l'action serveur pose un
+  cookie court (`commande_client_selection_admin` ou
+  `commande_client_selection_commercial`) limite a la route de nouvelle
+  commande. Cela couvre le rafraichissement RSC qui recharge la liste depuis le
+  serveur.
+- Les pages `/admin/commandes/nouvelle` et
+  `/commercial/commandes/nouvelle` lisent ce cookie et passent
+  `clientSelectionInitiale` a `CommandeForm`.
+- `app/commandes/commande-form.tsx` selectionne ce client, nettoie le cookie,
+  met a jour le brouillon et conserve aussi une option locale quand la
+  continuation client de l'action repond directement.
+
+Verification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Retest navigateur local production `http://localhost:3118` :
+  creation du client `QA FIX AutoSelect CLEAN 1783933886488` depuis la commande
+  admin, selection automatique visible dans le select client, aucun message
+  `Choisir un client standard`.
+- Retest intermediaire : avec le client auto-selectionne, produit + quantite
+  saisis sans toucher au select client, commande creee `CP-000007`.
+
+## Addendum Codex - liste clients commande admin production - 13/07/2026
+
+Bug production traite :
+
+- Sur `http://212.47.68.171/admin/commandes/nouvelle`, le compte admin ne voyait
+  que 2 clients dans le select client.
+- Diagnostic navigateur : les donnees etaient presentes. Le formulaire filtrait
+  les clients standards par le responsable selectionne. Comme le responsable
+  par defaut etait `Administrateur (admin) - Admin`, seuls les 2 clients
+  rattaches a l'admin s'affichaient ; `Commercial 1` affichait bien 4 clients.
+
+Correction :
+
+- En mode admin, `app/commandes/commande-form.tsx` affiche maintenant tous les
+  clients standards dans le select client.
+- Les options client admin affichent aussi le nom du responsable pour clarifier
+  les doublons possibles.
+- Quand l'admin selectionne un client rattache a un autre responsable, le champ
+  `Responsable` bascule automatiquement vers ce responsable. Cela garde la
+  validation serveur existante intacte : une commande standard reste rattachee
+  au proprietaire du client.
+
+Verification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Test navigateur production utilise pour le diagnostic avant correctif :
+  admin = 2 clients, Commercial 1 = 4 clients, Commercial 2 = 0, QA Live
+  Commercial = 0. La correction doit etre retestee sur production apres pull de
+  la nouvelle image Docker.
