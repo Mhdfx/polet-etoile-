@@ -764,3 +764,18 @@ schema freeze explicite par Mehdi et deploiement.
   les doublons ambigus.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.
+
+## Correction UI - liste admin commandes - 13/07/2026
+
+- [x] Retirer la colonne `Date reglement` de `/admin/commandes`.
+- [x] Limiter visuellement le nom client avec troncature et titre au survol pour
+  garder une largeur de type nom/prenom.
+- [x] Ajouter une colonne `Facture` a cote de `BL`; pour l'instant elle genere
+  le meme PDF que le BL.
+- [x] Passer la table en layout fixe, avec largeurs compactes, pour eviter le
+  scroll horizontal sur la page admin commandes.
+- [x] Verification navigateur local `http://localhost:3107/admin/commandes` :
+  `Date reglement` absent, `Facture` present, BL et Facture pointent tous deux
+  vers `/pdf`, largeur document `1265` pour viewport `1280`.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.

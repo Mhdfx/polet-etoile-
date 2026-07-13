@@ -121,7 +121,7 @@ export default async function CommandesAdminPage({
         client_externe: { select: { nom: true, region_ville: true } },
         utilisateur: { select: { nom_complet: true } },
         lignes: { where: { deleted_at: null }, select: { prix_net: true } },
-        paiements: { select: { montant: true, date_paiement: true } },
+        paiements: { select: { montant: true } },
         bon_charge: { select: { id: true, numero_bc: true, deleted_at: true } },
       },
     }),
@@ -261,22 +261,22 @@ export default async function CommandesAdminPage({
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <Table>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <Table className="w-full table-fixed text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead>BL</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Commercial</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Date reglement</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Reste</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">BL</TableHead>
-                <TableHead className="text-right">Bon de charge</TableHead>
+                <TableHead className="w-[96px]">BL</TableHead>
+                <TableHead className="w-[92px]">Date</TableHead>
+                <TableHead className="w-[180px]">Client</TableHead>
+                <TableHead className="w-[96px]">Region</TableHead>
+                <TableHead className="w-[116px]">Commercial</TableHead>
+                <TableHead className="w-[78px]">Type</TableHead>
+                <TableHead className="w-[88px] text-right">Total</TableHead>
+                <TableHead className="w-[88px] text-right">Reste</TableHead>
+                <TableHead className="w-[92px]">Statut</TableHead>
+                <TableHead className="w-[52px] text-center">BL</TableHead>
+                <TableHead className="w-[74px] text-center">Facture</TableHead>
+                <TableHead className="w-[104px] text-center">Bon charge</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -293,12 +293,6 @@ export default async function CommandesAdminPage({
                     commande.paiements,
                   );
                   const client = commande.client ?? commande.client_externe;
-                  const dateReglement =
-                    totaux.statutPaiement === "paye"
-                      ? commande.paiements
-                          .map((paiement) => paiement.date_paiement)
-                          .sort((a, b) => b.getTime() - a.getTime())[0]
-                      : undefined;
                   return (
                     <TableRow key={commande.id}>
                       <TableCell>
@@ -311,12 +305,13 @@ export default async function CommandesAdminPage({
                       </TableCell>
                       <TableCell>{formatDate(commande.date_commande)}</TableCell>
                       <TableCell>
-                        {client?.nom ?? "-"}
+                        <span className="block max-w-[18ch] truncate" title={client?.nom ?? "-"}>
+                          {client?.nom ?? "-"}
+                        </span>
                       </TableCell>
-                      <TableCell>{client?.region_ville ?? "-"}</TableCell>
-                      <TableCell>{commande.utilisateur.nom_complet}</TableCell>
-                      <TableCell>{libelleTypeCommande(commande.type_commande)}</TableCell>
-                      <TableCell>{dateReglement ? formatDate(dateReglement) : "-"}</TableCell>
+                      <TableCell className="truncate">{client?.region_ville ?? "-"}</TableCell>
+                      <TableCell className="truncate">{commande.utilisateur.nom_complet}</TableCell>
+                      <TableCell className="truncate">{libelleTypeCommande(commande.type_commande)}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatMontant(totaux.total)}
                       </TableCell>
@@ -326,14 +321,25 @@ export default async function CommandesAdminPage({
                       <TableCell>
                         <BadgeStatut statut={totaux.statutPaiement} />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Button variant="ghost" size="icon-sm" asChild>
                           <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank" title="PDF BL">
                             <FileText />
                           </Link>
                         </Button>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="icon-sm" asChild>
+                          <Link
+                            href={`/admin/commandes/${commande.id}/pdf`}
+                            target="_blank"
+                            title="PDF facture"
+                          >
+                            <FileText />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                      <TableCell className="text-center">
                         <BonChargeCommandeButton
                           commandeId={commande.id}
                           bonCharge={

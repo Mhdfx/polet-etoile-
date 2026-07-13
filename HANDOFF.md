@@ -1278,3 +1278,28 @@ Verification :
   admin = 2 clients, Commercial 1 = 4 clients, Commercial 2 = 0, QA Live
   Commercial = 0. La correction doit etre retestee sur production apres pull de
   la nouvelle image Docker.
+
+## Addendum Codex - UI liste commandes admin - 13/07/2026
+
+Demande client traitee avant push production :
+
+- Page concernee : `/admin/commandes`.
+- Suppression de la colonne `Date reglement` pour alleger la table.
+- Le nom client est maintenant limite a une largeur courte (`18ch`) avec
+  troncature et titre au survol, afin que les noms longs de QA ou clients
+  complets ne poussent plus les actions hors ecran.
+- Ajout d'une colonne `Facture` entre `BL` et `Bon charge`. Pour l'instant,
+  `Facture` pointe vers la meme route PDF que `BL`
+  (`/admin/commandes/[id]/pdf`), comme demande.
+- La table est en `table-fixed` avec largeurs compactes et conteneur sans
+  `overflow-x-auto`; objectif : garder les actions BL/Facture/BC visibles sans
+  scroll horizontal sur desktop.
+
+Verification :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build` OK.
+- Navigateur local `http://localhost:3107/admin/commandes` :
+  en-tetes verifies (`Date reglement` absent, `Facture` present), BL et
+  Facture pointent vers le meme PDF, largeur document `1265` pour viewport
+  `1280`.
