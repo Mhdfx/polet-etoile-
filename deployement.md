@@ -25,6 +25,9 @@ Derniere verification VPS confirmee :
 - `poulet_etoile_mysql` healthy
 - `/connexion` retourne HTTP `200`
 - L'app tourne avec l'image preconstruite `ghcr.io/mhdfx/coq-plus:latest`
+- 11/07/2026 : base remise en etat livraison propre (voir section « Remise a zero
+  production vers etat livraison propre »). Etat verifie : `26` produits, `0`
+  commandes, `6` users.
 
 ## Architecture de deploiement
 
@@ -218,6 +221,51 @@ Notes :
 - `npm run reset:delivery-data` remet la base en etat livraison propre tout en
   conservant les utilisateurs et comptes auth.
 
+## Remise a zero production vers etat livraison propre
+
+Objectif : aligner la production sur l'etat local de livraison, c'est-a-dire
+**utilisateurs + 26 produits CDC, tout le transactionnel vide**. Procedure realisee
+le 11/07/2026.
+
+`reset:delivery-data` supprime aussi les produits, il faut donc enchainer avec
+`sync:catalogue` qui recree les 26 produits CDC avec leurs prix de reference.
+Ce que reset supprime : commandes, lignes, paiements, bons de charge, retours,
+historique prix, objectifs, clients, clients externes, audit, sessions, produits ;
+et remet les compteurs BL/BC a 0. Ce qu'il conserve : utilisateurs, comptes auth,
+parametres systeme.
+
+```bash
+cd /opt/apps/poulet-etoile
+
+# 1. Sauvegarde d'abord (voir section Sauvegarde MySQL, garder --no-tablespaces)
+docker compose -f docker-compose.ip.yml exec mysql sh -lc \
+  'mysqldump --no-tablespaces --single-transaction --routines --triggers \
+   -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  > backup-before-reset-$(date +%F-%H%M).sql
+
+# 2. Reset vers etat livraison propre (garde users + auth, vide le reste)
+docker compose -f docker-compose.ip.yml exec app npm run reset:delivery-data
+
+# 3. Recreer les 26 produits CDC avec prix de reference
+docker compose -f docker-compose.ip.yml exec app npm run sync:catalogue
+```
+
+Verification (le client `mysql` est dans le conteneur `mysql`, pas `app`) :
+
+```bash
+docker compose -f docker-compose.ip.yml exec mysql sh -lc \
+  'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -N -e \
+   "SELECT (SELECT COUNT(*) FROM produits) AS produits, (SELECT COUNT(*) FROM commandes) AS commandes, (SELECT COUNT(*) FROM users) AS users;"'
+```
+
+Resultat attendu : `26  0  <nb_users>`. Reset 11/07/2026 verifie a `26 | 0 | 6`
+(1008 commandes, 5 clients, 2 clients externes, 90 audits supprimes ; 6 users
+conserves). Toutes les sessions sont effacees : les utilisateurs doivent se
+reconnecter.
+
+Avertissement : cette operation est irreversible hors sauvegarde. Verifier que le
+dump de l'etape 1 n'est pas vide avant de lancer l'etape 2.
+
 ## Identifiants de test initiaux
 
 Comptes seed connus :
@@ -343,8 +391,16 @@ Sauvegarde manuelle :
 
 ```bash
 cd /opt/apps/poulet-etoile
-docker compose -f docker-compose.ip.yml exec mysql sh -lc 'mysqldump -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --single-transaction --routines --triggers "$MYSQL_DATABASE"' > backup-coq-plus.sql
+docker compose -f docker-compose.ip.yml exec mysql sh -lc \
+  'mysqldump --no-tablespaces --single-transaction --routines --triggers \
+   -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  > backup-coq-plus-$(date +%F-%H%M).sql
 ```
+
+Important : garder `--no-tablespaces`. Sans cette option, `mysqldump` echoue avec
+`Access denied; you need (at least one of) the PROCESS privilege(s)` car
+l'utilisateur `poulet` n'a pas le privilege global `PROCESS`. Un dump lance sans
+`--no-tablespaces` s'interrompt et produit un fichier vide/inutilisable.
 
 Restaurer seulement apres avoir verifie le fichier de sauvegarde et arrete les
 ecritures applicatives si necessaire.

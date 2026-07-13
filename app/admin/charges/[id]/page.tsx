@@ -33,7 +33,14 @@ export default async function DetailBonChargePage({
       date_charge: true,
       commentaire: true,
       created_at: true,
-      commande: { select: { id: true, numero_bl: true } },
+      commande: {
+        select: {
+          id: true,
+          numero_bl: true,
+          client: { select: { nom: true, region_ville: true, adresse: true } },
+          client_externe: { select: { nom: true, region_ville: true, adresse: true } },
+        },
+      },
       commercial: { select: { nom_complet: true } },
       createur: { select: { nom_complet: true } },
       lignes: {
@@ -48,6 +55,9 @@ export default async function DetailBonChargePage({
   }
 
   const totalKg = sommerQuantites(bon.lignes.map((ligne) => ligne.quantite_kg));
+  const clientCommande = bon.commande
+    ? (bon.commande.client ?? bon.commande.client_externe)
+    : null;
 
   return (
     <AppShell
@@ -121,6 +131,29 @@ export default async function DetailBonChargePage({
             </p>
           </div>
         </div>
+
+        {bon.commande ? (
+          <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Client livraison
+              </p>
+              <p className="text-sm font-medium">{clientCommande?.nom ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Ville
+              </p>
+              <p className="text-sm font-medium">{clientCommande?.region_ville ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Adresse livraison
+              </p>
+              <p className="text-sm font-medium">{clientCommande?.adresse ?? "-"}</p>
+            </div>
+          </div>
+        ) : null}
 
         {bon.commentaire ? (
           <p className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
