@@ -2,8 +2,8 @@ import { z } from "zod";
 import { normaliserSaisieMontant } from "@/lib/saisie";
 
 /** Resultat commun des actions serveur (mutations). */
-export type ResultatAction =
-  | { ok: true }
+export type ResultatAction<TSucces extends object = object> =
+  | ({ ok: true } & TSucces)
   | { ok: false; erreurs?: Record<string, string>; message?: string };
 
 export function erreursParChamp(erreur: z.ZodError): Record<string, string> {

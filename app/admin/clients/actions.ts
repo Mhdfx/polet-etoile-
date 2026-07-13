@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
@@ -26,7 +27,21 @@ const schemaFusionClients = z.object({
 const MESSAGE_ERREUR_SERVEUR =
   "Une erreur est survenue. Reessayez ou contactez l'administrateur.";
 
-function erreurServeur(erreur: unknown, action: string): ResultatAction {
+type ClientCreeAction = {
+  client: {
+    id: string;
+    nom: string;
+    ville: string;
+    commercialId: string;
+  };
+};
+
+type ResultatErreur = Extract<ResultatAction, { ok: false }>;
+
+function erreurServeur<TSucces extends object = object>(
+  erreur: unknown,
+  action: string,
+): ResultatAction<TSucces> {
   const idErreur = randomUUID().slice(0, 8);
   console.error(`[clients-admin:${action}] erreur ${idErreur}`, erreur);
 
@@ -36,7 +51,7 @@ function erreurServeur(erreur: unknown, action: string): ResultatAction {
 async function verifierResponsableClientActif(
   tx: Prisma.TransactionClient,
   responsableId: string,
-): Promise<ResultatAction | null> {
+): Promise<ResultatErreur | null> {
   const responsable = await tx.user.findFirst({
     where: {
       id: responsableId,
@@ -52,7 +67,9 @@ async function verifierResponsableClientActif(
     : { ok: false, erreurs: { commercialId: "Responsable introuvable" } };
 }
 
-export async function creerClientAdmin(entree: unknown): Promise<ResultatAction> {
+export async function creerClientAdmin(
+  entree: unknown,
+): Promise<ResultatAction<ClientCreeAction>> {
   const admin = await requireAdmin();
   const validation = schemaCreationClientAdmin.safeParse(entree);
 
@@ -60,7 +77,14 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
     return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
 
-  const { nom, regionVille, adresse, telephone, commercialId } = validation.data;
+  const {
+    nom,
+    regionVille,
+    adresse,
+    telephone,
+    commercialId,
+    selectionCommande,
+  } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -105,11 +129,27 @@ export async function creerClientAdmin(entree: unknown): Promise<ResultatAction>
         ip,
       );
 
-      return { ok: true as const };
+      return {
+        ok: true as const,
+        client: {
+          id: client.id,
+          nom,
+          ville: regionVille,
+          commercialId,
+        },
+      };
     });
 
     if (resultat.ok) {
       revalidatePath("/admin/clients");
+      if (selectionCommande) {
+        const cookieStore = await cookies();
+        cookieStore.set("commande_client_selection_admin", resultat.client.id, {
+          path: "/admin/commandes/nouvelle",
+          maxAge: 120,
+          sameSite: "lax",
+        });
+      }
     }
 
     return resultat;

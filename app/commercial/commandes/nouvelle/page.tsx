@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { formatMontant } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
@@ -7,6 +8,9 @@ import { CommandeForm } from "@/app/commandes/commande-form";
 
 export default async function NouvelleCommandeCommercialPage() {
   const commercial = await requireCommercial();
+  const cookieStore = await cookies();
+  const clientSelectionInitiale =
+    cookieStore.get("commande_client_selection_commercial")?.value ?? null;
 
   const [produits, clients, villes] = await Promise.all([
     prisma.produit.findMany({
@@ -56,6 +60,7 @@ export default async function NouvelleCommandeCommercialPage() {
           ville: client.region_ville,
         }))}
         villes={villes}
+        clientSelectionInitiale={clientSelectionInitiale}
       />
     </AppShell>
   );

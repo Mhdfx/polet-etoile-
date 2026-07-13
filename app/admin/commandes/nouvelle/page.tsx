@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -7,6 +8,9 @@ import { CommandeForm } from "@/app/commandes/commande-form";
 
 export default async function NouvelleCommandeAdminPage() {
   const admin = await requireAdmin();
+  const cookieStore = await cookies();
+  const clientSelectionInitiale =
+    cookieStore.get("commande_client_selection_admin")?.value ?? null;
 
   const [produits, clients, clientsExternes, responsables, villes] = await Promise.all([
     prisma.produit.findMany({
@@ -77,6 +81,7 @@ export default async function NouvelleCommandeAdminPage() {
           }`,
         }))}
         villes={villes}
+        clientSelectionInitiale={clientSelectionInitiale}
       />
     </AppShell>
   );
