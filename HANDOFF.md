@@ -1398,3 +1398,38 @@ Notes non traitees volontairement dans ce passage :
   l'automatisation navigateur ; ce n'est pas un bug confirme.
 - Une vraie facture distincte du BL reste une evolution metier si le client veut
   un contenu fiscal different.
+
+## Addendum Codex - correction locale prob.md - 14/07/2026
+
+Contexte :
+
+- `prob.md` signalait un crash `Erreur 500` apres hydratation sur les pages
+  commandes locales `localhost:3107`.
+- Verification navigateur : le crash etait reel, avec `ChunkLoadError` sur un
+  fichier `.next/static/chunks/3109-...js` obsolète.
+- Cause : serveur `next start` local demarre sur un ancien build pendant que
+  `.next` contenait un build plus recent.
+
+Actions :
+
+- Arret du serveur local sur le port `3107`, puis `npm run build` et redemarrage
+  de `next start -p 3107`.
+- Correction de l'environnement local ignore par Git : `.env` passe de
+  `localhost:3306` a `localhost:3307`, qui correspond au MySQL Docker expose
+  par `docker-compose.yml`.
+- Verification navigateur admin : `/admin/commandes/nouvelle`,
+  `/admin/commandes` et `/admin` ne plantent plus apres hydratation.
+- Verification navigateur commercial : connexion `com1`, puis
+  `/commercial/commandes/nouvelle` stable sans erreur console.
+- Correction code : `app/produits/tarifs-data.ts` filtre maintenant
+  `suivi_stock: true` pour exclure les pseudo-produits comme
+  `RELIQUAT PAYEMENT` de la liste des prix.
+
+Verification finale effectuee :
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`.
+- Redemarrage du serveur local avec `.env` seul, sans override manuel.
+- Retest navigateur : `/admin/commandes/nouvelle`, `/admin/commandes` et
+  `/admin/produits/tarifs` ne plantent plus et ne generent plus d'erreurs
+  console.
+- `/admin/produits/tarifs` n'affiche plus `RELIQUAT PAYEMENT`.

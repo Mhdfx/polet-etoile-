@@ -831,3 +831,19 @@ schema freeze explicite par Mehdi et deploiement.
   protegees.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`.
+
+## Correction locale `prob.md` - crash hydration et tarifs - 14/07/2026
+
+- [x] Verifier au navigateur que `/admin/commandes/nouvelle` sur `localhost:3107`
+  plantait avec `Erreur 500` apres hydratation.
+- [x] Diagnostiquer le `ChunkLoadError` comme un serveur Next.js local demarre
+  sur un ancien build.
+- [x] Redemarrer `next start -p 3107` apres `npm run build`.
+- [x] Corriger l'environnement local : `.env` pointe maintenant vers le MySQL
+  Docker expose sur `localhost:3307`.
+- [x] Verifier au navigateur que les pages commandes admin et commercial ne
+  plantent plus apres hydratation.
+- [x] Exclure les pseudo-produits non suivis en stock de la liste des prix :
+  `RELIQUAT PAYEMENT` ne doit plus apparaitre dans les tarifs.
+- [x] Verification finale : `npx tsc --noEmit`, `npm run lint`,
+  `npm run test` (133/133), `npm run build` et retest navigateur apres rebuild.
