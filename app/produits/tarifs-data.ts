@@ -7,7 +7,7 @@ import type { TarifsDocumentData } from "./tarifs-pdf";
 export async function chargerTarifsDocument(): Promise<TarifsDocumentData> {
   const [produits, parametres] = await Promise.all([
     prisma.produit.findMany({
-      where: { actif: true, deleted_at: null },
+      where: { actif: true, deleted_at: null, suivi_stock: true },
       orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
       select: { nom: true, prix_reference: true },
     }),
