@@ -310,69 +310,104 @@ const WATERMARKS = [
   [318, 548],
 ] as const;
 
+const PRODUITS_PAR_PAGE = 26;
+
+function grouperProduits<T>(produits: T[], taille: number): T[][] {
+  const pages: T[][] = [];
+  for (let index = 0; index < produits.length; index += taille) {
+    pages.push(produits.slice(index, index + taille));
+  }
+  return pages.length > 0 ? pages : [[]];
+}
+
 export function TarifsPdf({ data }: { data: TarifsDocumentData }) {
+  const pages = grouperProduits(data.produits, PRODUITS_PAR_PAGE);
+
   return (
     <Document title={`Tarifs ${data.date}`}>
-      <Page size="A4" style={styles.page}>
-        <BackgroundDecor />
-        <WatermarkLayer />
+      {pages.map((produits, pageIndex) => (
+        <TarifsPage
+          key={pageIndex}
+          data={data}
+          produits={produits}
+          departIndex={pageIndex * PRODUITS_PAR_PAGE}
+        />
+      ))}
+    </Document>
+  );
+}
 
-        <View style={styles.header}>
-          <View style={styles.logoWrap}>
-            {data.societe.logo ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={data.societe.logo} style={styles.logo} />
-            ) : (
-              <View style={styles.logoFallback}>
-                <Text style={styles.logoFallbackText}>COQ PLUS</Text>
-              </View>
-            )}
-          </View>
+function TarifsPage({
+  data,
+  produits,
+  departIndex,
+}: {
+  data: TarifsDocumentData;
+  produits: TarifProduit[];
+  departIndex: number;
+}) {
+  return (
+    <Page size="A4" style={styles.page}>
+      <BackgroundDecor />
+      <WatermarkLayer />
+
+      <View style={styles.header}>
+        <View style={styles.logoWrap}>
+          {data.societe.logo ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={data.societe.logo} style={styles.logo} />
+          ) : (
+            <View style={styles.logoFallback}>
+              <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+            </View>
+          )}
         </View>
+      </View>
 
-        <View style={styles.datePill}>
-          <Text style={styles.datePillText}>TARIFS DU {data.date}</Text>
+      <View style={styles.datePill}>
+        <Text style={styles.datePillText}>TARIFS DU {data.date}</Text>
+      </View>
+
+      <View style={styles.titleRow}>
+        <View style={styles.titleLine} />
+        <View style={styles.titleDot} />
+        <Text style={styles.title}>LISTE DES PRIX</Text>
+        <View style={styles.titleDot} />
+        <View style={styles.titleLine} />
+      </View>
+
+      <View style={styles.table} wrap={false}>
+        <View style={styles.row} wrap={false}>
+          <Text style={[styles.headCell, styles.indexHead]}> </Text>
+          <Text style={[styles.headCell, styles.articleHead]}>ARTICLE</Text>
+          <Text style={[styles.headCell, styles.priceHead]}>PRIX EN KG (DH)</Text>
         </View>
-
-        <View style={styles.titleRow}>
-          <View style={styles.titleLine} />
-          <View style={styles.titleDot} />
-          <Text style={styles.title}>LISTE DES PRIX</Text>
-          <View style={styles.titleDot} />
-          <View style={styles.titleLine} />
-        </View>
-
-        <View style={styles.table} wrap={false}>
-          <View style={styles.row} wrap={false}>
-            <Text style={[styles.headCell, styles.indexHead]}> </Text>
-            <Text style={[styles.headCell, styles.articleHead]}>ARTICLE</Text>
-            <Text style={[styles.headCell, styles.priceHead]}>PRIX EN KG (DH)</Text>
-          </View>
-          {data.produits.slice(0, 26).map((produit, index) => (
-            <View key={`${produit.nom}-${index}`} style={styles.row} wrap={false}>
-              <View style={[styles.cell, styles.indexCell]}>
-                <View style={styles.indexBadge}>
-                  <Text style={styles.indexText}>{String(index + 1).padStart(2, "0")}</Text>
-                </View>
-              </View>
-              <View style={[styles.cell, styles.articleCell]}>
-                <Text style={styles.articleText}>{produit.nom}</Text>
-              </View>
-              <View style={[styles.cell, styles.priceCell]}>
-                <Text style={styles.priceText}>{produit.prix}</Text>
+        {produits.map((produit, index) => (
+          <View key={`${produit.nom}-${departIndex + index}`} style={styles.row} wrap={false}>
+            <View style={[styles.cell, styles.indexCell]}>
+              <View style={styles.indexBadge}>
+                <Text style={styles.indexText}>
+                  {String(departIndex + index + 1).padStart(2, "0")}
+                </Text>
               </View>
             </View>
-          ))}
-        </View>
+            <View style={[styles.cell, styles.articleCell]}>
+              <Text style={styles.articleText}>{produit.nom}</Text>
+            </View>
+            <View style={[styles.cell, styles.priceCell]}>
+              <Text style={styles.priceText}>{produit.prix}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
 
-        <View style={styles.noteRow}>
-          <Text style={styles.warningIcon}>!</Text>
-          <Text style={styles.note}>**le tarif risque de changer pendant la semaine</Text>
-        </View>
+      <View style={styles.noteRow}>
+        <Text style={styles.warningIcon}>!</Text>
+        <Text style={styles.note}>**le tarif risque de changer pendant la semaine</Text>
+      </View>
 
-        <Footer data={data} />
-      </Page>
-    </Document>
+      <Footer data={data} />
+    </Page>
   );
 }
 

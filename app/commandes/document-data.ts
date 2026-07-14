@@ -70,6 +70,10 @@ export async function chargerCommandeDocument(
     },
   });
 
+  if (!commande && commercialId) {
+    redirect("/403");
+  }
+
   if (!commande) {
     notFound();
   }

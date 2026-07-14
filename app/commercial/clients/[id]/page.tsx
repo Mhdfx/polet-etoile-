@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Decimal from "decimal.js";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
@@ -57,7 +57,7 @@ export default async function ClientCommercialDetailPage({ params }: PageProps) 
   });
 
   if (!client) {
-    notFound();
+    redirect("/403");
   }
   if (client.commercial_id !== commercial.id) {
     redirect("/403");

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Decimal from "decimal.js";
 import type { Prisma } from "@prisma/client";
 import { Download, FileText, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -95,7 +96,6 @@ export default async function CommandesCommercialPage({
   const commandesBrutes = await prisma.commande.findMany({
     where,
     orderBy: { date_commande: "desc" },
-    take: 5000,
     select: {
       id: true,
       numero_bl: true,
@@ -126,12 +126,12 @@ export default async function CommandesCommercialPage({
     (acc, commande) => {
       const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
       acc.total += 1;
-      acc.ca += Number(totaux.total);
-      acc.reste += Number(totaux.resteDu);
+      acc.ca = acc.ca.plus(totaux.total);
+      acc.reste = acc.reste.plus(totaux.resteDu);
       if (totaux.statutPaiement === "paye") acc.payees += 1;
       return acc;
     },
-    { total: 0, payees: 0, ca: 0, reste: 0 },
+    { total: 0, payees: 0, ca: new Decimal(0), reste: new Decimal(0) },
   );
 
   return (
@@ -274,7 +274,12 @@ export default async function CommandesCommercialPage({
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon-sm" asChild>
-                          <Link href={`/commercial/commandes/${commande.id}/pdf`} target="_blank" title="PDF BL">
+                          <Link
+                            href={`/commercial/commandes/${commande.id}/pdf`}
+                            target="_blank"
+                            title={`PDF BL ${commande.numero_bl}`}
+                            aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                          >
                             <FileText />
                           </Link>
                         </Button>

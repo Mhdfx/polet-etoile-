@@ -33,7 +33,6 @@ export async function GET() {
     prisma.commande.findMany({
       where: { deleted_at: null },
       orderBy: { date_commande: "desc" },
-      take: 5000,
       select: {
         numero_bl: true,
         date_commande: true,

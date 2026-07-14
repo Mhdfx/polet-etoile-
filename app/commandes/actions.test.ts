@@ -286,7 +286,7 @@ describe("ajouterPaiementCommande", () => {
 
     expect(resultat.ok).toBe(false);
     if (!resultat.ok) {
-      expect(resultat.erreurs?.montant).toContain("depasse le reste");
+      expect(resultat.erreurs?.montant).toContain("dépasse le reste dû");
     }
     expect(txMock.paiement.create).not.toHaveBeenCalled();
   });

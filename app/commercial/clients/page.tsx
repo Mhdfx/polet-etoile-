@@ -21,7 +21,6 @@ export default async function ClientsCommercialPage({
   const recherche = (params.q ?? "").trim();
 
   const where: Prisma.ClientWhereInput = {
-    commercial_id: commercial.id,
     deleted_at: null,
     ...(recherche
       ? {
@@ -50,6 +49,8 @@ export default async function ClientsCommercialPage({
         telephone: true,
         actif: true,
         updated_at: true,
+        commercial_id: true,
+        commercial: { select: { nom_complet: true, nom_utilisateur: true } },
       },
     }),
     listerVillesMaroc(),
@@ -60,10 +61,11 @@ export default async function ClientsCommercialPage({
       utilisateur={commercial}
       espace="commercial"
       cheminActif="/commercial/clients"
-      titre="Mes clients"
-      description="Portefeuille terrain : creation, mise a jour, ville, telephone et suppression logique."
+      titre="Clients"
+      description="Liste globale des clients. Les commerciaux peuvent modifier uniquement leurs propres clients."
     >
       <ClientsCommercialTable
+        utilisateurId={commercial.id}
         lignes={clients.map((client) => ({
           id: client.id,
           nom: client.nom,
@@ -74,6 +76,8 @@ export default async function ClientsCommercialPage({
           telephoneBrut: client.telephone ?? "",
           actif: client.actif,
           modifieLe: formatDate(client.updated_at),
+          commercialId: client.commercial_id,
+          commercialNom: `${client.commercial.nom_complet} (${client.commercial.nom_utilisateur})`,
         }))}
         villes={villes}
         page={page}

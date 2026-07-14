@@ -202,7 +202,7 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Paiements</CardTitle>
-            <CardDescription>Ajout admin uniquement, montant limite au reste du.</CardDescription>
+            <CardDescription>Ajout admin uniquement, montant limité au reste dû.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <PaiementForm commandeId={commande.id} />

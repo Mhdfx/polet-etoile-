@@ -99,7 +99,6 @@ export default async function CommandesExternesCommercialPage({
     prisma.commande.findMany({
       where,
       orderBy: { date_commande: "desc" },
-      take: 5000,
       select: {
         id: true,
         numero_bl: true,
@@ -281,4 +280,3 @@ export default async function CommandesExternesCommercialPage({
     </AppShell>
   );
 }
-

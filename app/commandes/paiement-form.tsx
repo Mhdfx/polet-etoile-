@@ -49,7 +49,6 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
       setMontant("");
       setReference("");
       router.refresh();
-      window.setTimeout(() => window.location.reload(), 100);
       return;
     }
 
