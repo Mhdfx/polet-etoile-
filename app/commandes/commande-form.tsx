@@ -389,7 +389,6 @@ export function CommandeForm(props: CommandeFormProps) {
           ? `/admin/commandes/${resultat.commandeId}`
           : `/commercial/commandes/${resultat.commandeId}`;
       router.push(detail);
-      router.refresh();
       return;
     }
 

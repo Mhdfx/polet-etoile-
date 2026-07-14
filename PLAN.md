@@ -847,3 +847,35 @@ schema freeze explicite par Mehdi et deploiement.
   `RELIQUAT PAYEMENT` ne doit plus apparaitre dans les tarifs.
 - [x] Verification finale : `npx tsc --noEmit`, `npm run lint`,
   `npm run test` (133/133), `npm run build` et retest navigateur apres rebuild.
+
+## QA navigateur complete locale - 14/07/2026
+
+- [x] Tester au navigateur `http://localhost:3107` avec les trois roles :
+  `admin`, `com1` et `com2`.
+- [x] Balayer les pages admin principales : dashboard, commandes, nouvelle
+  commande, clients, produits, tarifs, bons de charge, paiements, retours, KPI,
+  corbeille et historique admins.
+- [x] Verifier `/admin/commandes` : colonnes `BL`, `Facture`, `Bon charge`
+  visibles, pas de scroll horizontal au viewport desktop teste.
+- [x] Verifier `/admin/produits/tarifs` : `RELIQUAT PAYEMENT` absent et bouton
+  PDF visible.
+- [x] Verifier dashboard admin : rankings commerciaux, produits, villes,
+  clients et restes dus visibles.
+- [x] Corriger une regression detectee : apres creation d'une commande, le
+  formulaire pouvait rester sur `/commandes/nouvelle`. Suppression du
+  `router.refresh()` immediat apres `router.push()` pour laisser la redirection
+  vers le detail se terminer.
+- [x] Retester creation commande admin et commercial : redirection vers
+  `/admin/commandes/[id]` et `/commercial/commandes/[id]` confirmee.
+- [x] Retester client rapide admin avec adresse : client auto-selectionne,
+  commande `CP-000017` creee, puis bon de charge `BC-000004` cree avec client,
+  ville et adresse de livraison visibles.
+- [x] Verifier paiement admin : paiement partiel visible et surpaiement bloque
+  avec message francais `Le paiement depasse le reste du (...)`.
+- [x] Verifier permissions commercial : `com1` voit ses pages et recoit un 403
+  sur une commande d'un autre responsable ; `com2` charge dashboard, commandes,
+  nouvelle commande, clients et KPI.
+- [x] Verifier retours commercial : page et historique chargent, formulaire
+  visible.
+- [x] Verification technique apres correction : `npx tsc --noEmit`,
+  `npm run lint`, `npm run test` (133/133), `npm run build`.

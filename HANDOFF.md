@@ -1433,3 +1433,55 @@ Verification finale effectuee :
   `/admin/produits/tarifs` ne plantent plus et ne generent plus d'erreurs
   console.
 - `/admin/produits/tarifs` n'affiche plus `RELIQUAT PAYEMENT`.
+
+## Addendum Codex - QA navigateur complete locale - 14/07/2026
+
+Objectif :
+
+- Tester le systeme local `http://localhost:3107` comme une recette fonctionnelle
+  avant prochain deploiement, avec les roles `admin`, `com1` et `com2`.
+
+Probleme detecte et corrige :
+
+- Creation commande : apres soumission reussie, `CommandeForm` pouvait rester
+  sur `/admin/commandes/nouvelle` ou `/commercial/commandes/nouvelle` avec un
+  message de succes. Cela creait un risque de double saisie.
+- Correction dans `app/commandes/commande-form.tsx` : suppression du
+  `router.refresh()` lance immediatement apres `router.push(detail)`. La
+  redirection vers le detail de commande se termine maintenant correctement.
+
+Verification navigateur :
+
+- Admin : dashboard, commandes, nouvelle commande, clients, produits, tarifs,
+  bons de charge, paiements, retours, KPI, corbeille et historique admins
+  chargent sans erreur visible.
+- `/admin/commandes` : colonnes `BL`, `Facture`, `Bon charge` visibles, aucune
+  barre horizontale au viewport desktop teste.
+- `/admin/produits/tarifs` : `RELIQUAT PAYEMENT` absent, action PDF visible.
+- Dashboard admin : rankings commerciaux, produits, villes, clients et clients
+  a encaisser visibles.
+- Paiement admin : paiement partiel visible sur `CP-000015`; surpaiement
+  bloque avec message francais indiquant le reste du.
+- Client rapide admin : creation d'un client avec adresse depuis la commande,
+  auto-selection confirmee, commande `CP-000017` creee, bon de charge
+  `BC-000004` cree avec client, ville et adresse de livraison visibles.
+- Commercial `com1` : dashboard, commandes, nouvelle commande, clients, retours
+  et KPI chargent ; acces a une commande d'un autre responsable bloque par 403 ;
+  detail propre `CP-000016` accessible.
+- Commercial `com2` : dashboard, commandes, nouvelle commande, clients et KPI
+  chargent sans erreur.
+
+Verification technique :
+
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK (133/133).
+- `npm run build` OK.
+
+Notes residuelles :
+
+- Les PDF en telechargement peuvent provoquer un `ERR_ABORTED` dans certains
+  wrappers navigateur car la reponse est une piece jointe ; les liens UI sont
+  presents sur les pages testees.
+- Quelques libelles restent sans accents (`Telecharger`, `Creer`, `Quantite`,
+  `Parametrage`). C'est de la finition UI, pas un blocage logique.
