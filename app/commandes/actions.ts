@@ -14,6 +14,7 @@ import {
 } from "@/lib/commandes";
 import { calculerResteDu, sommerMontants } from "@/lib/decimal";
 import { prisma } from "@/lib/db";
+import { formatMontant } from "@/lib/format";
 import { requireAdmin, requireCommercial } from "@/lib/session";
 import { erreursParChamp } from "@/lib/validations/commun";
 import {
@@ -366,7 +367,7 @@ export async function ajouterPaiementCommande(
         return {
           ok: false as const,
           erreurs: {
-            montant: `Le paiement depasse le reste du (${resteDu.toFixed(2)} DH)`,
+            montant: `Le paiement dépasse le reste dû (${formatMontant(resteDu)})`,
           },
         };
       }
@@ -440,8 +441,18 @@ export async function modifierCommandeAdmin(
     const ip = await adresseIpRequete();
     const resultat = await prisma.$transaction(
       async (tx): Promise<ResultatMutationCommande> => {
-      const commande = await tx.commande.findFirst({
-        where: { id: commandeId, deleted_at: null },
+      const verrou = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM commandes
+        WHERE id = ${commandeId} AND deleted_at IS NULL
+        FOR UPDATE
+      `;
+
+      if (!verrou.at(0)) {
+        return { ok: false as const, message: "Commande introuvable" };
+      }
+
+      const commande = await tx.commande.findUnique({
+        where: { id: commandeId },
         select: {
           id: true,
           numero_bl: true,
@@ -540,7 +551,7 @@ export async function modifierCommandeAdmin(
         return {
           ok: false as const,
           message:
-            `Le nouveau total (${commandeCalculee.total} DH) ne peut pas etre inferieur au montant deja paye (${dejaPaye.toFixed(2)} DH).`,
+            `Le nouveau total (${formatMontant(commandeCalculee.total)}) ne peut pas être inférieur au montant déjà payé (${formatMontant(dejaPaye)}).`,
         };
       }
 

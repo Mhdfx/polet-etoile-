@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
   });
 
   if (!commande) {
-    notFound();
+    redirect("/403");
   }
 
   if (commande.utilisateur_id !== commercial.id) {

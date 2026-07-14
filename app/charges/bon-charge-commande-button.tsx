@@ -28,7 +28,10 @@ export function BonChargeCommandeButton({
   if (bonCharge && !bonCharge.supprime) {
     return (
       <Button variant="outline" size="sm" asChild>
-        <Link href={`/admin/charges/${bonCharge.id}`}>
+        <Link
+          href={`/admin/charges/${bonCharge.id}`}
+          aria-label={`Ouvrir le bon de charge ${bonCharge.numeroBc}`}
+        >
           <Truck className="h-4 w-4" /> {bonCharge.numeroBc}
         </Link>
       </Button>
@@ -50,6 +53,7 @@ export function BonChargeCommandeButton({
         size="sm"
         variant="outline"
         chargement={enCours}
+        aria-label="Créer le bon de charge de cette commande"
         onClick={async () => {
           if (enCours) return;
           setMessage(undefined);

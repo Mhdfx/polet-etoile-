@@ -80,6 +80,7 @@ export default async function NouvelleCommandeAdminPage() {
             responsable.role === "ADMIN" ? "Admin" : "Commercial"
           }`,
         }))}
+        responsableInitialId={admin.id}
         villes={villes}
         clientSelectionInitiale={clientSelectionInitiale}
       />

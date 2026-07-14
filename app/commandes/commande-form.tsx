@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { creerClientAdmin } from "@/app/admin/clients/actions";
 import { creerClientCommercial } from "@/app/commercial/clients/actions";
@@ -84,6 +85,7 @@ type CommandeFormProps =
       clients: Array<OptionClient & { commercialId: string }>;
       clientsExternes: OptionClient[];
       commerciaux: OptionCommercial[];
+      responsableInitialId: string;
       villes: string[];
       clientSelectionInitiale?: string | null;
     };
@@ -93,11 +95,14 @@ function nouvelleLigne(): LigneFormulaire {
 }
 
 export function CommandeForm(props: CommandeFormProps) {
+  const router = useRouter();
+  const responsableInitialId =
+    props.mode === "admin"
+      ? props.responsableInitialId || props.commerciaux[0]?.id || ""
+      : "";
   const [clientId, setClientId] = useState("");
   const [clientExterneId, setClientExterneId] = useState("");
-  const [commercialId, setCommercialId] = useState(
-    props.mode === "admin" ? (props.commerciaux[0]?.id ?? "") : "",
-  );
+  const [commercialId, setCommercialId] = useState(responsableInitialId);
   const [typeClient, setTypeClient] = useState<"STANDARD" | "EXTERNE">("STANDARD");
   const [lignes, setLignes] = useState<LigneFormulaire[]>([nouvelleLigne()]);
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
@@ -120,6 +125,10 @@ export function CommandeForm(props: CommandeFormProps) {
     () => new Map(props.produits.map((produit) => [produit.id, produit])),
     [props.produits],
   );
+  const clientsAvecCommercial = useMemo(
+    () => (props.mode === "admin" ? props.clients : []),
+    [props.mode, props.clients],
+  );
   const cleBrouillon = `commande-brouillon-${props.mode}`;
   const cookieSelectionClient =
     props.mode === "admin"
@@ -137,10 +146,21 @@ export function CommandeForm(props: CommandeFormProps) {
     if (raw) {
       try {
         const brouillon = JSON.parse(raw) as BrouillonCommande;
-        setClientId(brouillon.clientId ?? "");
-        setClientExterneId(brouillon.clientExterneId ?? "");
-        if (props.mode === "admin" && brouillon.commercialId) {
-          setCommercialId(brouillon.commercialId);
+        const clientBrouillonId = brouillon.clientId ?? "";
+        const clientExterneBrouillonId = brouillon.clientExterneId ?? "";
+        setClientId(clientBrouillonId);
+        setClientExterneId(clientExterneBrouillonId);
+        if (props.mode === "admin") {
+          const responsableClient =
+            clientBrouillonId
+              ? clientsAvecCommercial.find((client) => client.id === clientBrouillonId)
+                  ?.commercialId
+              : undefined;
+          const responsableExterne =
+            clientExterneBrouillonId && brouillon.commercialId
+              ? brouillon.commercialId
+              : undefined;
+          setCommercialId(responsableClient ?? responsableExterne ?? responsableInitialId);
         }
         if (brouillon.typeClient === "STANDARD" || brouillon.typeClient === "EXTERNE") {
           setTypeClient(brouillon.typeClient);
@@ -158,7 +178,7 @@ export function CommandeForm(props: CommandeFormProps) {
       }
     }
     setBrouillonCharge(true);
-  }, [cleBrouillon, props.mode]);
+  }, [cleBrouillon, clientsAvecCommercial, props.mode, responsableInitialId]);
 
   useEffect(() => {
     if (!brouillonCharge) {
@@ -192,6 +212,14 @@ export function CommandeForm(props: CommandeFormProps) {
     setTypeClient("STANDARD");
     setClientExterneId("");
     setClientId(props.clientSelectionInitiale);
+    if (props.mode === "admin") {
+      const responsableClient = clientsAvecCommercial.find(
+        (client) => client.id === props.clientSelectionInitiale,
+      )?.commercialId;
+      if (responsableClient) {
+        setCommercialId(responsableClient);
+      }
+    }
     setErreurs((actuelles) => {
       const prochaines = { ...actuelles };
       delete prochaines.clientId;
@@ -203,7 +231,12 @@ export function CommandeForm(props: CommandeFormProps) {
       JSON.stringify({
         clientId: props.clientSelectionInitiale,
         clientExterneId: "",
-        commercialId,
+        commercialId:
+          props.mode === "admin"
+            ? clientsAvecCommercial.find(
+                (client) => client.id === props.clientSelectionInitiale,
+              )?.commercialId ?? commercialId
+            : commercialId,
         typeClient: "STANDARD",
         lignes,
       } satisfies BrouillonCommande),
@@ -217,7 +250,9 @@ export function CommandeForm(props: CommandeFormProps) {
     cookieSelectionClient.chemin,
     cookieSelectionClient.nom,
     lignes,
+    clientsAvecCommercial,
     props.clientSelectionInitiale,
+    props.mode,
   ]);
 
   useEffect(() => {
@@ -349,6 +384,12 @@ export function CommandeForm(props: CommandeFormProps) {
     if (resultat.ok) {
       setSucces(`Commande creee : ${resultat.numeroBl}`);
       reinitialiserApresSucces();
+      const detail =
+        props.mode === "admin"
+          ? `/admin/commandes/${resultat.commandeId}`
+          : `/commercial/commandes/${resultat.commandeId}`;
+      router.push(detail);
+      router.refresh();
       return;
     }
 

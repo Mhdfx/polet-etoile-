@@ -1353,3 +1353,48 @@ Verification effectuee apres cette modification :
 - Rendu PNG via Poppler dans
   `tmp/pdfs/tarifs-coq-plus-logo-facture-1.png` et inspection visuelle OK :
   logo/fallback partage en haut, table lisible, footer dans la page.
+
+## Addendum Codex - corrections QA production prob.md - 14/07/2026
+
+Demande traitee :
+
+- Source : `prob.md`, plus demande explicite d'afficher tous les clients de la
+  base pour les utilisateurs commerciaux et admins.
+- PDF tarifs : `app/produits/tarifs-pdf.tsx` pagine maintenant les produits par
+  blocs de 26 au lieu de couper la liste avec `.slice(0, 26)`.
+- Liste clients commercial : `/commercial/clients` charge tous les clients actifs.
+  Les lignes hors portefeuille sont visibles, mais les actions edit/delete sont
+  desactivees ; les actions serveur gardent aussi le controle proprietaire.
+- Creation commande : `CommandeForm` redirige vers le detail cree
+  (`/admin/commandes/[id]` ou `/commercial/commandes/[id]`) et initialise le
+  responsable admin avec l'admin connecte. Les brouillons vides ne doivent plus
+  imposer un ancien commercial.
+- Paiement : suppression du `window.location.reload()` apres `router.refresh()`
+  et message d'erreur d'overpay corrige en francais avec `formatMontant`.
+- Concurrence : `modifierCommandeAdmin` verrouille la ligne commande avec
+  `SELECT ... FOR UPDATE` avant recalcul, pour serialiser modification BL et
+  ajout paiement.
+- Boutons documents : labels accessibles ajoutes aux icones PDF ; `Facture`
+  pointe vers une route dediee `/admin/commandes/[id]/facture`, qui rend
+  actuellement le meme PDF que le BL comme demande precedemment.
+- Totaux/listes : suppression des caps silencieux `take: 5000`, sommes des
+  cartes avec Decimal, admins exclus du ranking commerciaux.
+- Commercial : les ressources detail/PDF hors scope ou inexistantes repondent
+  uniformement `/403` pour eviter de reveler l'existence ; objectif KPI absent
+  affiche `Non defini` au lieu de `0,00 DH`.
+
+Verification effectuee :
+
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK (133/133).
+- `npm run build` OK.
+
+Notes non traitees volontairement dans ce passage :
+
+- BL modifiable apres creation reste une decision produit deja demandee par le
+  client, meme si elle diverge d'une lecture stricte CDC.
+- Les exports/PDF en attachment peuvent donner `net::ERR_ABORTED` dans
+  l'automatisation navigateur ; ce n'est pas un bug confirme.
+- Une vraie facture distincte du BL reste une evolution metier si le client veut
+  un contenu fiscal different.

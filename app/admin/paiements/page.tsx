@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Decimal from "decimal.js";
 import { CreditCard, Search } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { AppShell, Panel } from "@/components/app-shell";
@@ -54,7 +55,6 @@ export default async function PaiementsAdminPage({
     prisma.commande.findMany({
       where,
       orderBy: { date_commande: "desc" },
-      take: 5000,
       select: {
         id: true,
         numero_bl: true,
@@ -92,8 +92,8 @@ export default async function PaiementsAdminPage({
   const totaux = commandesBrutes.reduce(
     (acc, commande) => {
       const total = calculerTotauxCommande(commande.lignes, commande.paiements);
-      acc.ca += Number(total.total);
-      acc.reste += Number(total.resteDu);
+      acc.ca = acc.ca.plus(total.total);
+      acc.reste = acc.reste.plus(total.resteDu);
       if (total.statutPaiement === "paye") {
         acc.payees += 1;
       } else {
@@ -101,7 +101,7 @@ export default async function PaiementsAdminPage({
       }
       return acc;
     },
-    { ca: 0, reste: 0, payees: 0, enAttente: 0 },
+    { ca: new Decimal(0), reste: new Decimal(0), payees: 0, enAttente: 0 },
   );
 
   return (

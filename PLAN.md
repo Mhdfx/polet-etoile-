@@ -806,3 +806,28 @@ schema freeze explicite par Mehdi et deploiement.
 - [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
   (133/133), `npm run build`, rendu PDF local mesure a environ 397 ms,
   `pdfinfo` confirme une seule page A4 et inspection PNG OK.
+
+## Corrections QA production `prob.md` - 14/07/2026
+
+- [x] PDF tarifs : supprimer la limite silencieuse a 26 produits et paginer le
+  document pour inclure tous les produits actifs.
+- [x] Liste clients commerciaux : afficher tous les clients actifs de la base
+  pour les commerciaux et admins ; garder les actions modifier/supprimer en
+  lecture seule pour les clients rattaches a un autre responsable.
+- [x] Commande admin : initialiser explicitement le responsable sur l'admin
+  connecte, eviter qu'un brouillon vide impose un ancien commercial, et rediriger
+  vers le detail de commande apres creation.
+- [x] Paiement : supprimer le double refresh et corriger le message de
+  depassement du reste du avec format DH francais.
+- [x] Concurrence : verrouiller la commande dans la transaction de modification
+  BL pour eviter une course avec l'ajout de paiement.
+- [x] Commandes : ajouter des labels accessibles aux boutons PDF/BL/facture/BC
+  et creer une route `/admin/commandes/[id]/facture` dediee.
+- [x] KPI/listes : retirer les caps silencieux `take: 5000`, utiliser Decimal
+  pour les sommes de cartes de listes et exclure les admins du ranking
+  commerciaux.
+- [x] Commercial : afficher `Non defini` sur KPI objectif quand aucun objectif
+  n'est configure et uniformiser 403/404 sur les ressources commerciales
+  protegees.
+- [x] Verification : `npx tsc --noEmit`, `npm run lint`, `npm run test`
+  (133/133), `npm run build`.

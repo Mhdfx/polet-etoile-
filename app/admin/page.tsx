@@ -217,7 +217,7 @@ export default async function AdminPage({
             select: {
               id: true,
               date_commande: true,
-              utilisateur: { select: { id: true, nom_complet: true, nom_utilisateur: true } },
+              utilisateur: { select: { id: true, nom_complet: true, nom_utilisateur: true, role: true } },
               client: { select: { id: true, nom: true, region_ville: true } },
               client_externe: { select: { id: true, nom: true, region_ville: true } },
               lignes: {
@@ -281,16 +281,18 @@ export default async function AdminPage({
       : "client:inconnu";
     const nomClient = clientCommande?.nom ?? "Client inconnu";
     const ville = clientCommande?.region_ville ?? "Ville non renseignee";
-    const commercialLabel = `${commande.utilisateur.nom_complet} (${commande.utilisateur.nom_utilisateur})`;
+    if (commande.utilisateur.role === "COMMERCIAL") {
+      const commercialLabel = `${commande.utilisateur.nom_complet} (${commande.utilisateur.nom_utilisateur})`;
 
-    const ligneCommercial =
-      classementCommerciaux.get(commande.utilisateur.id) ??
-      nouvelleLigneClassement(commande.utilisateur.id, commercialLabel);
-    ligneCommercial.ca = ligneCommercial.ca.plus(totalCommande);
-    ligneCommercial.quantite = ligneCommercial.quantite.plus(quantiteCommande);
-    ligneCommercial.commandes.add(commande.id);
-    ligneCommercial.reste = ligneCommercial.reste.plus(resteCommande);
-    classementCommerciaux.set(commande.utilisateur.id, ligneCommercial);
+      const ligneCommercial =
+        classementCommerciaux.get(commande.utilisateur.id) ??
+        nouvelleLigneClassement(commande.utilisateur.id, commercialLabel);
+      ligneCommercial.ca = ligneCommercial.ca.plus(totalCommande);
+      ligneCommercial.quantite = ligneCommercial.quantite.plus(quantiteCommande);
+      ligneCommercial.commandes.add(commande.id);
+      ligneCommercial.reste = ligneCommercial.reste.plus(resteCommande);
+      classementCommerciaux.set(commande.utilisateur.id, ligneCommercial);
+    }
 
     const ligneVille =
       classementVilles.get(ville) ?? nouvelleLigneClassement(ville, ville);

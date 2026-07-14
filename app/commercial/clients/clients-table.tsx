@@ -28,9 +28,12 @@ export type LigneClientCommercial = {
   telephoneBrut: string;
   actif: boolean;
   modifieLe: string;
+  commercialId: string;
+  commercialNom: string;
 };
 
 type ClientsCommercialTableProps = {
+  utilisateurId: string;
   lignes: LigneClientCommercial[];
   villes: string[];
   page: number;
@@ -40,6 +43,7 @@ type ClientsCommercialTableProps = {
 };
 
 export function ClientsCommercialTable({
+  utilisateurId,
   lignes,
   villes,
   page,
@@ -88,18 +92,36 @@ export function ClientsCommercialTable({
       {
         accessorKey: "nom",
         header: "Client",
-        cell: ({ row }) => (
-          <Link
-            href={`/commercial/clients/${row.original.id}`}
-            className="font-medium text-primary underline-offset-4 hover:underline"
-          >
-            {row.original.nom}
-          </Link>
-        ),
+        cell: ({ row }) => {
+          const estProprietaire = row.original.commercialId === utilisateurId;
+
+          return estProprietaire ? (
+            <Link
+              href={`/commercial/clients/${row.original.id}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+              title={row.original.nom}
+            >
+              {row.original.nom}
+            </Link>
+          ) : (
+            <span className="font-medium" title={row.original.nom}>
+              {row.original.nom}
+            </span>
+          );
+        },
       },
       { accessorKey: "regionVille", header: "Ville" },
       { accessorKey: "adresse", header: "Adresse" },
       { accessorKey: "telephone", header: "Telephone" },
+      {
+        accessorKey: "commercialNom",
+        header: "Responsable",
+        cell: ({ row }) => (
+          <span className="block max-w-[18ch] truncate" title={row.original.commercialNom}>
+            {row.original.commercialNom}
+          </span>
+        ),
+      },
       {
         accessorKey: "actif",
         header: "Statut",
@@ -113,41 +135,58 @@ export function ClientsCommercialTable({
         header: () => <span className="block text-right">Actions</span>,
         cell: ({ row }) => {
           const client = row.original;
+          const estProprietaire = client.commercialId === utilisateurId;
 
           return (
             <div className="flex justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                title="Modifier"
-                onClick={() => setClientEdition(client)}
-              >
-                <Pencil />
-              </Button>
-              <DialogueConfirmation
-                danger
-                titre="Supprimer le client ?"
-                description={`${client.nom} sera retire de votre liste (suppression logique, tracee dans l'audit).`}
-                libelleConfirmer="Supprimer"
-                onConfirmer={() =>
-                  executerAction(() => supprimerClientCommercial(client.id))
-                }
-              >
+              {estProprietaire ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    title="Modifier"
+                    aria-label={`Modifier ${client.nom}`}
+                    onClick={() => setClientEdition(client)}
+                  >
+                    <Pencil />
+                  </Button>
+                  <DialogueConfirmation
+                    danger
+                    titre="Supprimer le client ?"
+                    description={`${client.nom} sera retire de votre liste (suppression logique, tracee dans l'audit).`}
+                    libelleConfirmer="Supprimer"
+                    onConfirmer={() =>
+                      executerAction(() => supprimerClientCommercial(client.id))
+                    }
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Supprimer"
+                      aria-label={`Supprimer ${client.nom}`}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 />
+                    </Button>
+                  </DialogueConfirmation>
+                </>
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  title="Supprimer"
-                  className="text-destructive hover:text-destructive"
+                  title="Lecture seule : client rattache a un autre responsable"
+                  aria-label={`Lecture seule ${client.nom}`}
+                  disabled
                 >
-                  <Trash2 />
+                  <Pencil />
                 </Button>
-              </DialogueConfirmation>
+              )}
             </div>
           );
         },
       },
     ],
-    [],
+    [utilisateurId],
   );
 
   return (
@@ -193,7 +232,7 @@ export function ClientsCommercialTable({
         messageVide={
           recherche
             ? `Aucun client ne correspond a "${recherche}".`
-            : "Aucun client dans votre portefeuille."
+            : "Aucun client dans la base."
         }
         onPageChange={(prochainePage) => naviguer(prochainePage, recherche)}
       />

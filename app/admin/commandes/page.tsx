@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Decimal from "decimal.js";
 import type { Prisma } from "@prisma/client";
 import { Download, FileText, Plus } from "lucide-react";
 import { BonChargeCommandeButton } from "@/app/charges/bon-charge-commande-button";
@@ -111,7 +112,6 @@ export default async function CommandesAdminPage({
     prisma.commande.findMany({
       where,
       orderBy: { date_commande: "desc" },
-      take: 5000,
       select: {
         id: true,
         numero_bl: true,
@@ -151,12 +151,12 @@ export default async function CommandesAdminPage({
     (acc, commande) => {
       const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
       acc.total += 1;
-      acc.ca += Number(totaux.total);
-      acc.reste += Number(totaux.resteDu);
+      acc.ca = acc.ca.plus(totaux.total);
+      acc.reste = acc.reste.plus(totaux.resteDu);
       if (totaux.statutPaiement === "paye") acc.payees += 1;
       return acc;
     },
-    { total: 0, payees: 0, ca: 0, reste: 0 },
+    { total: 0, payees: 0, ca: new Decimal(0), reste: new Decimal(0) },
   );
 
   return (
@@ -323,7 +323,12 @@ export default async function CommandesAdminPage({
                       </TableCell>
                       <TableCell className="text-center">
                         <Button variant="ghost" size="icon-sm" asChild>
-                          <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank" title="PDF BL">
+                          <Link
+                            href={`/admin/commandes/${commande.id}/pdf`}
+                            target="_blank"
+                            title={`PDF BL ${commande.numero_bl}`}
+                            aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                          >
                             <FileText />
                           </Link>
                         </Button>
@@ -331,9 +336,10 @@ export default async function CommandesAdminPage({
                       <TableCell className="text-center">
                         <Button variant="ghost" size="icon-sm" asChild>
                           <Link
-                            href={`/admin/commandes/${commande.id}/pdf`}
+                            href={`/admin/commandes/${commande.id}/facture`}
                             target="_blank"
-                            title="PDF facture"
+                            title={`PDF facture ${commande.numero_bl}`}
+                            aria-label={`Ouvrir la facture ${commande.numero_bl}`}
                           >
                             <FileText />
                           </Link>

@@ -131,10 +131,9 @@ export default async function KpiCommercialPage({
   const topProduits = [...produits.entries()]
     .sort((a, b) => b[1].quantite.comparedTo(a[1].quantite))
     .slice(0, 10);
-  const objectifMontant =
-    objectif?.montant_objectif ?? kpi.chiffreAffaires.minus(kpi.chiffreAffaires);
+  const objectifMontant = objectif?.montant_objectif ?? null;
   const progression =
-    objectifMontant.gt(0)
+    objectifMontant && objectifMontant.gt(0)
       ? `${kpi.chiffreAffaires.mul(100).div(objectifMontant).toFixed(1)} %`
       : "-";
 
@@ -195,7 +194,7 @@ export default async function KpiCommercialPage({
           />
           <CarteKPI
             label="Objectif"
-            valeur={formatMontant(objectifMontant)}
+            valeur={objectifMontant ? formatMontant(objectifMontant) : "Non défini"}
             detail={progression}
             tonalite="vert"
           />
