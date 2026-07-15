@@ -879,3 +879,24 @@ schema freeze explicite par Mehdi et deploiement.
   visible.
 - [x] Verification technique apres correction : `npx tsc --noEmit`,
   `npm run lint`, `npm run test` (133/133), `npm run build`.
+
+## Correction documents BL et facture - 15/07/2026
+
+- [x] Refaire le PDF BL avec une structure dediee livraison : en-tete societe,
+  numero BL, date, code client, commercial, client livre, site de livraison,
+  tableau produits, montant en lettres, recapitulatif HT/TVA/TTC, bloc reglement,
+  signatures reception/livreur, cachet et footer societe.
+- [x] Creer un vrai PDF facture separe du BL dans
+  `app/commandes/facture-pdf.tsx` : numero `FACT-{BL}`, bloc client facture,
+  reference BL, statut paiement, lignes facture, totaux, montant paye, reste du,
+  conditions, signatures et cachet.
+- [x] Brancher `/admin/commandes/[id]/facture` sur le nouveau composant facture
+  au lieu de reutiliser le BL.
+- [x] Conserver les routes existantes : `/pdf` reste le BL, `/facture` devient
+  la facture.
+- [x] Verification technique : `npx tsc --noEmit`, `npm run lint`,
+  `npm run test` (133/133), `npm run build`.
+- [x] Verification PDF locale sur vraie commande `CP-000018` :
+  `bl-current.pdf` et `facture-current.pdf` generes depuis les composants React
+  PDF, `pdfinfo` confirme 1 page A4 chacun, rendu PNG inspecte visuellement sans
+  chevauchement ni texte coupe.

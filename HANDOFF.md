@@ -1485,3 +1485,36 @@ Notes residuelles :
   presents sur les pages testees.
 - Quelques libelles restent sans accents (`Telecharger`, `Creer`, `Quantite`,
   `Parametrage`). C'est de la finition UI, pas un blocage logique.
+
+## Addendum Codex - refonte BL et facture - 15/07/2026
+
+Demande traitee :
+
+- Le BL et la facture etaient devenus le point critique client. La facture
+  utilisait encore le meme composant que le BL, seulement avec un nom de fichier
+  different.
+
+Correction :
+
+- `app/commandes/bon-livraison-pdf.tsx` a ete refait comme document de
+  livraison : en-tete societe, numero BL, date, code client, commercial, client
+  livre, site de livraison, lignes produits, recap HT/TVA/TTC, montant en
+  lettres, bloc reglement, signatures reception/livreur, cachet et footer.
+- `app/commandes/facture-pdf.tsx` a ete ajoute comme vraie facture separee :
+  numero `FACT-{BL}`, bloc client facture, reference BL source, statut paiement,
+  lignes facture, total HT/TVA/TTC, montant paye, net a payer, conditions,
+  signatures et cachet.
+- `/admin/commandes/[id]/facture` rend maintenant `FacturePdf`. Les routes
+  existantes ne changent pas : `/pdf` = BL, `/facture` = facture.
+
+Verification :
+
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK (133/133).
+- `npm run build` OK.
+- Rendu PDF local avec les donnees reelles de `CP-000018` :
+  `tmp/pdfs/bl-current.pdf` et `tmp/pdfs/facture-current.pdf`.
+- `pdfinfo` : chaque document fait 1 page A4.
+- Rendu PNG via Poppler inspecte visuellement : documents lisibles, cachet
+  visible, totaux alignes, pas de chevauchement ni texte coupe.
