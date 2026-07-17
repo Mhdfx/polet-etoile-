@@ -23,8 +23,16 @@ type Option = { id: string; nom: string };
 
 type LigneSaisie = { cle: string; produitId: string; quantite: string };
 
+function cleLocale(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `ligne-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function nouvelleLigne(): LigneSaisie {
-  return { cle: crypto.randomUUID(), produitId: "", quantite: "" };
+  return { cle: cleLocale(), produitId: "", quantite: "" };
 }
 
 export function ChargeForm({
