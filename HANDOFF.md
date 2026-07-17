@@ -1518,3 +1518,88 @@ Verification :
 - `pdfinfo` : chaque document fait 1 page A4.
 - Rendu PNG via Poppler inspecte visuellement : documents lisibles, cachet
   visible, totaux alignes, pas de chevauchement ni texte coupe.
+
+## Addendum Codex - recette finale locale complete - 17/07/2026
+
+Objectif :
+
+- Refaire une recette locale complete du projet apres les changements BL,
+  facture et documents, avant confirmation de readiness.
+
+Verification technique :
+
+- `npm run prisma:validate` OK.
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK : 23 fichiers, 133 tests.
+- `npm run build` OK : 43 pages generees.
+- Serveur production local redemarre sur `http://localhost:3107` et
+  `/connexion` retourne HTTP 200.
+
+Recette navigateur locale :
+
+- Admin `admin/password` :
+  - Pages verifiees sans erreur visible ni console error : `/admin`,
+    `/admin/commandes`, `/admin/commandes/nouvelle`, `/admin/clients`,
+    `/admin/produits`, `/admin/produits/tarifs`, `/admin/charges`,
+    `/admin/charges/nouveau`, `/admin/paiements`, `/admin/retours`,
+    `/admin/kpi`, `/admin/rapprochement`, `/admin/utilisateurs`,
+    `/admin/objectifs`, `/admin/audit`, `/admin/corbeille`,
+    `/admin/historique-admins`, `/admin/sessions`, `/admin/parametres`,
+    `/admin/exports`.
+  - Creation client rapide avec adresse depuis nouvelle commande OK :
+    client `QA FINAL 1784321509150 Admin Client`, ville `Temara`, adresse
+    `Lot QA Final, Rue 17, Temara`, auto-selection confirmee.
+  - Creation commande admin OK : `CP-000019`, total `22,50 DH`,
+    ligne `Abats de poulet`, `1,250 kg`.
+  - Paiement partiel OK via saisie clavier : paiement `10,00 DH`,
+    reference `QA-FINAL-PAY`, totaux rafraichis. Un essai direct-fill de
+    l'outil navigateur a laisse un etat React stale et a ajoute une seconde
+    ligne `10,00 DH`; le test clavier strict a ensuite confirme que le
+    surpaiement est bloque sans nouvelle ligne.
+  - Bon de charge depuis commande OK : `BC-000005`, client, ville, adresse
+    livraison et quantite visibles.
+- Commercial `com1/password` :
+  - Pages verifiees : dashboard, commandes, nouvelle commande, commandes
+    externes, clients, retours, KPI.
+  - Creation commande OK : `CP-000020`, total `13,50 DH`, ligne `0,750 kg`.
+  - Acces admin bloque : `/admin/commandes/[id]` redirige vers `/403`.
+- Commercial `com2/password` :
+  - Login OK, dashboard et pages cles chargees sans erreur.
+
+Responsive/UI :
+
+- Mobile `390x844` et tablette `768x1024` verifies sur les pages principales
+  admin/commercial.
+- Pas de debordement visible. Un ecart technique d'environ 6 px sur dashboard
+  admin tablette a ete mesure par `scrollWidth`, mais aucun element sortant n'a
+  ete detecte ; probable difference scrollbar/viewport du wrapper navigateur.
+
+PDF/documents :
+
+- Les routes PDF en telechargement peuvent etre bloquees par l'in-app browser
+  (`ERR_BLOCKED_BY_CLIENT`) quand elles sont servies en attachment/inline PDF.
+  Verification visuelle faite via rendu direct React PDF + Poppler.
+- Fichiers generes dans `tmp/pdfs/final-qa/` :
+  - `bl.pdf` : titre `BL CP-000019`, 1 page A4.
+  - `facture.pdf` : titre `Facture CP-000019`, 1 page A4.
+  - `bon-charge.pdf` : titre `Bon de charge BC-000005`, 1 page A4.
+  - `tarifs.pdf` : titre `Tarifs 17/07/2026`, 1 page A4.
+- Inspection PNG OK apres correction :
+  - Footer du PDF tarifs ajuste pour eviter le texte coupe.
+  - PDF bon de charge : cesure des noms clients desactivee pour eviter des
+    coupures comme `Ad-min`.
+
+Changements faits pendant cette recette :
+
+- `app/produits/tarifs-pdf.tsx` : footer tarifs compacte et lisible, decoration
+  bas-gauche remontee pour ne pas interferer avec le footer.
+- `app/charges/bon-charge-pdf.tsx` : desactivation de la cesure React PDF et
+  reduction legere du texte des cartes meta.
+
+Statut :
+
+- Le code local est pret pour test client sur les flux couverts.
+- A deployer/pousser apres validation : les changements de PDF effectues le
+  17/07/2026 ne sont pas encore confirms comme presents en production dans ce
+  handoff.

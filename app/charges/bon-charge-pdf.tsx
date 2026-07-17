@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Document,
+  Font,
   Image,
   Page,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 import type { BonChargeDocumentData } from "./document-data";
+
+Font.registerHyphenationCallback((word) => [word]);
 
 const BLEU = "#0f66d5";
 const BLEU_FONCE = "#12315f";
@@ -105,7 +108,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   metaValue: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: 700,
     color: "#172033",
     lineHeight: 1.25,

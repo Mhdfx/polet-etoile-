@@ -900,3 +900,31 @@ schema freeze explicite par Mehdi et deploiement.
   `bl-current.pdf` et `facture-current.pdf` generes depuis les composants React
   PDF, `pdfinfo` confirme 1 page A4 chacun, rendu PNG inspecte visuellement sans
   chevauchement ni texte coupe.
+
+## Recette finale locale complete - 17/07/2026
+
+- [x] Repartir du projet complet : routes app, docs, etat Git, scripts npm et
+  modules admin/commercial verifies.
+- [x] Verification technique complete : `npm run prisma:validate`,
+  `npx tsc --noEmit`, `npm run lint`, `npm run test` (133/133),
+  `npm run build`.
+- [x] Lancer le build production local sur `http://localhost:3107` et tester au
+  navigateur avec les roles `admin`, `com1`, `com2`.
+- [x] Admin : dashboard, commandes, nouvelle commande, clients, produits,
+  tarifs, bons de charge, paiements, retours, KPI, rapprochement, utilisateurs,
+  objectifs, audit, corbeille, historique admins, sessions, parametres et
+  exports charges sans erreur visible ni erreur console.
+- [x] Admin commande : creation client rapide avec adresse, auto-selection,
+  creation commande `CP-000019`, paiement partiel, validation anti-surpaiement,
+  creation bon de charge `BC-000005` avec client/adresse visibles.
+- [x] Commercial `com1` : pages principales chargees, creation commande
+  `CP-000020`, permission verifiee sur route admin -> `/403`.
+- [x] Commercial `com2` : login et pages cles chargees sans erreur.
+- [x] Responsive : mobile `390x844` et tablette `768x1024` verifies sur les
+  pages admin/commercial principales ; pas de debordement visible. Un ecart
+  technique de quelques pixels sur dashboard admin tablette correspond au calcul
+  scrollbar/viewport, sans element sortant detecte.
+- [x] PDF : BL, facture, bon de charge et tarifs rendus depuis les composants
+  React PDF avec donnees reelles ; `pdfinfo` confirme 1 page A4 ; PNG inspectes.
+- [x] Correction finale : ajuster le footer du PDF tarifs et supprimer la
+  cesure agressive des noms clients dans le PDF bon de charge.
