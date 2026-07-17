@@ -78,9 +78,9 @@ const styles = StyleSheet.create({
   bottomLeftShape: {
     position: "absolute",
     left: -30,
-    bottom: 30,
-    width: 126,
-    height: 50,
+    bottom: 72,
+    width: 108,
+    height: 42,
     borderTopRightRadius: 46,
     backgroundColor: ROUGE,
     borderTopWidth: 5,
@@ -255,32 +255,41 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: 595,
-    height: 55,
-    marginTop: 25,
+    height: 60,
+    marginTop: 18,
     marginLeft: -74,
     marginRight: -74,
     backgroundColor: ROUGE,
     color: "#ffffff",
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 82,
-    paddingRight: 44,
+    paddingLeft: 78,
+    paddingRight: 36,
   },
   footerBlock: {
     flexDirection: "row",
     alignItems: "center",
-    width: "33.33%",
-    paddingRight: 12,
+    paddingRight: 8,
+  },
+  footerBlockAddress: {
+    width: 196,
+  },
+  footerBlockContact: {
+    width: 150,
+  },
+  footerBlockLegal: {
+    width: 135,
+    paddingRight: 0,
   },
   footerIconWrap: {
-    width: 23,
-    height: 23,
-    borderRadius: 12,
+    width: 21,
+    height: 21,
+    borderRadius: 11,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.75)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 8,
+    marginRight: 7,
   },
   footerIcon: {
     color: "#ffffff",
@@ -289,13 +298,13 @@ const styles = StyleSheet.create({
   },
   footerTitle: {
     color: "#ffffff",
-    fontSize: 6.8,
+    fontSize: 6.5,
     fontWeight: 800,
     marginBottom: 1,
   },
   footerText: {
     color: "#ffffff",
-    fontSize: 5.8,
+    fontSize: 5.2,
     lineHeight: 1.28,
   },
 });
@@ -441,7 +450,7 @@ function Footer({ data }: { data: TarifsDocumentData }) {
 
   return (
     <View style={styles.footer}>
-      <View style={styles.footerBlock}>
+      <View style={[styles.footerBlock, styles.footerBlockAddress]}>
         <View style={styles.footerIconWrap}>
           <Text style={styles.footerIcon}>A</Text>
         </View>
@@ -450,7 +459,7 @@ function Footer({ data }: { data: TarifsDocumentData }) {
           <Text style={styles.footerText}>Siege social : {adresse}</Text>
         </View>
       </View>
-      <View style={styles.footerBlock}>
+      <View style={[styles.footerBlock, styles.footerBlockContact]}>
         <View style={styles.footerIconWrap}>
           <Text style={styles.footerIcon}>T</Text>
         </View>
@@ -459,7 +468,7 @@ function Footer({ data }: { data: TarifsDocumentData }) {
           <Text style={styles.footerText}>coqplussarl@gmail.com</Text>
         </View>
       </View>
-      <View style={styles.footerBlock}>
+      <View style={[styles.footerBlock, styles.footerBlockLegal]}>
         <View style={styles.footerIconWrap}>
           <Text style={styles.footerIcon}>IF</Text>
         </View>
