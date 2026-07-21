@@ -1649,6 +1649,16 @@ Recette smoke locale complementaire :
   donc ete effectuee par appels HTTP authentifies et inspection des fichiers
   generes.
 
+Correction deployement VPS apres domaine :
+
+- Probleme rencontre apres pull du commit `9032aed` : Docker ne pouvait plus
+  demarrer `poulet_etoile_app` car le port public `80` etait deja occupe.
+- Cause : Caddy ecoute maintenant `80/443` pour `coqplus.ma`; le compose ne doit
+  plus publier `80:3000`.
+- Correction code : `docker-compose.ip.yml` expose l'app en local uniquement via
+  `127.0.0.1:3000:3000`.
+- Documentation mise a jour dans `deployement.md`.
+
 Fichiers principaux :
 
 - `app/admin/documents-clients/page.tsx`

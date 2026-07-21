@@ -947,3 +947,5 @@ schema freeze explicite par Mehdi et deploiement.
   authentifie OK, archive extractible avec BL/factures/bon de charge, validations
   serveur OK, `npm run test`, `npm run lint`, `npx tsc --noEmit` et
   `npm run build` OK.
+- [x] Corriger le compose VPS pour le domaine : l'app Docker ecoute maintenant
+  `127.0.0.1:3000:3000` et laisse les ports publics `80/443` a Caddy.

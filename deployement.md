@@ -88,6 +88,11 @@ docker compose -f docker-compose.ip.yml ps
 Ce flux est maintenant rapide parce que le VPS ne construit plus l'image. Il la
 telecharge depuis GitHub Container Registry.
 
+Depuis l'activation du domaine `coqplus.ma`, Caddy ecoute les ports publics
+`80` et `443`. Le conteneur Next.js ne doit donc plus publier `80:3000`.
+`docker-compose.ip.yml` expose l'app uniquement en local avec
+`127.0.0.1:3000:3000`, puis Caddy reverse-proxy vers ce port.
+
 ## Build Docker preconstruit
 
 Le fichier `.github/workflows/docker-image.yml` construit l'image automatiquement a
@@ -364,25 +369,25 @@ docker compose -f docker-compose.ip.yml -f docker-compose.build.yml up -d --buil
 Ce mode peut prendre 10 a 20 minutes sur le VPS. Le flux normal doit rester le pull
 de l'image preconstruite.
 
-## Passage futur avec domaine
+## Domaine et Caddy
 
-Quand un domaine sera pret :
+Le domaine est configure via Cloudflare vers le VPS `212.47.68.171`.
 
-1. Pointer le DNS vers `212.47.68.171`.
-2. Mettre a jour `.env` :
+Configuration `.env` attendue en mode domaine :
 
 ```bash
-APP_DOMAIN=votre-domaine.com
-APP_EMAIL=admin@votre-domaine.com
-BETTER_AUTH_URL=https://votre-domaine.com
-NEXT_PUBLIC_APP_URL=https://votre-domaine.com
+APP_DOMAIN=coqplus.ma
+APP_EMAIL=admin@coqplus.ma
+BETTER_AUTH_URL=https://coqplus.ma
+NEXT_PUBLIC_APP_URL=https://coqplus.ma
 ```
 
-3. Utiliser le compose avec Caddy :
+Ports attendus :
 
 ```bash
-docker compose -f docker-compose.prod.yml pull app
-docker compose -f docker-compose.prod.yml up -d
+Caddy: 0.0.0.0:80 et 0.0.0.0:443
+App Docker: 127.0.0.1:3000 -> 3000
+MySQL Docker: reseau Docker interne uniquement
 ```
 
 ## Sauvegarde MySQL
@@ -418,4 +423,3 @@ ecritures applicatives si necessaire.
 - [ ] Connexion admin testee
 - [ ] Une page metier admin testee
 - [ ] Une page PDF/BL testee
-
