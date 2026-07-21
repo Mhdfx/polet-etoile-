@@ -1603,3 +1603,56 @@ Statut :
 - A deployer/pousser apres validation : les changements de PDF effectues le
   17/07/2026 ne sont pas encore confirms comme presents en production dans ce
   handoff.
+
+## Addendum Codex - generation documents clients en masse - 21/07/2026
+
+Demande client traitee :
+
+- Ajout d'une page admin `/admin/documents-clients` pour generer des documents
+  en masse par client.
+- L'admin peut cocher plusieurs clients standards ou externes, choisir les
+  types de documents (`BL`, `Factures`, `Bons de charge`) et filtrer par
+  periode.
+- La route POST `/admin/documents-clients/export` genere une archive ZIP avec
+  un dossier par client et un PDF par document.
+- Les PDF en masse reutilisent les composants existants :
+  `BonLivraisonPdf`, `FacturePdf` et `BonChargePdf`. Aucune logique de calcul
+  montant/quantite n'est dupliquee.
+- Limites serveur ajoutees pour eviter les exports accidentellement enormes :
+  100 clients maximum et 300 fichiers maximum par ZIP.
+- Generation tracee dans `audit_log` via l'action
+  `documents_clients.export`.
+- Helper ZIP interne ajoute dans `lib/zip.ts` avec test `lib/zip.test.ts`.
+- Navigation admin : entree `Documents clients` ajoutee dans le menu principal.
+- Verification locale effectuee le 21/07/2026 :
+  - Connexion admin via `/api/auth/sign-in/username`.
+  - Page `/admin/documents-clients` chargee avec session admin.
+  - Export ZIP authentifie OK, signature ZIP valide et archive extractible.
+  - Export BL + facture teste sur un client avec plusieurs commandes.
+  - Export bon de charge teste sur une commande disposant d'un BC.
+  - Validations serveur OK : aucun client, aucun document, periode incomplete.
+  - `npm run test`, `npm run lint`, `npx tsc --noEmit`, `npm run build` OK.
+
+Recette smoke locale complementaire :
+
+- Connexions OK : `admin/password`, `com1/password`, `com2/password`.
+- Pages admin principales OK : dashboard, produits, commandes, nouvelle
+  commande, clients, bons de charge, paiements, retours, KPI, rapprochement,
+  utilisateurs, objectifs, audit, corbeille, tarifs, documents clients.
+- Pages commercial principales OK : dashboard, commandes, nouvelle commande,
+  clients, KPI, retours.
+- Telechargements PDF OK : BL, facture, bon de charge, tarifs.
+- Controle permission OK : un commercial qui ouvre `/admin/documents-clients`
+  arrive sur la page 403, pas sur l'outil admin.
+- Note outillage : le connecteur navigateur integre Codex a echoue avec une
+  erreur interne de session (`Cannot redefine property: process`). La recette a
+  donc ete effectuee par appels HTTP authentifies et inspection des fichiers
+  generes.
+
+Fichiers principaux :
+
+- `app/admin/documents-clients/page.tsx`
+- `app/admin/documents-clients/export/route.tsx`
+- `lib/zip.ts`
+- `lib/zip.test.ts`
+- `components/app-shell.tsx`

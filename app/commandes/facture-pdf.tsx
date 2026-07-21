@@ -15,7 +15,6 @@ const TEXTE = "#182230";
 const GRIS = "#667085";
 const BORDURE = "#d0d5dd";
 const FOND = "#f8fafc";
-const VERT = "#087443";
 
 const styles = StyleSheet.create({
   page: {
@@ -195,17 +194,6 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     lineHeight: 1.45,
   },
-  paymentStatus: {
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 7,
-    padding: 10,
-    backgroundColor: FOND,
-  },
-  statusText: {
-    color: VERT,
-    fontSize: 10,
-    fontWeight: 700,
-  },
   summary: {
     width: 190,
     borderLeft: `1 solid ${BORDURE}`,
@@ -238,30 +226,6 @@ const styles = StyleSheet.create({
     backgroundColor: ROUGE,
     color: "#ffffff",
     minHeight: 34,
-  },
-  legalBox: {
-    marginTop: 14,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 7,
-    padding: 9,
-    backgroundColor: "#ffffff",
-  },
-  legalText: {
-    fontSize: 7.2,
-    color: GRIS,
-    lineHeight: 1.35,
-  },
-  signArea: {
-    flexDirection: "row",
-    gap: 14,
-    marginTop: 16,
-  },
-  signBox: {
-    flex: 1,
-    minHeight: 70,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 7,
-    padding: 9,
   },
   stampWrap: {
     position: "absolute",
@@ -341,20 +305,12 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
             <Text style={styles.line}>Code client : {commande.codeClient}</Text>
           </View>
 
-          <View style={styles.block}>
-            <Text style={styles.label}>Référence commerciale</Text>
-            <Text style={styles.strong}>BL source : {commande.numeroBl}</Text>
-            <Text style={styles.line}>Date facture : {commande.date}</Text>
-            <Text style={styles.line}>Commercial : {commande.commercial}</Text>
-            <Text style={styles.line}>Statut : {commande.statut}</Text>
-          </View>
         </View>
 
         <View style={styles.metaGrid} wrap={false}>
           <MetaCard label="Total HT" value={`${commande.totalHt} DH`} />
           <MetaCard label={`TVA ${commande.tauxTva}%`} value={`${commande.tva} DH`} />
           <MetaCard label="Total TTC" value={`${commande.totalTtc} DH`} />
-          <MetaCard label="Reste dû" value={commande.resteDu} />
         </View>
 
         <View style={styles.table}>
@@ -382,13 +338,6 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
               <Text style={styles.label}>Montant en lettres</Text>
               <Text style={styles.amountWordsText}>{commande.montantEnLettres}</Text>
             </View>
-
-            <View style={styles.paymentStatus}>
-              <Text style={styles.label}>Suivi de paiement</Text>
-              <Text style={styles.statusText}>{commande.statut}</Text>
-              <Text style={styles.line}>Montant paye : {commande.totalPaye}</Text>
-              <Text style={styles.line}>Reste a payer : {commande.resteDu}</Text>
-            </View>
           </View>
 
           <View style={styles.summary}>
@@ -401,24 +350,6 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
               value={commande.resteDu.replace(/\s?DH$/, "")}
               important
             />
-          </View>
-        </View>
-
-        <View style={styles.legalBox} wrap={false}>
-          <Text style={styles.label}>Conditions</Text>
-          <Text style={styles.legalText}>
-            Marchandise vendue selon les quantités et prix figés dans le bon de
-            livraison référencé. Les paiements sont suivis par commande dans le système
-            Coq Plus.
-          </Text>
-        </View>
-
-        <View style={styles.signArea} wrap={false}>
-          <View style={styles.signBox}>
-            <Text style={styles.label}>Client</Text>
-          </View>
-          <View style={styles.signBox}>
-            <Text style={styles.label}>Administration</Text>
           </View>
         </View>
 

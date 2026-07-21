@@ -928,3 +928,22 @@ schema freeze explicite par Mehdi et deploiement.
   React PDF avec donnees reelles ; `pdfinfo` confirme 1 page A4 ; PNG inspectes.
 - [x] Correction finale : ajuster le footer du PDF tarifs et supprimer la
   cesure agressive des noms clients dans le PDF bon de charge.
+
+## Mise a jour client - generation documents clients en masse - 21/07/2026
+
+- [x] Ajouter une page admin `/admin/documents-clients` pour selectionner
+  plusieurs clients standards ou externes.
+- [x] Ajouter des cases a cocher pour choisir les documents a generer :
+  BL, factures et bons de charge lies aux commandes.
+- [x] Ajouter un filtre periode optionnel sur les commandes exportees.
+- [x] Generer une archive ZIP avec un dossier par client et un PDF par document.
+- [x] Reutiliser les composants PDF existants pour garder les documents
+  unitaires et les documents en masse identiques.
+- [x] Ajouter des limites serveur : 100 clients et 300 fichiers par archive.
+- [x] Tracer la generation dans `audit_log` avec le nombre de clients,
+  commandes, documents et fichiers.
+- [x] Ajouter `lib/zip.ts` et un test Vitest de generation ZIP.
+- [x] Verifier en local : page admin accessible apres connexion, export ZIP
+  authentifie OK, archive extractible avec BL/factures/bon de charge, validations
+  serveur OK, `npm run test`, `npm run lint`, `npx tsc --noEmit` et
+  `npm run build` OK.
