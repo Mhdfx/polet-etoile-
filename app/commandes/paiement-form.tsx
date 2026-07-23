@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
@@ -22,8 +22,29 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
   const [reference, setReference] = useState("");
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
+  const [messageSucces, setMessageSucces] = useState<string>();
   const [enCours, setEnCours] = useState(false);
   const router = useRouter();
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  function rafraichirDetailCommande() {
+    router.refresh();
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      router.refresh();
+    }, 400);
+  }
 
   async function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
@@ -32,6 +53,7 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
     }
     setErreurs({});
     setMessage(undefined);
+    setMessageSucces(undefined);
     setEnCours(true);
 
     const resultat = await ajouterPaiementCommande({
@@ -48,7 +70,8 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
     if (resultat.ok) {
       setMontant("");
       setReference("");
-      router.refresh();
+      setMessageSucces("Paiement enregistré. Actualisation des totaux...");
+      rafraichirDetailCommande();
       return;
     }
 
@@ -58,6 +81,15 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
 
   return (
     <form onSubmit={soumettre} className="grid gap-3" noValidate>
+      {messageSucces ? (
+        <p
+          role="status"
+          className="rounded-md bg-succes/10 px-3 py-2 text-sm font-medium text-succes"
+        >
+          {messageSucces}
+        </p>
+      ) : null}
+
       {message ? (
         <p
           role="alert"
@@ -115,6 +147,7 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
           onClick={() => {
             setMontant("");
             setReference("");
+            setMessageSucces(undefined);
             setMessage(undefined);
             setErreurs({});
           }}

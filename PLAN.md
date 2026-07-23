@@ -4,8 +4,8 @@
 > `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
 > rules. Keep all three aligned after each meaningful change.
 
-Current date: 13/07/2026
-Current status: **code fonctionnel + corrections post-QA navigateur terminees, incluant selection auto du client cree dans une commande ; QA appareil, comparaison PDF/XLSX et deploiement restent separes**
+Current date: 23/07/2026
+Current status: **production active ; export documents en masse recentre sur les commandes avec selection par checkbox, QA locale complete 23/07 OK apres correction refresh paiement**
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -94,6 +94,15 @@ Rules for updating this plan:
 - [x] App layout/design system implemented (visual validation by Mehdi pending — gate G3).
 - [x] Admin/commercial business workflows implemented through Phase 6 (products, users, clients, orders, payments, returns, PDF, Excel).
 - [x] KPI/audit/sessions implemented.
+- [x] Bon de charge implemented with one per commande, delete-only lifecycle.
+- [x] BL and facture are separate PDF documents.
+- [x] Price-list PDF implemented.
+- [x] Admin history/audit and recycle-bin screens implemented.
+- [x] Client address added and used in BL / facture / bon de charge documents.
+- [x] Command-based bulk document ZIP export implemented on `/admin/commandes`.
+- [x] Commercial command-based bulk document ZIP export implemented on `/commercial/commandes`.
+- [x] Commercial bon de charge bulk download is enforced as one-time only by `telechargements_documents`.
+- [x] Old client-based bulk documents page removed from admin navigation and route tree.
 - [ ] Deployment implemented.
 
 ---
@@ -949,3 +958,29 @@ schema freeze explicite par Mehdi et deploiement.
   `npm run build` OK.
 - [x] Corriger le compose VPS pour le domaine : l'app Docker ecoute maintenant
   `127.0.0.1:3000:3000` et laisse les ports publics `80/443` a Caddy.
+
+## QA complete locale - export documents par commandes - 23/07/2026
+
+- [x] Verifier le build production courant sur `http://localhost:3121`.
+- [x] Rejouer les checks techniques : Prisma validate, migrate deploy,
+  TypeScript, lint, 134/134 tests Vitest et build.
+- [x] Balayer 23 pages admin sans erreur console ni overflow desktop.
+- [x] Balayer 7 pages commercial sans erreur console ni overflow desktop.
+- [x] Verifier permission commercial vers admin : `/403`.
+- [x] Verifier que l'ancien `/admin/documents-clients` est retire et retourne
+  404.
+- [x] Verifier export ZIP admin depuis `/admin/commandes` avec selections
+  commandes et documents.
+- [x] Verifier export ZIP commercial depuis `/commercial/commandes` avec BL
+  autorise et facture absente.
+- [x] Verifier creation commande admin avec client rapide, adresse et
+  auto-selection.
+- [x] Corriger et retester le refresh paiement admin apres enregistrement.
+- [x] Verifier surpaiement bloque avec message francais.
+- [x] Verifier creation bon de charge depuis une commande admin.
+- [x] Verifier creation commande commercial avec client rapide.
+- [x] Verifier creation bon de charge admin pour une commande commercial.
+- [x] Verifier telechargement commercial unique du bon de charge : premier ZIP
+  OK, second essai bloque.
+- [x] Verifier responsive mobile `390x844` sur les pages commandes et pages
+  associees a risque.

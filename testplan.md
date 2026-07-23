@@ -8,6 +8,86 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
+## Campagne 23/07/2026 - QA complete locale export commandes en masse
+
+Build production teste dans l'in-app browser sur `http://localhost:3121`, avec
+BDD Docker MySQL `127.0.0.1:3307`. Objectif : verifier la nouvelle logique
+d'exports en masse par commandes, les roles, les mutations principales et le
+responsive.
+
+Donnees QA creees : prefixe `QA FULLTEAM`.
+
+### Verification technique
+
+- [x] `npm run prisma:validate` : PASS.
+- [x] `npm run prisma:migrate:deploy` : PASS, aucune migration en attente.
+- [x] `npx tsc --noEmit` : PASS.
+- [x] `npm run lint` : PASS.
+- [x] `npm run test` : PASS, **134/134 tests**.
+- [x] `npm run build` : PASS, **45 routes**.
+
+### Routes et permissions
+
+- [x] 23 routes admin chargees sans erreur console ni overflow desktop :
+  dashboard, produits, categories, prix, tarifs, commandes, nouvelle commande,
+  bons de charge, nouveau bon de charge, paiements, clients, fusion, retours,
+  KPI, rapprochement, utilisateurs, objectifs, audit, corbeille, historique
+  admins, sessions, parametrage et exports.
+- [x] 7 routes commercial chargees sans erreur console ni overflow desktop :
+  dashboard, clients, commandes, nouvelle commande, commandes externes, retours,
+  KPI.
+- [x] Permission : `com1` sur `/admin/commandes` -> `/403`.
+
+### Export documents par commandes
+
+- [x] Admin `/admin/commandes` : checkboxes commandes presentes, options
+  `BL`, `Factures`, `Bons de charge` presentes.
+- [x] Admin : ZIP selection telecharge depuis le navigateur.
+- [x] Ancien `/admin/documents-clients` : lien absent de la sidebar et route 404.
+- [x] Commercial `/commercial/commandes` : checkboxes presentes, options `BL`
+  et `Bon charge` presentes, option `Facture` absente.
+- [x] Commercial : ZIP BL telecharge depuis le navigateur.
+- [x] Commercial bon de charge unique : `BC-000007` telecharge une premiere fois,
+  second essai bloque avec message demandant de passer par admin.
+
+### Flux metier retestes
+
+- [x] Admin nouvelle commande : client rapide avec ville/adresse,
+  auto-selection, produit `Abats de poulet`, quantite `1,250 kg`, commande
+  `CP-000021`, total `22,50 DH`.
+- [x] Paiement admin : probleme detecte puis corrige. Avant correction, le
+  paiement etait sauvegarde mais les totaux pouvaient rester visuellement
+  anciens. Apres correction, message de succes immediat et totaux visibles :
+  `Paye : 6,00 DH`, `Reste : 16,50 DH`.
+- [x] Paiement admin : surpaiement bloque avec message francais.
+- [x] Bon de charge depuis commande admin : `BC-000006`, client, ville, adresse
+  et quantite visibles.
+- [x] Commercial `com1` nouvelle commande : client rapide, auto-selection,
+  commande `CP-000022`, total `9,00 DH`.
+- [x] Admin cree un bon de charge pour la commande commercial : `BC-000007`,
+  client, adresse et quantite visibles.
+
+### Responsive/UI
+
+- [x] Mobile `390x844` sans overflow document sur :
+  `/admin/commandes`, `/admin/commandes/nouvelle`, `/admin/charges`,
+  `/admin/produits/tarifs`, `/commercial/commandes`,
+  `/commercial/commandes/nouvelle`, `/commercial/clients`, `/commercial/kpi`.
+
+### Corrections appliquees
+
+- [x] `app/commandes/paiement-form.tsx` : message de succes immediat et refresh
+  controle apres paiement pour eviter une UI qui semble bloquee.
+
+### Limites de cette passe
+
+- [ ] PDF visuel : les ZIP/PDF sont telecharges par le navigateur, mais les
+  fichiers PDF n'ont pas ete re-rendus en PNG dans cette campagne.
+- [ ] Test multi-navigateur concurrence BL non rejoue dans cette campagne.
+- [ ] Gros volume reel production non rejoue dans cette campagne.
+
+---
+
 ## Campagne 13/07/2026 - test complet local production apres correction client auto-select
 
 Build production teste dans l'in-app browser sur `http://localhost:3120`, avec

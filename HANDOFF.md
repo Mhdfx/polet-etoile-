@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 13/07/2026.
-Statut : **code CDC pret pour tests locaux, corrections post-QA navigateur appliquees et retestees, incluant selection auto du client cree dans une commande - schema a valider par Mehdi (G1), decisions RELIQUAT/date echeance/paiement global a confirmer**.
+Derniere mise a jour : 23/07/2026.
+Statut : **production active sur coqplus.ma ; export documents en masse recentre sur les commandes, avec BL/facture/bon de charge admin et BL + bon de charge commercial, bon de charge commercial telechargeable une seule fois**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -1659,6 +1659,34 @@ Correction deployement VPS apres domaine :
   `127.0.0.1:3000:3000`.
 - Documentation mise a jour dans `deployement.md`.
 
+Recette navigateur locale demandee par Mehdi :
+
+- Test effectue avec Chrome automatise sur `http://localhost:3107`.
+- Connexion admin OK.
+- Page `/admin/documents-clients` OK.
+- 19 clients affiches, 3 types de documents affiches.
+- Validation sans client OK.
+- Selection d'un client avec commandes OK.
+- Telechargement ZIP via le navigateur OK :
+  `documents_clients_2026-07-21.zip`, signature ZIP valide.
+- Lien sidebar `Documents clients` visible.
+- Screenshot conserve en local dans `tmp/local-browser-bulk-test/`.
+
+Verification production documents clients - 22/07/2026 :
+
+- Apres redeploiement, `/admin/documents-clients` repond 200 en production.
+- Verification de correspondance entre `/admin/commandes` et le ZIP en masse
+  pour le client `boucherie lamlih` (`standard:cmrhxma1s001d30q7gn42qe8b`).
+- BL visibles sur `/admin/commandes` pour ce client :
+  `CP-000020`, `CP-000018`, `CP-000006`.
+- Entrees ZIP generees en production :
+  `BL-CP-000020.pdf`, `FACTURE-CP-000020.pdf`,
+  `BL-CP-000018.pdf`, `FACTURE-CP-000018.pdf`,
+  `BL-CP-000006.pdf`, `FACTURE-CP-000006.pdf`.
+- Resultat : aucun BL manquant dans le ZIP, aucun BL supplementaire dans le ZIP.
+  Les documents du ZIP correspondent aux commandes affichees dans
+  `/admin/commandes`.
+
 Fichiers principaux :
 
 - `app/admin/documents-clients/page.tsx`
@@ -1666,3 +1694,137 @@ Fichiers principaux :
 - `lib/zip.ts`
 - `lib/zip.test.ts`
 - `components/app-shell.tsx`
+
+## Addendum Codex - export documents par commandes - 23/07/2026
+
+Demande client traitee :
+
+- L'ancien export en masse etait centre sur les clients (`/admin/documents-clients`).
+  Le client veut maintenant securiser les documents par commandes exactes pour
+  limiter les abus possibles cote commerciaux.
+- Le flux est donc deplace vers les listes de commandes :
+  - `/admin/commandes`
+  - `/commercial/commandes`
+- L'utilisateur coche les commandes voulues, choisit les documents et genere un
+  ZIP. Seules les commandes cochees sont exportees.
+
+Regles metier implementees :
+
+- Admin :
+  - Peut exporter en masse `BL`, `Factures`, `Bons de charge`.
+  - Telechargement admin illimite.
+- Commercial :
+  - Peut exporter les `BL` plusieurs fois.
+  - Peut exporter les `Bons de charge` une seule fois.
+  - Ne peut exporter que ses propres commandes.
+  - Ne peut pas exporter de facture.
+- Bon de charge :
+  - Toujours un seul bon de charge par commande via la contrainte existante
+    `bons_charge.commande_id @unique`.
+  - Pas de modification ; suppression seulement cote admin.
+  - Le telechargement commercial unique est maintenant enforce en base via
+    `telechargements_documents`.
+
+Changements techniques :
+
+- Nouvelle migration MySQL :
+  `prisma/migrations/20260723193000_telechargements_documents/migration.sql`.
+- Nouveau modele Prisma `TelechargementDocument` et enum
+  `TypeDocumentTelecharge`.
+- Nouvelle logique partagee :
+  `app/commandes/documents-bulk.tsx`.
+- Nouvelles routes :
+  - `POST /admin/commandes/documents`
+  - `POST /commercial/commandes/documents`
+- Ancien module client retire :
+  - suppression de `/admin/documents-clients`
+  - suppression de `/admin/documents-clients/export`
+  - retrait du lien `Documents clients` de la sidebar.
+- `eslint.config.mjs` ignore maintenant les dossiers generes/scratch
+  `tmp/**`, `qa-agent/**`, `exports-prive/**`.
+
+Verification locale :
+
+- `npm run prisma:generate` OK.
+- `npm run prisma:migrate:deploy` OK sur MySQL local.
+- `npm run build` OK.
+- `npx tsc --noEmit` OK apres regeneration `.next`.
+- `npm run lint` OK.
+- `npm run test` OK : 24 fichiers, 134 tests.
+- Test direct handler avec donnees MySQL locales :
+  - Admin export `CP-000019` avec BL + facture + bon de charge : ZIP OK,
+    signature `504b0304`, fichiers :
+    `CP-000019/BL-CP-000019.pdf`,
+    `CP-000019/FACTURE-CP-000019.pdf`,
+    `CP-000019/BON-CHARGE-BC-000005.pdf`.
+  - Commercial `com1` export BL `CP-000020` : ZIP OK.
+  - Commercial `com1` tente une commande admin : HTTP 403.
+  - Commercial avec bon de charge `BC-000003` : premier export OK, second export
+    HTTP 409 avec message demandant de passer par l'admin.
+
+Point deployement :
+
+- Avant mise en production, executer les migrations Prisma sur le VPS. Le
+  script Docker `docker-entrypoint.sh` lance deja `prisma migrate deploy`, donc
+  le deploiement de l'image contenant cette migration doit creer la table.
+
+## Addendum Codex - QA complete locale export commandes - 23/07/2026
+
+Objectif :
+
+- Tester le build production local courant apres le recentrage des exports en
+  masse sur les commandes.
+- Verifier les roles `admin` et `com1`, les pages principales, les exports ZIP,
+  la creation commande, les paiements, les bons de charge et le responsive
+  mobile.
+
+Probleme detecte et corrige :
+
+- Paiement admin : apres le premier paiement, les totaux pouvaient rester
+  visuellement a l'ancien etat pendant quelques secondes. Le paiement etait bien
+  sauvegarde en base, mais le retour UI pouvait faire croire que rien ne s'etait
+  passe.
+- Correction dans `app/commandes/paiement-form.tsx` : message de succes
+  immediat et double refresh client controle pour forcer la mise a jour rapide
+  du detail commande.
+
+Verification technique :
+
+- `npm run prisma:validate` OK.
+- `npm run prisma:migrate:deploy` OK, aucune migration en attente.
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK : 24 fichiers, 134 tests.
+- `npm run build` OK : 45 routes generees.
+
+Recette navigateur sur `http://localhost:3121` :
+
+- Admin : 23 pages principales chargees sans erreur console ni overflow desktop.
+- Commercial `com1` : 7 pages principales chargees sans erreur console ni
+  overflow desktop.
+- Permission : `com1` sur `/admin/commandes` redirige vers `/403`.
+- Export commandes admin : `/admin/commandes` contient les checkboxes et les
+  choix `BL`, `Factures`, `Bons de charge`; ZIP selection telecharge depuis le
+  navigateur.
+- Ancien export client : `/admin/documents-clients` retourne 404 et le lien est
+  absent de la sidebar.
+- Export commandes commercial : `/commercial/commandes` contient les checkboxes,
+  propose `BL` et `Bon charge`, ne propose pas `Facture`; ZIP BL telecharge.
+- Creation commande admin : client rapide avec adresse auto-selectionne,
+  commande `CP-000021` creee, total `22,50 DH`.
+- Paiement admin : paiement `5,00 DH` puis `1,00 DH` visibles immediatement
+  apres correction, totaux `Paye : 6,00 DH` et `Reste : 16,50 DH`; surpaiement
+  bloque avec message francais.
+- Bon de charge admin : `BC-000006` cree depuis `CP-000021`, avec client, ville,
+  adresse et quantite visibles.
+- Creation commande commercial : client rapide `com1` avec adresse, commande
+  `CP-000022` creee, total `9,00 DH`.
+- Bon de charge pour commande commercial : `BC-000007` cree par admin puis
+  visible avec client, adresse et quantite.
+- Regle commerciale one-time : `com1` telecharge le bon de charge en ZIP une
+  premiere fois; le second essai est bloque par
+  `Bon de charge deja telecharge par un commercial`.
+- Responsive mobile `390x844` : `/admin/commandes`,
+  `/admin/commandes/nouvelle`, `/admin/charges`, `/admin/produits/tarifs`,
+  `/commercial/commandes`, `/commercial/commandes/nouvelle`,
+  `/commercial/clients`, `/commercial/kpi` sans overflow document.
