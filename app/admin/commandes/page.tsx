@@ -262,109 +262,160 @@ export default async function CommandesAdminPage({
         </div>
 
         <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <Table className="w-full table-fixed text-sm">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[96px]">BL</TableHead>
-                <TableHead className="w-[92px]">Date</TableHead>
-                <TableHead className="w-[180px]">Client</TableHead>
-                <TableHead className="w-[96px]">Region</TableHead>
-                <TableHead className="w-[116px]">Commercial</TableHead>
-                <TableHead className="w-[78px]">Type</TableHead>
-                <TableHead className="w-[88px] text-right">Total</TableHead>
-                <TableHead className="w-[88px] text-right">Reste</TableHead>
-                <TableHead className="w-[92px]">Statut</TableHead>
-                <TableHead className="w-[52px] text-center">BL</TableHead>
-                <TableHead className="w-[74px] text-center">Facture</TableHead>
-                <TableHead className="w-[104px] text-center">Bon charge</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {commandes.length === 0 ? (
+          <form action="/admin/commandes/documents" method="post">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-3 py-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-semibold text-foreground">Documents des commandes cochees</span>
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="documents"
+                    value="bl"
+                    defaultChecked
+                    className="h-4 w-4 accent-primary"
+                  />
+                  BL
+                </label>
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="documents"
+                    value="facture"
+                    defaultChecked
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Factures
+                </label>
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="documents"
+                    value="bon_charge"
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Bons de charge
+                </label>
+              </div>
+              <Button type="submit" variant="outline" size="sm">
+                <Download />
+                ZIP selection
+              </Button>
+            </div>
+
+            <Table className="w-full table-fixed text-sm">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
-                    Aucune commande.
-                  </TableCell>
+                  <TableHead className="w-[44px] text-center">Sel.</TableHead>
+                  <TableHead className="w-[96px]">BL</TableHead>
+                  <TableHead className="w-[92px]">Date</TableHead>
+                  <TableHead className="w-[168px]">Client</TableHead>
+                  <TableHead className="w-[92px]">Region</TableHead>
+                  <TableHead className="w-[112px]">Commercial</TableHead>
+                  <TableHead className="w-[74px]">Type</TableHead>
+                  <TableHead className="w-[86px] text-right">Total</TableHead>
+                  <TableHead className="w-[86px] text-right">Reste</TableHead>
+                  <TableHead className="w-[88px]">Statut</TableHead>
+                  <TableHead className="w-[48px] text-center">BL</TableHead>
+                  <TableHead className="w-[68px] text-center">Facture</TableHead>
+                  <TableHead className="w-[100px] text-center">Bon charge</TableHead>
                 </TableRow>
-              ) : (
-                commandes.map((commande) => {
-                  const totaux = calculerTotauxCommande(
-                    commande.lignes,
-                    commande.paiements,
-                  );
-                  const client = commande.client ?? commande.client_externe;
-                  return (
-                    <TableRow key={commande.id}>
-                      <TableCell>
-                        <Link
-                          href={`/admin/commandes/${commande.id}`}
-                          className="font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                          {commande.numero_bl}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{formatDate(commande.date_commande)}</TableCell>
-                      <TableCell>
-                        <span className="block max-w-[18ch] truncate" title={client?.nom ?? "-"}>
-                          {client?.nom ?? "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="truncate">{client?.region_ville ?? "-"}</TableCell>
-                      <TableCell className="truncate">{commande.utilisateur.nom_complet}</TableCell>
-                      <TableCell className="truncate">{libelleTypeCommande(commande.type_commande)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMontant(totaux.total)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMontant(totaux.resteDu)}
-                      </TableCell>
-                      <TableCell>
-                        <BadgeStatut statut={totaux.statutPaiement} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button variant="ghost" size="icon-sm" asChild>
+              </TableHeader>
+              <TableBody>
+                {commandes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
+                      Aucune commande.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  commandes.map((commande) => {
+                    const totaux = calculerTotauxCommande(
+                      commande.lignes,
+                      commande.paiements,
+                    );
+                    const client = commande.client ?? commande.client_externe;
+                    return (
+                      <TableRow key={commande.id}>
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            name="commandeIds"
+                            value={commande.id}
+                            aria-label={`Selectionner ${commande.numero_bl}`}
+                            className="h-4 w-4 accent-primary"
+                          />
+                        </TableCell>
+                        <TableCell>
                           <Link
-                            href={`/admin/commandes/${commande.id}/pdf`}
-                            target="_blank"
-                            title={`PDF BL ${commande.numero_bl}`}
-                            aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                            href={`/admin/commandes/${commande.id}`}
+                            className="font-medium text-primary underline-offset-4 hover:underline"
                           >
-                            <FileText />
+                            {commande.numero_bl}
                           </Link>
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button variant="ghost" size="icon-sm" asChild>
-                          <Link
-                            href={`/admin/commandes/${commande.id}/facture`}
-                            target="_blank"
-                            title={`PDF facture ${commande.numero_bl}`}
-                            aria-label={`Ouvrir la facture ${commande.numero_bl}`}
-                          >
-                            <FileText />
-                          </Link>
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <BonChargeCommandeButton
-                          commandeId={commande.id}
-                          bonCharge={
-                            commande.bon_charge
-                              ? {
-                                  id: commande.bon_charge.id,
-                                  numeroBc: commande.bon_charge.numero_bc,
-                                  supprime: Boolean(commande.bon_charge.deleted_at),
-                                }
-                              : null
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                        </TableCell>
+                        <TableCell>{formatDate(commande.date_commande)}</TableCell>
+                        <TableCell>
+                          <span className="block max-w-[18ch] truncate" title={client?.nom ?? "-"}>
+                            {client?.nom ?? "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="truncate">{client?.region_ville ?? "-"}</TableCell>
+                        <TableCell className="truncate">{commande.utilisateur.nom_complet}</TableCell>
+                        <TableCell className="truncate">{libelleTypeCommande(commande.type_commande)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatMontant(totaux.total)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatMontant(totaux.resteDu)}
+                        </TableCell>
+                        <TableCell>
+                          <BadgeStatut statut={totaux.statutPaiement} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="icon-sm" asChild>
+                            <Link
+                              href={`/admin/commandes/${commande.id}/pdf`}
+                              target="_blank"
+                              title={`PDF BL ${commande.numero_bl}`}
+                              aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                            >
+                              <FileText />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="icon-sm" asChild>
+                            <Link
+                              href={`/admin/commandes/${commande.id}/facture`}
+                              target="_blank"
+                              title={`PDF facture ${commande.numero_bl}`}
+                              aria-label={`Ouvrir la facture ${commande.numero_bl}`}
+                            >
+                              <FileText />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <BonChargeCommandeButton
+                            commandeId={commande.id}
+                            bonCharge={
+                              commande.bon_charge
+                                ? {
+                                    id: commande.bon_charge.id,
+                                    numeroBc: commande.bon_charge.numero_bc,
+                                    supprime: Boolean(commande.bon_charge.deleted_at),
+                                  }
+                                : null
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </form>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">

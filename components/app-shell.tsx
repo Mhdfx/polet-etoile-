@@ -38,12 +38,6 @@ const navigationAdmin: NavigationItem[] = [
   { label: "Bons de charge", icon: Truck, href: "/admin/charges", groupe: "menu" },
   { label: "Paiements", icon: CreditCard, href: "/admin/paiements", groupe: "menu" },
   { label: "Clients", icon: Users, href: "/admin/clients", groupe: "menu" },
-  {
-    label: "Documents clients",
-    icon: FileText,
-    href: "/admin/documents-clients",
-    groupe: "menu",
-  },
   { label: "Retours", icon: RotateCcw, href: "/admin/retours", groupe: "menu" },
   { label: "KPI", icon: BarChart3, href: "/admin/kpi", groupe: "pilotage" },
   { label: "Rapprochement", icon: Scale, href: "/admin/rapprochement", groupe: "pilotage" },

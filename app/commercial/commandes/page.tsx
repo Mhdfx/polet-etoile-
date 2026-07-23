@@ -103,6 +103,18 @@ export default async function CommandesCommercialPage({
       client: { select: { nom: true, region_ville: true } },
       lignes: { where: { deleted_at: null }, select: { prix_net: true } },
       paiements: { select: { montant: true, date_paiement: true } },
+      bon_charge: {
+        where: { deleted_at: null },
+        select: {
+          id: true,
+          numero_bc: true,
+          telechargements_documents: {
+            where: { type_document: "BON_CHARGE" },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
     },
   });
 
@@ -216,80 +228,136 @@ export default async function CommandesCommercialPage({
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>BL</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Date reglement</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Reste</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">BL</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {commandes.length === 0 ? (
+          <form action="/commercial/commandes/documents" method="post">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-3 py-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-semibold text-foreground">Documents des commandes cochees</span>
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="documents"
+                    value="bl"
+                    defaultChecked
+                    className="h-4 w-4 accent-primary"
+                  />
+                  BL
+                </label>
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="documents"
+                    value="bon_charge"
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Bons de charge
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  Bon de charge : telechargement commercial unique.
+                </span>
+              </div>
+              <Button type="submit" variant="outline" size="sm">
+                <Download />
+                ZIP selection
+              </Button>
+            </div>
+
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                    Aucune commande.
-                  </TableCell>
+                  <TableHead className="w-[44px] text-center">Sel.</TableHead>
+                  <TableHead>BL</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Date reglement</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Reste</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Bon charge</TableHead>
+                  <TableHead className="text-right">BL</TableHead>
                 </TableRow>
-              ) : (
-                commandes.map((commande) => {
-                  const totaux = calculerTotauxCommande(
-                    commande.lignes,
-                    commande.paiements,
-                  );
-                  const dateReglement =
-                    totaux.statutPaiement === "paye"
-                      ? commande.paiements
-                          .map((paiement) => paiement.date_paiement)
-                          .sort((a, b) => b.getTime() - a.getTime())[0]
-                      : undefined;
-                  return (
-                    <TableRow key={commande.id}>
-                      <TableCell>
-                        <Link
-                          href={`/commercial/commandes/${commande.id}`}
-                          className="font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                          {commande.numero_bl}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{formatDate(commande.date_commande)}</TableCell>
-                      <TableCell>{commande.client?.nom ?? "-"}</TableCell>
-                      <TableCell>{commande.client?.region_ville ?? "-"}</TableCell>
-                      <TableCell>{dateReglement ? formatDate(dateReglement) : "-"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMontant(totaux.total)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMontant(totaux.resteDu)}
-                      </TableCell>
-                      <TableCell>
-                        <BadgeStatut statut={totaux.statutPaiement} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon-sm" asChild>
+              </TableHeader>
+              <TableBody>
+                {commandes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                      Aucune commande.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  commandes.map((commande) => {
+                    const totaux = calculerTotauxCommande(
+                      commande.lignes,
+                      commande.paiements,
+                    );
+                    const dateReglement =
+                      totaux.statutPaiement === "paye"
+                        ? commande.paiements
+                            .map((paiement) => paiement.date_paiement)
+                            .sort((a, b) => b.getTime() - a.getTime())[0]
+                        : undefined;
+                    const bonChargeTelecharge = Boolean(
+                      commande.bon_charge?.telechargements_documents.length,
+                    );
+
+                    return (
+                      <TableRow key={commande.id}>
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            name="commandeIds"
+                            value={commande.id}
+                            aria-label={`Selectionner ${commande.numero_bl}`}
+                            className="h-4 w-4 accent-primary"
+                          />
+                        </TableCell>
+                        <TableCell>
                           <Link
-                            href={`/commercial/commandes/${commande.id}/pdf`}
-                            target="_blank"
-                            title={`PDF BL ${commande.numero_bl}`}
-                            aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                            href={`/commercial/commandes/${commande.id}`}
+                            className="font-medium text-primary underline-offset-4 hover:underline"
                           >
-                            <FileText />
+                            {commande.numero_bl}
                           </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                        </TableCell>
+                        <TableCell>{formatDate(commande.date_commande)}</TableCell>
+                        <TableCell>{commande.client?.nom ?? "-"}</TableCell>
+                        <TableCell>{commande.client?.region_ville ?? "-"}</TableCell>
+                        <TableCell>{dateReglement ? formatDate(dateReglement) : "-"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatMontant(totaux.total)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatMontant(totaux.resteDu)}
+                        </TableCell>
+                        <TableCell>
+                          <BadgeStatut statut={totaux.statutPaiement} />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {commande.bon_charge
+                            ? bonChargeTelecharge
+                              ? "Deja telecharge"
+                              : commande.bon_charge.numero_bc
+                            : "Aucun"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon-sm" asChild>
+                            <Link
+                              href={`/commercial/commandes/${commande.id}/pdf`}
+                              target="_blank"
+                              title={`PDF BL ${commande.numero_bl}`}
+                              aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                            >
+                              <FileText />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </form>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">

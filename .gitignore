@@ -24,6 +24,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .next-start*.log
+/tmp/
+/qa-agent/
 
 # graphify (généré, se reconstruit)
 /graphify-out/

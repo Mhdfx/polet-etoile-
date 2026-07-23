@@ -23,6 +23,12 @@ enum ModePaiement {
   AUTRE
 }
 
+enum TypeDocumentTelecharge {
+  BL
+  FACTURE
+  BON_CHARGE
+}
+
 model User {
   id                    String          @id @default(cuid())
   nom_utilisateur       String          @unique @db.VarChar(100)
@@ -48,6 +54,7 @@ model User {
   retours                Retour[]
   parametres_modifies    ParametreSysteme[]
   audit_logs             AuditLog[]
+  telechargements_documents TelechargementDocument[]
   sessions               Session[]
   accounts               Account[]
 
@@ -219,6 +226,7 @@ model Commande {
   lignes         LigneCommande[]
   paiements      Paiement[]
   bon_charge     BonCharge?
+  telechargements_documents TelechargementDocument[]
 
   @@index([utilisateur_id, date_commande])
   @@index([client_id])
@@ -267,10 +275,30 @@ model BonCharge {
   commercial User             @relation("BonChargeCommercial", fields: [commercial_id], references: [id])
   createur   User             @relation("BonChargeCreateur", fields: [cree_par], references: [id])
   lignes     LigneBonCharge[]
+  telechargements_documents TelechargementDocument[]
 
   @@index([commercial_id, date_charge])
   @@index([date_charge])
   @@map("bons_charge")
+}
+
+model TelechargementDocument {
+  id             String                  @id @default(cuid())
+  utilisateur_id String
+  commande_id    String
+  bon_charge_id  String?
+  type_document  TypeDocumentTelecharge
+  ip_address     String?                 @db.VarChar(45)
+  created_at     DateTime                @default(now()) @db.DateTime(3)
+
+  utilisateur User       @relation(fields: [utilisateur_id], references: [id])
+  commande    Commande   @relation(fields: [commande_id], references: [id])
+  bon_charge  BonCharge? @relation(fields: [bon_charge_id], references: [id])
+
+  @@unique([bon_charge_id, type_document])
+  @@index([utilisateur_id, created_at])
+  @@index([commande_id])
+  @@map("telechargements_documents")
 }
 
 model LigneBonCharge {
