@@ -8,6 +8,48 @@ manuellement · ❌→✔ = échec corrigé, à re-vérifier rapidement.
 
 ---
 
+## Campagne 24/07/2026 - QA production apres deploiement export commandes
+
+Production testee sur `https://coqplus.ma` apres pull/deploiement du commit
+`6662040`.
+
+### Verification infrastructure
+
+- [x] VPS : conteneur app healthy.
+- [x] VPS : conteneur MySQL healthy.
+- [x] VPS : `http://127.0.0.1/connexion` retourne HTTP 200.
+- [x] Domaine public : `https://coqplus.ma/connexion` charge la page de login.
+
+### Routes et permissions production
+
+- [x] 19 routes admin chargees sans erreur console ni overflow desktop.
+- [x] 7 routes commercial chargees sans erreur console ni overflow desktop.
+- [x] Permission : `com1` vers `/admin/commandes` -> `/403`.
+
+### Export commandes production
+
+- [x] Admin `/admin/commandes` : checkboxes visibles, options `BL`,
+  `Factures`, `Bons de charge` visibles.
+- [x] Admin : ZIP selection telecharge.
+- [x] Ancien `/admin/documents-clients` : 404.
+- [x] Commercial `/commercial/commandes` : options `BL` et `Bon charge`
+  visibles, option `Facture` absente.
+- [x] Commercial : ZIP BL telecharge.
+
+### Flux metier production
+
+- [x] Admin nouvelle commande : client rapide QA cree et auto-selectionne.
+- [x] Admin commande QA creee : `CP-000021`, total production catalogue
+  `33,00 DH`.
+- [x] Paiement admin : paiement sauvegarde en base, surpaiement bloque.
+- [x] Probleme detecte : apres le premier paiement, les totaux pouvaient rester
+  visuellement anciens jusqu'a une autre interaction.
+- [x] Correctif pousse : `c59d845 fix(paiements): fiabiliser rafraichissement production`.
+- [ ] Redeployer `c59d845` et retester que le paiement recharge le detail
+  automatiquement sans action manuelle.
+
+---
+
 ## Campagne 23/07/2026 - QA complete locale export commandes en masse
 
 Build production teste dans l'in-app browser sur `http://localhost:3121`, avec

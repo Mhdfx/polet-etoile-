@@ -984,3 +984,22 @@ schema freeze explicite par Mehdi et deploiement.
   OK, second essai bloque.
 - [x] Verifier responsive mobile `390x844` sur les pages commandes et pages
   associees a risque.
+
+## QA production apres deploiement export commandes - 24/07/2026
+
+- [x] Verifier VPS apres pull `6662040` : app healthy, MySQL healthy,
+  `/connexion` HTTP 200.
+- [x] Tester production `https://coqplus.ma` au navigateur.
+- [x] Balayer 19 pages admin sans erreur console ni overflow desktop.
+- [x] Balayer 7 pages commercial sans erreur console ni overflow desktop.
+- [x] Verifier permission commercial vers admin : `/403`.
+- [x] Verifier export ZIP admin depuis `/admin/commandes`.
+- [x] Verifier que `/admin/documents-clients` retourne 404.
+- [x] Verifier export ZIP commercial depuis `/commercial/commandes`, facture
+  absente.
+- [x] Creer une commande admin QA en production.
+- [x] Detecter le refresh paiement encore trop lent sur production apres un
+  premier paiement.
+- [x] Corriger `app/commandes/paiement-form.tsx` par reload automatique apres
+  paiement et pousser le commit `c59d845`.
+- [ ] Redeployer `c59d845` sur le VPS et retester le paiement production.
