@@ -1785,8 +1785,10 @@ Probleme detecte et corrige :
   sauvegarde en base, mais le retour UI pouvait faire croire que rien ne s'etait
   passe.
 - Correction dans `app/commandes/paiement-form.tsx` : message de succes
-  immediat et double refresh client controle pour forcer la mise a jour rapide
-  du detail commande.
+  immediat puis rechargement automatique du detail commande. Le premier correctif
+  par `router.refresh()` etait suffisant en local mais encore trop lent sur la
+  production Cloudflare/Caddy; le reload automatique rend l'etat paye/reste
+  deterministe pour l'utilisateur.
 
 Verification technique :
 
