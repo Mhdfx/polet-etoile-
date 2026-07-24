@@ -3,8 +3,8 @@
 Document de reprise canonique. A lire avant toute nouvelle session avec
 `CLAUDE.md`, `AGENTS.md` et `PLAN.md`.
 
-Derniere mise a jour : 23/07/2026.
-Statut : **production active sur coqplus.ma ; export documents en masse recentre sur les commandes, avec BL/facture/bon de charge admin et BL + bon de charge commercial, bon de charge commercial telechargeable une seule fois**.
+Derniere mise a jour : 24/07/2026.
+Statut : **production active sur coqplus.ma ; export documents en masse recentre sur les commandes, paiement production reteste OK, correctif clients commerciaux local a redeployer**.
 
 `PLAN.md` fait foi pour l'ordre d'execution et les cases a cocher. Ce fichier resume
 l'etat courant, les decisions et les endroits ou modifier chaque sujet.
@@ -1830,3 +1830,70 @@ Recette navigateur sur `http://localhost:3121` :
   `/admin/commandes/nouvelle`, `/admin/charges`, `/admin/produits/tarifs`,
   `/commercial/commandes`, `/commercial/commandes/nouvelle`,
   `/commercial/clients`, `/commercial/kpi` sans overflow document.
+
+## Addendum Codex - QA production finale et correctif clients commandes - 24/07/2026
+
+Objectif :
+
+- Finir la recette production sur `https://coqplus.ma` apres deploiement des
+  exports documents par commandes et du refresh paiement.
+
+Recette production effectuee :
+
+- Auth admin et commercial OK.
+- 23 routes admin chargees sans 403/404/500 inattendu.
+- 7 routes commercial chargees sans 403/404/500 inattendu.
+- Permission verifiee : `com1` vers `/admin/commandes` arrive sur `/403`.
+- `/admin/commandes` contient l'export ZIP par commandes avec `BL`,
+  `Factures`, `Bons de charge`.
+- `/commercial/commandes` contient l'export ZIP par commandes avec `BL` et
+  `Bons de charge`, sans option facture.
+- Ancienne page `/admin/documents-clients` retourne bien 404.
+- Commande QA production creee par `com1` : `CP-000022`.
+- Bon de charge admin cree depuis cette commande : `BC-000009`.
+- Regle commercial one-time verifiee : premier ZIP bon de charge OK, second
+  essai bloque par `Bon de charge deja telecharge par un commercial`.
+- Telechargements UI verifies : BL PDF, facture depuis la liste commandes, bon
+  de charge PDF, tarifs PDF.
+- Paiement admin reteste sur `CP-000022` : paiement `1,00 DH` avec reference
+  QA visible immediatement, totaux passes a `Paye : 1,00 DH` et
+  `Reste : 15,50 DH`.
+- Liste villes nouveau client : 129 entrees, avec `Benslimane`, `Bouznika`,
+  `Sale`, `Temara`, `Beni yakhlef`, `Tamaris`, `Dar bouazza`, `Sidi rahal`,
+  `Errahma`, `Oualidia`, `Taroudant`.
+
+Probleme detecte :
+
+- En production, `/commercial/commandes/nouvelle` affichait seulement les 2
+  clients rattaches a `com1`, alors que l'admin voit d'autres clients actifs et
+  la regle demandee est que tous les utilisateurs puissent choisir tous les
+  clients actifs.
+
+Correctif local :
+
+- `app/commercial/commandes/nouvelle/page.tsx` charge maintenant tous les
+  clients standards actifs/non supprimes.
+- `app/commandes/actions.ts` autorise `creerCommandeCommercial` a creer une
+  commande pour tout client standard actif, tout en gardant le refus des clients
+  inactifs/supprimes/introuvables.
+- La validation admin de creation/modification BL garde le controle strict
+  client/responsable.
+- Test `app/commandes/actions.test.ts` mis a jour pour couvrir la nouvelle
+  regle.
+
+Verification locale du correctif :
+
+- `npx vitest run app/commandes/actions.test.ts` OK.
+- `npx tsc --noEmit` OK.
+- `npm run lint` OK.
+- `npm run test` OK : 135/135.
+- `npm run build` OK.
+- Navigateur sur `http://127.0.0.1:3125` : `com1` voit 20 clients dans
+  `/commercial/commandes/nouvelle`, incluant des clients admin ; creation
+  commande locale `CP-000023` OK avec un client admin.
+
+Prochaine action :
+
+- Commit/push/deployer ce correctif, puis retester production
+  `/commercial/commandes/nouvelle` pour confirmer que le select contient tous
+  les clients actifs.

@@ -936,9 +936,47 @@ Comptes seed :
 - Déploiement recette VPS + HTTPS (voir `docs/DEPLOYMENT.md`).
 - Sauvegarde MySQL infrastructure (Naomedia).
 
+---
+
+## Recette production finale - 24/07/2026
+
+- [x] Connexion admin `admin/password` sur `https://coqplus.ma`.
+- [x] Connexion commercial `com1/password` sur `https://coqplus.ma`.
+- [x] Balayage production : 23 routes admin principales sans 403/404/500
+  inattendu.
+- [x] Balayage production : 7 routes commercial principales sans 403/404/500
+  inattendu.
+- [x] Permission : `com1` vers `/admin/commandes` bloque par `/403`.
+- [x] Export commandes admin : checkboxes commandes, documents `BL`,
+  `Factures`, `Bons de charge`, ZIP telecharge.
+- [x] Export commandes commercial : checkboxes commandes, documents `BL` et
+  `Bons de charge`, facture absente.
+- [x] Ancien module `/admin/documents-clients` retire : page 404.
+- [x] Creation commande commercial production QA : `CP-000022`.
+- [x] Creation bon de charge admin depuis cette commande : `BC-000009`.
+- [x] Bon de charge commercial one-time : premier ZIP OK, second essai bloque
+  avec message.
+- [x] Telechargements documents UI : BL PDF, facture liste commandes, bon de
+  charge PDF, tarifs PDF.
+- [x] Paiement admin : paiement QA `1,00 DH` visible immediatement et totaux
+  recalcules (`Paye : 1,00 DH`, `Reste : 15,50 DH`).
+- [x] Liste villes nouveau client : 129 entrees et villes demandees presentes
+  (`Benslimane`, `Bouznika`, `Sale`, `Temara`, `Beni yakhlef`, `Tamaris`,
+  `Dar bouazza`, `Sidi rahal`, `Errahma`, `Oualidia`, `Taroudant`).
+- [x] Probleme detecte : `/commercial/commandes/nouvelle` production affichait
+  seulement 2 clients pour `com1` au lieu de tous les clients actifs.
+- [x] Correctif local applique : la page commercial charge tous les clients
+  standards actifs et l'action serveur autorise tout client actif.
+- [x] Retest local navigateur `http://127.0.0.1:3125` : `com1` voit 20 clients
+  et cree `CP-000023` avec un client admin.
+- [x] Verification technique correctif : `npx tsc --noEmit`, `npm run lint`,
+  `npm run test` (135/135), `npm run build`.
+- [ ] A faire apres push/deploiement : retester production
+  `/commercial/commandes/nouvelle` pour confirmer tous les clients actifs.
+
 ## Traçabilité automatique
 
-- `npm run test` → **113/113** (calculs Decimal, BL, KPI, permissions, validations Zod, filtres audit).
+- `npm run test` → **135/135** (calculs Decimal, BL, KPI, permissions, validations Zod, filtres audit, exports documents).
 - `scripts/testplan-full.ps1` → **37 PASS / 1 PARTIAL / 1 MANUAL / 1 SKIP** sur 40 checks HTTP
   (DASHA-05, RET-01, PERM-05/07, LST-09b, KPI-STRESS inclus depuis le rejeu).
 

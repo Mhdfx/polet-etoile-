@@ -157,7 +157,32 @@ describe("creerCommandeCommercial", () => {
     expect(txMock.commande.create).not.toHaveBeenCalled();
   });
 
-  it("refuse un client qui n'appartient pas au commercial connecte", async () => {
+  it("permet au commercial de commander pour tout client standard actif", async () => {
+    const resultat = await creerCommandeCommercial({
+      clientId: "client-autre-actif",
+      lignes: [{ produitId: "prod-1", quantite: "1" }],
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.client.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "client-autre-actif",
+        actif: true,
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+    expect(txMock.commande.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          utilisateur_id: "com-1",
+          client_id: "client-autre-actif",
+        }),
+      }),
+    );
+  });
+
+  it("refuse un client standard inactif, supprime ou introuvable", async () => {
     txMock.client.findFirst.mockResolvedValue(null);
 
     const resultat = await creerCommandeCommercial({

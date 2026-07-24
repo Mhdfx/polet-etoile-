@@ -4,8 +4,8 @@
 > `HANDOFF.md` is the recovery/status document. `CLAUDE.md` and `AGENTS.md` are the
 > rules. Keep all three aligned after each meaningful change.
 
-Current date: 23/07/2026
-Current status: **production active ; export documents en masse recentre sur les commandes avec selection par checkbox, QA locale complete 23/07 OK apres correction refresh paiement**
+Current date: 24/07/2026
+Current status: **production active ; export documents en masse recentre sur les commandes ; QA production 24/07 OK sauf correctif clients commerciaux a redeployer**
 Database decision: **MySQL 8**, not PostgreSQL.
 
 Legend:
@@ -1002,4 +1002,22 @@ schema freeze explicite par Mehdi et deploiement.
   premier paiement.
 - [x] Corriger `app/commandes/paiement-form.tsx` par reload automatique apres
   paiement et pousser le commit `c59d845`.
-- [ ] Redeployer `c59d845` sur le VPS et retester le paiement production.
+- [x] Redeployer `c59d845` sur le VPS et retester le paiement production.
+- [x] Retester production `https://coqplus.ma` apres redeploiement : 23 routes
+  admin, 7 routes commercial, permission commercial -> admin, exports ZIP
+  admin/commercial, PDF BL/facture/bon de charge/tarifs, paiement admin.
+- [x] Verifier la regle bon de charge commercial unique en production :
+  commande QA `CP-000022`, bon `BC-000009`, premier ZIP commercial OK,
+  second essai bloque par message.
+- [x] Detecter pendant la QA production que
+  `/commercial/commandes/nouvelle` affichait seulement les clients du
+  commercial connecte au lieu de tous les clients actifs.
+- [x] Corriger localement la liste clients commande commercial et la validation
+  serveur : tout client standard actif peut etre utilise par un commercial,
+  tandis que les clients inactifs/supprimes restent refuses.
+- [x] Retester localement sur `http://127.0.0.1:3125` : `com1` voit 20 clients
+  dans nouvelle commande et cree `CP-000023` avec un client admin.
+- [x] Verification technique apres correctif : `npx tsc --noEmit`,
+  `npm run lint`, `npm run test` (135/135), `npm run build`.
+- [ ] Pousser/deployer le correctif clients commerciaux, puis retester
+  production `/commercial/commandes/nouvelle`.

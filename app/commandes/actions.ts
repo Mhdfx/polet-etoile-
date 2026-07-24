@@ -73,11 +73,12 @@ async function verifierClientStandard(
   tx: Prisma.TransactionClient,
   clientId: string,
   commercialId: string,
+  options: { verifierResponsable: boolean } = { verifierResponsable: true },
 ): Promise<boolean> {
   const client = await tx.client.findFirst({
     where: {
       id: clientId,
-      commercial_id: commercialId,
+      ...(options.verifierResponsable ? { commercial_id: commercialId } : {}),
       actif: true,
       deleted_at: null,
     },
@@ -113,6 +114,7 @@ async function creerCommandeTransactionnelle({
   lignes,
   totalAnnonce,
   ip,
+  verifierResponsableClient,
 }: {
   tx: Prisma.TransactionClient;
   utilisateurAuditId: string;
@@ -123,13 +125,19 @@ async function creerCommandeTransactionnelle({
   lignes: Array<{ produitId: string; quantite: string }>;
   totalAnnonce?: string;
   ip: string | null;
+  verifierResponsableClient?: boolean;
 }): Promise<ResultatCommande> {
   if (!(await verifierResponsableCommandeActif(tx, commercialId))) {
     return { ok: false, erreurs: { commercialId: "Responsable introuvable" } };
   }
 
   if (typeCommande === "STANDARD") {
-    if (!clientId || !(await verifierClientStandard(tx, clientId, commercialId))) {
+    if (
+      !clientId ||
+      !(await verifierClientStandard(tx, clientId, commercialId, {
+        verifierResponsable: verifierResponsableClient ?? true,
+      }))
+    ) {
       return { ok: false, erreurs: { clientId: "Client introuvable" } };
     }
   }
@@ -244,6 +252,7 @@ export async function creerCommandeCommercial(
         utilisateurAuditId: commercial.id,
         commercialId: commercial.id,
         clientId,
+        verifierResponsableClient: false,
         typeCommande: "STANDARD",
         lignes,
         totalAnnonce,
