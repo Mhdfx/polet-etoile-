@@ -42,8 +42,8 @@ export function PaiementForm({ commandeId }: { commandeId: string }) {
       clearTimeout(refreshTimeoutRef.current);
     }
     refreshTimeoutRef.current = setTimeout(() => {
-      router.refresh();
-    }, 400);
+      window.location.reload();
+    }, 700);
   }
 
   async function soumettre(evenement: FormEvent<HTMLFormElement>) {
