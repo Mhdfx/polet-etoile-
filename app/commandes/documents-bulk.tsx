@@ -130,15 +130,21 @@ async function chargerCommandesSelectionnees({
   return commandes.sort((a, b) => (ordre.get(a.id) ?? 0) - (ordre.get(b.id) ?? 0));
 }
 
-async function verifierBonsDeChargeNonTelecharges(
+/**
+ * Ensemble des bons de charge deja telecharges au moins une fois (regle
+ * commerciale : telechargement commercial unique). Sert a exclure ces bons du
+ * ZIP sans faire echouer tout l'export : les BL et les autres bons restent
+ * livres, et un fichier note signale les bons non inclus.
+ */
+async function chargerBonsDeChargeDejaTelecharges(
   commandes: CommandeSelectionnee[],
-): Promise<Response | null> {
+): Promise<Set<string>> {
   const bonChargeIds = commandes
     .map((commande) => commande.bon_charge?.id)
     .filter((id): id is string => Boolean(id));
 
   if (bonChargeIds.length === 0) {
-    return null;
+    return new Set();
   }
 
   const telechargements = await prisma.telechargementDocument.findMany({
@@ -146,37 +152,33 @@ async function verifierBonsDeChargeNonTelecharges(
       type_document: "BON_CHARGE",
       bon_charge_id: { in: bonChargeIds },
     },
-    select: {
-      bon_charge: { select: { numero_bc: true } },
-      commande: { select: { numero_bl: true } },
-    },
+    select: { bon_charge_id: true },
   });
 
-  if (telechargements.length === 0) {
-    return null;
-  }
-
-  const numeros = telechargements
-    .map(
-      (telechargement) =>
-        `${telechargement.bon_charge?.numero_bc ?? "BC"} (${telechargement.commande.numero_bl})`,
-    )
-    .join(", ");
-
-  return reponseErreur(
-    `Bon de charge deja telecharge par un commercial : ${numeros}. Demandez a l'administrateur de fournir le document.`,
-    409,
+  return new Set(
+    telechargements
+      .map((telechargement) => telechargement.bon_charge_id)
+      .filter((id): id is string => Boolean(id)),
   );
 }
+
+type BonChargeInclus = { commandeId: string; bonChargeId: string };
+type BonChargeIgnore = { numeroBc: string; numeroBl: string };
 
 async function construireFichiers({
   commandes,
   documents,
+  portee,
+  bonsDeChargeDejaTelecharges,
 }: {
   commandes: CommandeSelectionnee[];
   documents: DocumentCommande[];
+  portee: PorteeExport;
+  bonsDeChargeDejaTelecharges: Set<string>;
 }) {
   const fichiers: Array<{ chemin: string; contenu: Uint8Array }> = [];
+  const bonsChargeInclus: BonChargeInclus[] = [];
+  const bonsChargeIgnores: BonChargeIgnore[] = [];
   const veutCommandeDocument = documents.includes("bl") || documents.includes("facture");
 
   for (const commande of commandes) {
@@ -201,29 +203,45 @@ async function construireFichiers({
     }
 
     if (documents.includes("bon_charge") && commande.bon_charge) {
-      const bon = await chargerBonChargeDocument(commande.bon_charge.id);
-      const buffer = await renderToBuffer(<BonChargePdf bon={bon} />);
-      fichiers.push({
-        chemin: cheminDocument(commande, `BON-CHARGE-${slug(commande.bon_charge.numero_bc)}.pdf`),
-        contenu: new Uint8Array(buffer),
-      });
+      // Regle commerciale : un commercial ne telecharge chaque bon de charge
+      // qu'une fois. On saute les bons deja telecharges (signales dans une note)
+      // sans faire echouer le reste de l'export. L'admin n'est jamais limite.
+      if (portee === "commercial" && bonsDeChargeDejaTelecharges.has(commande.bon_charge.id)) {
+        bonsChargeIgnores.push({
+          numeroBc: commande.bon_charge.numero_bc,
+          numeroBl: commande.numero_bl,
+        });
+      } else {
+        const bon = await chargerBonChargeDocument(commande.bon_charge.id);
+        const buffer = await renderToBuffer(<BonChargePdf bon={bon} />);
+        fichiers.push({
+          chemin: cheminDocument(commande, `BON-CHARGE-${slug(commande.bon_charge.numero_bc)}.pdf`),
+          contenu: new Uint8Array(buffer),
+        });
+        bonsChargeInclus.push({
+          commandeId: commande.id,
+          bonChargeId: commande.bon_charge.id,
+        });
+      }
     }
   }
 
-  return fichiers;
-}
+  if (bonsChargeIgnores.length > 0) {
+    const lignes = bonsChargeIgnores
+      .map((bon) => `- ${bon.numeroBc} (${bon.numeroBl})`)
+      .join("\n");
+    const note =
+      "Bons de charge non inclus car deja telecharges une fois par un commercial :\n" +
+      `${lignes}\n\n` +
+      "La regle autorise un seul telechargement commercial par bon de charge. " +
+      "Pour obtenir a nouveau ces documents, demandez-les a l'administrateur.\n";
+    fichiers.push({
+      chemin: "BONS-DE-CHARGE-NON-INCLUS.txt",
+      contenu: new TextEncoder().encode(note),
+    });
+  }
 
-function bonsDeChargeAEnregistrer(commandes: CommandeSelectionnee[]) {
-  return commandes.flatMap((commande) =>
-    commande.bon_charge
-      ? [
-          {
-            commandeId: commande.id,
-            bonChargeId: commande.bon_charge.id,
-          },
-        ]
-      : [],
-  );
+  return { fichiers, bonsChargeInclus, bonsChargeIgnores };
 }
 
 async function enregistrerAuditEtTelechargements({
@@ -231,6 +249,7 @@ async function enregistrerAuditEtTelechargements({
   portee,
   documents,
   commandes,
+  bonsChargeInclus,
   fichiers,
   ip,
 }: {
@@ -238,12 +257,15 @@ async function enregistrerAuditEtTelechargements({
   portee: PorteeExport;
   documents: DocumentCommande[];
   commandes: CommandeSelectionnee[];
+  bonsChargeInclus: BonChargeInclus[];
   fichiers: number;
   ip: string | null;
 }): Promise<Response | null> {
+  // Seuls les bons de charge reellement inclus dans le ZIP sont marques comme
+  // telecharges (les bons deja consommes ont ete sautes, pas re-livres).
   const telechargementsBonCharge =
     portee === "commercial" && documents.includes("bon_charge")
-      ? bonsDeChargeAEnregistrer(commandes)
+      ? bonsChargeInclus
       : [];
 
   try {
@@ -333,14 +355,17 @@ export async function exporterDocumentsCommandes({
     return commandes;
   }
 
-  if (portee === "commercial" && documents.includes("bon_charge")) {
-    const erreurTelechargement = await verifierBonsDeChargeNonTelecharges(commandes);
-    if (erreurTelechargement) {
-      return erreurTelechargement;
-    }
-  }
+  const bonsDeChargeDejaTelecharges =
+    portee === "commercial" && documents.includes("bon_charge")
+      ? await chargerBonsDeChargeDejaTelecharges(commandes)
+      : new Set<string>();
 
-  const fichiers = await construireFichiers({ commandes, documents });
+  const { fichiers, bonsChargeInclus } = await construireFichiers({
+    commandes,
+    documents,
+    portee,
+    bonsDeChargeDejaTelecharges,
+  });
 
   if (fichiers.length === 0) {
     return reponseErreur(
@@ -362,6 +387,7 @@ export async function exporterDocumentsCommandes({
     portee,
     documents,
     commandes,
+    bonsChargeInclus,
     fichiers: fichiers.length,
     ip,
   });

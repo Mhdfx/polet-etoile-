@@ -291,6 +291,7 @@ export default async function CommandesAdminPage({
                     type="checkbox"
                     name="documents"
                     value="bon_charge"
+                    defaultChecked
                     className="h-4 w-4 accent-primary"
                   />
                   Bons de charge
