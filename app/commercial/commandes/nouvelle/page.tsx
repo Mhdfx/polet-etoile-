@@ -27,7 +27,6 @@ export default async function NouvelleCommandeCommercialPage() {
     }),
     prisma.client.findMany({
       where: {
-        commercial_id: commercial.id,
         actif: true,
         deleted_at: null,
       },
