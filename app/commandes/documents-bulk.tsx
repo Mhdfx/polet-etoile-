@@ -1,8 +1,8 @@
 import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Prisma, type TypeDocumentTelecharge } from "@prisma/client";
-import { BonChargePdf } from "@/app/charges/bon-charge-pdf";
-import { chargerBonChargeDocument } from "@/app/charges/document-data";
+import { chargerBonChargeConsolide } from "@/app/charges/bon-charge-consolide-data";
+import { BonChargeConsolidePdf } from "@/app/charges/bon-charge-consolide-pdf";
 import { BonLivraisonPdf } from "@/app/commandes/bon-livraison-pdf";
 import { chargerCommandeDocument } from "@/app/commandes/document-data";
 import { FacturePdf } from "@/app/commandes/facture-pdf";
@@ -162,31 +162,31 @@ async function chargerBonsDeChargeDejaTelecharges(
   );
 }
 
+type Fichier = { chemin: string; contenu: Uint8Array };
 type BonChargeInclus = { commandeId: string; bonChargeId: string };
 type BonChargeIgnore = { numeroBc: string; numeroBl: string };
 
-async function construireFichiers({
+/**
+ * Fichiers par commande : BL et facture (un fichier par commande, dans un
+ * dossier au numero de BL). Le bon de charge n'est plus un fichier par commande
+ * mais un document consolide unique (voir prepararConsolide + BonChargeConsolidePdf).
+ */
+async function construireFichiersCommande({
   commandes,
   documents,
-  portee,
-  bonsDeChargeDejaTelecharges,
 }: {
   commandes: CommandeSelectionnee[];
   documents: DocumentCommande[];
-  portee: PorteeExport;
-  bonsDeChargeDejaTelecharges: Set<string>;
-}) {
-  const fichiers: Array<{ chemin: string; contenu: Uint8Array }> = [];
-  const bonsChargeInclus: BonChargeInclus[] = [];
-  const bonsChargeIgnores: BonChargeIgnore[] = [];
-  const veutCommandeDocument = documents.includes("bl") || documents.includes("facture");
+}): Promise<Fichier[]> {
+  const fichiers: Fichier[] = [];
+  if (!documents.includes("bl") && !documents.includes("facture")) {
+    return fichiers;
+  }
 
   for (const commande of commandes) {
-    const commandeDocument = veutCommandeDocument
-      ? await chargerCommandeDocument(commande.id)
-      : undefined;
+    const commandeDocument = await chargerCommandeDocument(commande.id);
 
-    if (documents.includes("bl") && commandeDocument) {
+    if (documents.includes("bl")) {
       const buffer = await renderToBuffer(<BonLivraisonPdf commande={commandeDocument} />);
       fichiers.push({
         chemin: cheminDocument(commande, `BL-${slug(commande.numero_bl)}.pdf`),
@@ -194,54 +194,76 @@ async function construireFichiers({
       });
     }
 
-    if (documents.includes("facture") && commandeDocument) {
+    if (documents.includes("facture")) {
       const buffer = await renderToBuffer(<FacturePdf commande={commandeDocument} />);
       fichiers.push({
         chemin: cheminDocument(commande, `FACTURE-${slug(commande.numero_bl)}.pdf`),
         contenu: new Uint8Array(buffer),
       });
     }
+  }
 
-    if (documents.includes("bon_charge") && commande.bon_charge) {
-      // Regle commerciale : un commercial ne telecharge chaque bon de charge
-      // qu'une fois. On saute les bons deja telecharges (signales dans une note)
-      // sans faire echouer le reste de l'export. L'admin n'est jamais limite.
-      if (portee === "commercial" && bonsDeChargeDejaTelecharges.has(commande.bon_charge.id)) {
-        bonsChargeIgnores.push({
-          numeroBc: commande.bon_charge.numero_bc,
-          numeroBl: commande.numero_bl,
-        });
-      } else {
-        const bon = await chargerBonChargeDocument(commande.bon_charge.id);
-        const buffer = await renderToBuffer(<BonChargePdf bon={bon} />);
-        fichiers.push({
-          chemin: cheminDocument(commande, `BON-CHARGE-${slug(commande.bon_charge.numero_bc)}.pdf`),
-          contenu: new Uint8Array(buffer),
-        });
-        bonsChargeInclus.push({
-          commandeId: commande.id,
-          bonChargeId: commande.bon_charge.id,
-        });
-      }
+  return fichiers;
+}
+
+/**
+ * Determine, pour le bon de charge consolide, les commandes a agreger, celles
+ * exclues (regle commerciale une-seule-fois) et les bons de charge a verrouiller.
+ * L'admin n'est jamais limite ; un commercial ne peut inclure qu'une fois le bon
+ * de charge d'une commande donnee.
+ */
+function prepararConsolide({
+  commandes,
+  portee,
+  bonsDeChargeDejaTelecharges,
+}: {
+  commandes: CommandeSelectionnee[];
+  portee: PorteeExport;
+  bonsDeChargeDejaTelecharges: Set<string>;
+}): {
+  inclues: CommandeSelectionnee[];
+  exclues: BonChargeIgnore[];
+  bonsChargeInclus: BonChargeInclus[];
+} {
+  const inclues: CommandeSelectionnee[] = [];
+  const exclues: BonChargeIgnore[] = [];
+  const bonsChargeInclus: BonChargeInclus[] = [];
+
+  for (const commande of commandes) {
+    const dejaTelecharge =
+      portee === "commercial" &&
+      commande.bon_charge != null &&
+      bonsDeChargeDejaTelecharges.has(commande.bon_charge.id);
+
+    if (dejaTelecharge && commande.bon_charge) {
+      exclues.push({
+        numeroBc: commande.bon_charge.numero_bc,
+        numeroBl: commande.numero_bl,
+      });
+      continue;
+    }
+
+    inclues.push(commande);
+    if (portee === "commercial" && commande.bon_charge) {
+      bonsChargeInclus.push({
+        commandeId: commande.id,
+        bonChargeId: commande.bon_charge.id,
+      });
     }
   }
 
-  if (bonsChargeIgnores.length > 0) {
-    const lignes = bonsChargeIgnores
-      .map((bon) => `- ${bon.numeroBc} (${bon.numeroBl})`)
-      .join("\n");
-    const note =
-      "Bons de charge non inclus car deja telecharges une fois par un commercial :\n" +
-      `${lignes}\n\n` +
-      "La regle autorise un seul telechargement commercial par bon de charge. " +
-      "Pour obtenir a nouveau ces documents, demandez-les a l'administrateur.\n";
-    fichiers.push({
-      chemin: "BONS-DE-CHARGE-NON-INCLUS.txt",
-      contenu: new TextEncoder().encode(note),
-    });
-  }
+  return { inclues, exclues, bonsChargeInclus };
+}
 
-  return { fichiers, bonsChargeInclus, bonsChargeIgnores };
+function noteExclusions(exclues: BonChargeIgnore[]): string | undefined {
+  if (exclues.length === 0) {
+    return undefined;
+  }
+  const lignes = exclues.map((e) => `${e.numeroBl} (${e.numeroBc})`).join(", ");
+  return (
+    "Commandes exclues du total : leur bon de charge a deja ete telecharge une fois. " +
+    `${lignes}. Pour les inclure a nouveau, demandez le document a l'administrateur.`
+  );
 }
 
 async function enregistrerAuditEtTelechargements({
@@ -355,30 +377,86 @@ export async function exporterDocumentsCommandes({
     return commandes;
   }
 
+  const veutBonCharge = documents.includes("bon_charge");
+
   const bonsDeChargeDejaTelecharges =
-    portee === "commercial" && documents.includes("bon_charge")
+    portee === "commercial" && veutBonCharge
       ? await chargerBonsDeChargeDejaTelecharges(commandes)
       : new Set<string>();
 
-  const { fichiers, bonsChargeInclus } = await construireFichiers({
-    commandes,
-    documents,
-    portee,
-    bonsDeChargeDejaTelecharges,
-  });
+  // Fichiers par commande (BL / facture).
+  const fichiers = await construireFichiersCommande({ commandes, documents });
 
-  if (fichiers.length === 0) {
-    return reponseErreur(
-      "Aucun document disponible pour les commandes selectionnees.",
-      404,
-    );
+  // Bon de charge consolide : un seul PDF pour toutes les commandes retenues.
+  let pdfConsolide: Uint8Array | undefined;
+  let bonsChargeInclus: BonChargeInclus[] = [];
+  if (veutBonCharge) {
+    const { inclues, exclues, bonsChargeInclus: marques } = prepararConsolide({
+      commandes,
+      portee,
+      bonsDeChargeDejaTelecharges,
+    });
+    bonsChargeInclus = marques;
+
+    const data = await chargerBonChargeConsolide({
+      commandeIds: inclues.map((commande) => commande.id),
+      note: noteExclusions(exclues),
+    });
+
+    if (data) {
+      const buffer = await renderToBuffer(<BonChargeConsolidePdf data={data} />);
+      pdfConsolide = new Uint8Array(buffer);
+    } else if (documents.length === 1) {
+      // Seul le bon de charge etait demande mais il n'y a rien a inclure.
+      return reponseErreur(
+        exclues.length > 0
+          ? "Bon de charge consolide vide : toutes les commandes selectionnees ont deja ete telechargees. Demandez le document a l'administrateur."
+          : "Aucun produit a charger pour les commandes selectionnees.",
+        exclues.length > 0 ? 409 : 404,
+      );
+    }
   }
 
-  if (fichiers.length > MAX_FICHIERS) {
-    return reponseErreur(
-      `Selection trop volumineuse : ${fichiers.length} fichiers. Limite actuelle : ${MAX_FICHIERS}. Reduire le nombre de commandes.`,
-      413,
-    );
+  // Packaging : un seul PDF si le bon de charge consolide est le seul document,
+  // sinon un ZIP (BL/facture par commande + bon de charge consolide a la racine).
+  const seulementConsolide =
+    veutBonCharge && documents.length === 1 && fichiers.length === 0;
+
+  let corps: Uint8Array;
+  let contentType: string;
+  let filename: string;
+  let nombreFichiers: number;
+  const date = new Date().toISOString().slice(0, 10);
+
+  if (seulementConsolide && pdfConsolide) {
+    corps = pdfConsolide;
+    contentType = "application/pdf";
+    filename = `bon-de-charge-consolide_${date}.pdf`;
+    nombreFichiers = 1;
+  } else {
+    if (pdfConsolide) {
+      fichiers.push({ chemin: "BON-DE-CHARGE.pdf", contenu: pdfConsolide });
+    }
+
+    if (fichiers.length === 0) {
+      return reponseErreur(
+        "Aucun document disponible pour les commandes selectionnees.",
+        404,
+      );
+    }
+
+    if (fichiers.length > MAX_FICHIERS) {
+      return reponseErreur(
+        `Selection trop volumineuse : ${fichiers.length} fichiers. Limite actuelle : ${MAX_FICHIERS}. Reduire le nombre de commandes.`,
+        413,
+      );
+    }
+
+    corps = creerZip(fichiers);
+    contentType = "application/zip";
+    const prefixe = portee === "admin" ? "documents_commandes" : "mes_documents_commandes";
+    filename = `${prefixe}_${date}.zip`;
+    nombreFichiers = fichiers.length;
   }
 
   const ip = await lireIpRequete();
@@ -388,21 +466,17 @@ export async function exporterDocumentsCommandes({
     documents,
     commandes,
     bonsChargeInclus,
-    fichiers: fichiers.length,
+    fichiers: nombreFichiers,
     ip,
   });
   if (erreurEnregistrement) {
     return erreurEnregistrement;
   }
 
-  const zip = creerZip(fichiers);
-  const date = new Date().toISOString().slice(0, 10);
-  const prefixe = portee === "admin" ? "documents_commandes" : "mes_documents_commandes";
-
-  return new Response(zip as BodyInit, {
+  return new Response(corps as BodyInit, {
     headers: entetesFichierPrive(
-      "application/zip",
-      `attachment; filename="${prefixe}_${date}.zip"`,
+      contentType,
+      `attachment; filename="${filename}"`,
     ),
   });
 }
