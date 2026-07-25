@@ -25,13 +25,6 @@ yarn-debug.log*
 yarn-error.log*
 .next-start*.log
 /tmp/
-/qa-agent/
-
-# graphify (généré, se reconstruit)
-/graphify-out/
-
-# config locale des agents (personnelle, non versionnée)
-.claude/settings.local.json
 
 # exports generes (donnees metier, servis uniquement via routes authentifiees)
 /exports-prive/

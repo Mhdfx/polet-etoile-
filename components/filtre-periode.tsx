@@ -17,7 +17,7 @@ type FiltrePeriodeProps = {
 
 /**
  * Filtre de periode inclusif : le serveur doit interpreter `au` comme
- * `< (au + 1 jour) 00:00` en heure de Casablanca (regle CLAUDE.md §2.14).
+ * `< (au + 1 jour) 00:00` en heure de Casablanca (CDC §7.4).
  */
 export function FiltrePeriode({
   periode,

@@ -6,7 +6,7 @@ Ce document liste les ecarts connus entre `cdc.md` v1.1 et le code livre.
 
 - CDC initial : Laravel 11 + Vue 3/Inertia + MySQL.
 - Code livre : Next.js 15 App Router + TypeScript strict + MySQL 8 + Prisma.
-- Justification projet : derogation actee dans `CLAUDE.md`; la substance metier du CDC reste prioritaire.
+- Justification projet : derogation actee avec le client ; la substance metier du CDC reste prioritaire.
 
 ## Remise / majoration
 

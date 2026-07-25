@@ -61,8 +61,6 @@ dispose des privileges necessaires dans l'environnement de developpement.
 - Interface et donnees metier en francais.
 - Les permissions se verifient cote serveur sur chaque action.
 
-Voir `CLAUDE.md`, `AGENTS.md`, `PLAN.md` et `HANDOFF.md` avant toute modification.
-
 ## Livraison
 
 - Choix techniques / ecarts CDC : `docs/CDC_DEVIATIONS.md`
