@@ -174,7 +174,7 @@ export function BonChargeConsolidePdf({ data }: { data: BonChargeConsolideData }
           </View>
 
           {data.lignes.map((ligne, index) => (
-            <View key={`${ligne.produit}-${index}`} style={styles.row}>
+            <View key={`${ligne.produit}-${index}`} style={styles.row} wrap={false}>
               <Text style={[styles.cell, styles.produitCell]}>{ligne.produit}</Text>
               <Text style={[styles.cell, styles.qteCell, styles.qteValue]}>
                 {ligne.quantite}
@@ -185,7 +185,7 @@ export function BonChargeConsolidePdf({ data }: { data: BonChargeConsolideData }
             </View>
           ))}
 
-          <View style={[styles.row, styles.totalRow]}>
+          <View style={[styles.row, styles.totalRow]} wrap={false}>
             <Text style={[styles.cell, styles.produitCell, styles.totalLabel]}>
               TOTAL
             </Text>
@@ -198,7 +198,7 @@ export function BonChargeConsolidePdf({ data }: { data: BonChargeConsolideData }
 
         {data.note ? <Text style={styles.note}>{data.note}</Text> : null}
 
-        <View style={styles.signatureRow}>
+        <View style={styles.signatureRow} wrap={false}>
           <View style={styles.signatureBox}>
             <Text style={styles.signatureText}>Signature Controleur</Text>
           </View>

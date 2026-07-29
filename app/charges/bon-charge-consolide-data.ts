@@ -54,7 +54,7 @@ export async function chargerBonChargeConsolide(params: {
         select: {
           quantite: true,
           prix_net: true,
-          produit: { select: { nom: true, ordre_affichage: true } },
+          produit: { select: { id: true, nom: true, ordre_affichage: true } },
         },
       },
     },
@@ -68,7 +68,7 @@ export async function chargerBonChargeConsolide(params: {
 
   for (const commande of commandes) {
     for (const ligne of commande.lignes) {
-      const cle = ligne.produit.nom;
+      const cle = ligne.produit.id;
       const entree =
         parProduit.get(cle) ?? {
           produit: ligne.produit.nom,

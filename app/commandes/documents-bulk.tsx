@@ -5,6 +5,18 @@ import { chargerBonChargeConsolide } from "@/app/charges/bon-charge-consolide-da
 import { BonChargeConsolidePdf } from "@/app/charges/bon-charge-consolide-pdf";
 import { BonLivraisonPdf } from "@/app/commandes/bon-livraison-pdf";
 import { chargerCommandeDocument } from "@/app/commandes/document-data";
+import {
+  noteExclusions,
+  preparerConsolide,
+  type BonChargeInclus,
+  type CommandeSelectionnee,
+} from "@/app/commandes/documents-bulk-selection";
+import {
+  validerCommandesDocuments,
+  validerTypesDocuments,
+  type DocumentCommande,
+  type PorteeExport,
+} from "@/app/commandes/documents-bulk-validation";
 import { FacturePdf } from "@/app/commandes/facture-pdf";
 import { adresseIpRequete } from "@/lib/audit";
 import { prisma } from "@/lib/db";
@@ -12,25 +24,7 @@ import { entetesFichierPrive } from "@/lib/http";
 import type { UtilisateurSession } from "@/lib/session";
 import { creerZip } from "@/lib/zip";
 
-const DOCUMENTS_ADMIN = ["bl", "facture", "bon_charge"] as const;
-const DOCUMENTS_COMMERCIAL = ["bl", "bon_charge"] as const;
-const MAX_COMMANDES = 100;
 const MAX_FICHIERS = 300;
-
-type DocumentCommande = (typeof DOCUMENTS_ADMIN)[number];
-type PorteeExport = "admin" | "commercial";
-
-type CommandeSelectionnee = {
-  id: string;
-  numero_bl: string;
-  bon_charge: { id: string; numero_bc: string } | null;
-};
-
-const schemaId = /^[A-Za-z0-9_-]+$/;
-
-function valeursFormData(formData: FormData, cle: string): string[] {
-  return formData.getAll(cle).filter((valeur): valeur is string => typeof valeur === "string");
-}
 
 function reponseErreur(message: string, status = 400): Response {
   return new Response(message, {
@@ -51,45 +45,6 @@ function slug(valeur: string): string {
 
 function cheminDocument(commande: CommandeSelectionnee, nom: string): string {
   return `${slug(commande.numero_bl)}/${nom}`;
-}
-
-function validerCommandes(formData: FormData): string[] | Response {
-  const ids = [...new Set(valeursFormData(formData, "commandeIds"))];
-
-  if (ids.length === 0) {
-    return reponseErreur("Selectionner au moins une commande.");
-  }
-
-  if (ids.length > MAX_COMMANDES) {
-    return reponseErreur(`Selectionner ${MAX_COMMANDES} commandes au maximum.`);
-  }
-
-  if (ids.some((id) => !schemaId.test(id))) {
-    return reponseErreur("Selection de commandes invalide.");
-  }
-
-  return ids;
-}
-
-function validerDocuments(
-  formData: FormData,
-  portee: PorteeExport,
-): DocumentCommande[] | Response {
-  const valeurs = [...new Set(valeursFormData(formData, "documents"))];
-  const autorises = portee === "admin" ? DOCUMENTS_ADMIN : DOCUMENTS_COMMERCIAL;
-  const documents = valeurs.filter((valeur): valeur is DocumentCommande =>
-    (autorises as readonly string[]).includes(valeur),
-  );
-
-  if (documents.length === 0) {
-    return reponseErreur("Selectionner au moins un type de document autorise.");
-  }
-
-  if (documents.length !== valeurs.length) {
-    return reponseErreur("Selection de documents invalide.", 403);
-  }
-
-  return documents;
 }
 
 async function chargerCommandesSelectionnees({
@@ -163,13 +118,10 @@ async function chargerBonsDeChargeDejaTelecharges(
 }
 
 type Fichier = { chemin: string; contenu: Uint8Array };
-type BonChargeInclus = { commandeId: string; bonChargeId: string };
-type BonChargeIgnore = { numeroBc: string; numeroBl: string };
-
 /**
  * Fichiers par commande : BL et facture (un fichier par commande, dans un
  * dossier au numero de BL). Le bon de charge n'est plus un fichier par commande
- * mais un document consolide unique (voir prepararConsolide + BonChargeConsolidePdf).
+ * mais un document consolide unique (voir preparerConsolide + BonChargeConsolidePdf).
  */
 async function construireFichiersCommande({
   commandes,
@@ -212,60 +164,6 @@ async function construireFichiersCommande({
  * L'admin n'est jamais limite ; un commercial ne peut inclure qu'une fois le bon
  * de charge d'une commande donnee.
  */
-function prepararConsolide({
-  commandes,
-  portee,
-  bonsDeChargeDejaTelecharges,
-}: {
-  commandes: CommandeSelectionnee[];
-  portee: PorteeExport;
-  bonsDeChargeDejaTelecharges: Set<string>;
-}): {
-  inclues: CommandeSelectionnee[];
-  exclues: BonChargeIgnore[];
-  bonsChargeInclus: BonChargeInclus[];
-} {
-  const inclues: CommandeSelectionnee[] = [];
-  const exclues: BonChargeIgnore[] = [];
-  const bonsChargeInclus: BonChargeInclus[] = [];
-
-  for (const commande of commandes) {
-    const dejaTelecharge =
-      portee === "commercial" &&
-      commande.bon_charge != null &&
-      bonsDeChargeDejaTelecharges.has(commande.bon_charge.id);
-
-    if (dejaTelecharge && commande.bon_charge) {
-      exclues.push({
-        numeroBc: commande.bon_charge.numero_bc,
-        numeroBl: commande.numero_bl,
-      });
-      continue;
-    }
-
-    inclues.push(commande);
-    if (portee === "commercial" && commande.bon_charge) {
-      bonsChargeInclus.push({
-        commandeId: commande.id,
-        bonChargeId: commande.bon_charge.id,
-      });
-    }
-  }
-
-  return { inclues, exclues, bonsChargeInclus };
-}
-
-function noteExclusions(exclues: BonChargeIgnore[]): string | undefined {
-  if (exclues.length === 0) {
-    return undefined;
-  }
-  const lignes = exclues.map((e) => `${e.numeroBl} (${e.numeroBc})`).join(", ");
-  return (
-    "Commandes exclues du total : leur bon de charge a deja ete telecharge une fois. " +
-    `${lignes}. Pour les inclure a nouveau, demandez le document a l'administrateur.`
-  );
-}
-
 async function enregistrerAuditEtTelechargements({
   utilisateur,
   portee,
@@ -358,12 +256,12 @@ export async function exporterDocumentsCommandes({
   portee: PorteeExport;
 }): Promise<Response> {
   const formData = await request.formData();
-  const ids = validerCommandes(formData);
+  const ids = validerCommandesDocuments(formData);
   if (ids instanceof Response) {
     return ids;
   }
 
-  const documents = validerDocuments(formData, portee);
+  const documents = validerTypesDocuments(formData, portee);
   if (documents instanceof Response) {
     return documents;
   }
@@ -391,7 +289,7 @@ export async function exporterDocumentsCommandes({
   let pdfConsolide: Uint8Array | undefined;
   let bonsChargeInclus: BonChargeInclus[] = [];
   if (veutBonCharge) {
-    const { inclues, exclues, bonsChargeInclus: marques } = prepararConsolide({
+    const { inclues, exclues, bonsChargeInclus: marques } = preparerConsolide({
       commandes,
       portee,
       bonsDeChargeDejaTelecharges,
@@ -408,11 +306,14 @@ export async function exporterDocumentsCommandes({
       pdfConsolide = new Uint8Array(buffer);
     } else if (documents.length === 1) {
       // Seul le bon de charge etait demande mais il n'y a rien a inclure.
+      const tousDejaTelecharges =
+        exclues.length > 0 &&
+        exclues.every((exclusion) => exclusion.raison === "deja_telecharge");
       return reponseErreur(
-        exclues.length > 0
+        tousDejaTelecharges
           ? "Bon de charge consolide vide : toutes les commandes selectionnees ont deja ete telechargees. Demandez le document a l'administrateur."
-          : "Aucun produit a charger pour les commandes selectionnees.",
-        exclues.length > 0 ? 409 : 404,
+          : "Aucun bon de charge disponible pour les commandes selectionnees.",
+        tousDejaTelecharges ? 409 : 404,
       );
     }
   }
