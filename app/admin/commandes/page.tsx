@@ -299,7 +299,7 @@ export default async function CommandesAdminPage({
               </div>
               <Button type="submit" variant="outline" size="sm">
                 <Download />
-                ZIP selection
+                PDF selection
               </Button>
             </div>
 

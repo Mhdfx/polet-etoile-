@@ -480,7 +480,7 @@ function SignatureBox({ title }: { title: string }) {
 
 function Stamp({ commande }: { commande: CommandeDocumentData }) {
   return (
-    <View style={styles.stampWrap} fixed>
+    <View style={styles.stampWrap}>
       {commande.societe.cachet ? (
         // eslint-disable-next-line jsx-a11y/alt-text
         <Image src={commande.societe.cachet} style={styles.stampImage} />

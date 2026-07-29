@@ -256,23 +256,21 @@ const TYPES_LOGO_PDF: Record<string, string> = {
 };
 
 export async function chargerLogoDataUri(cheminPublic?: string): Promise<string | undefined> {
-  if (!cheminPublic || !estCheminLogoPublic(cheminPublic)) {
-    return undefined;
+  if (cheminPublic && estCheminLogoPublic(cheminPublic)) {
+    const mime = TYPES_LOGO_PDF[path.extname(cheminPublic).toLowerCase()];
+    if (mime) {
+      try {
+        const relatif = cheminPublic.replace(/^\/+/, "").split("/");
+        const cheminDisque = path.join(process.cwd(), "public", ...relatif);
+        const contenu = await readFile(cheminDisque);
+        return `data:${mime};base64,${contenu.toString("base64")}`;
+      } catch {
+        // Le cachet officiel sert de marque de repli ci-dessous.
+      }
+    }
   }
 
-  const mime = TYPES_LOGO_PDF[path.extname(cheminPublic).toLowerCase()];
-  if (!mime) {
-    return undefined;
-  }
-
-  try {
-    const relatif = cheminPublic.replace(/^\/+/, "").split("/");
-    const cheminDisque = path.join(process.cwd(), "public", ...relatif);
-    const contenu = await readFile(cheminDisque);
-    return `data:${mime};base64,${contenu.toString("base64")}`;
-  } catch {
-    return undefined;
-  }
+  return chargerCachetDataUri();
 }
 
 export async function chargerCachetDataUri(): Promise<string | undefined> {

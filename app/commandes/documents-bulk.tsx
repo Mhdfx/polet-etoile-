@@ -18,33 +18,19 @@ import {
   type PorteeExport,
 } from "@/app/commandes/documents-bulk-validation";
 import { FacturePdf } from "@/app/commandes/facture-pdf";
+import { fusionnerPdfs } from "@/app/commandes/fusion-pdf";
 import { adresseIpRequete } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { entetesFichierPrive } from "@/lib/http";
 import type { UtilisateurSession } from "@/lib/session";
-import { creerZip } from "@/lib/zip";
 
-const MAX_FICHIERS = 300;
+const MAX_DOCUMENTS_PDF = 300;
 
 function reponseErreur(message: string, status = 400): Response {
   return new Response(message, {
     status,
     headers: { "content-type": "text/plain; charset=utf-8" },
   });
-}
-
-function slug(valeur: string): string {
-  const normalise = valeur
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^A-Za-z0-9._-]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  return normalise || "document";
-}
-
-function cheminDocument(commande: CommandeSelectionnee, nom: string): string {
-  return `${slug(commande.numero_bl)}/${nom}`;
 }
 
 async function chargerCommandesSelectionnees({
@@ -88,8 +74,8 @@ async function chargerCommandesSelectionnees({
 /**
  * Ensemble des bons de charge deja telecharges au moins une fois (regle
  * commerciale : telechargement commercial unique). Sert a exclure ces bons du
- * ZIP sans faire echouer tout l'export : les BL et les autres bons restent
- * livres, et un fichier note signale les bons non inclus.
+ * PDF sans faire echouer tout l'export : les BL et les autres bons restent
+ * livres, et le bon consolide signale les bons non inclus.
  */
 async function chargerBonsDeChargeDejaTelecharges(
   commandes: CommandeSelectionnee[],
@@ -117,22 +103,20 @@ async function chargerBonsDeChargeDejaTelecharges(
   );
 }
 
-type Fichier = { chemin: string; contenu: Uint8Array };
 /**
- * Fichiers par commande : BL et facture (un fichier par commande, dans un
- * dossier au numero de BL). Le bon de charge n'est plus un fichier par commande
- * mais un document consolide unique (voir preparerConsolide + BonChargeConsolidePdf).
+ * Pages PDF par commande : BL puis facture pour chaque commande selectionnee.
+ * Elles seront fusionnees avec le bon de charge consolide dans un seul fichier.
  */
-async function construireFichiersCommande({
+async function construirePdfsCommande({
   commandes,
   documents,
 }: {
   commandes: CommandeSelectionnee[];
   documents: DocumentCommande[];
-}): Promise<Fichier[]> {
-  const fichiers: Fichier[] = [];
+}): Promise<Uint8Array[]> {
+  const pdfs: Uint8Array[] = [];
   if (!documents.includes("bl") && !documents.includes("facture")) {
-    return fichiers;
+    return pdfs;
   }
 
   for (const commande of commandes) {
@@ -140,22 +124,16 @@ async function construireFichiersCommande({
 
     if (documents.includes("bl")) {
       const buffer = await renderToBuffer(<BonLivraisonPdf commande={commandeDocument} />);
-      fichiers.push({
-        chemin: cheminDocument(commande, `BL-${slug(commande.numero_bl)}.pdf`),
-        contenu: new Uint8Array(buffer),
-      });
+      pdfs.push(new Uint8Array(buffer));
     }
 
     if (documents.includes("facture")) {
       const buffer = await renderToBuffer(<FacturePdf commande={commandeDocument} />);
-      fichiers.push({
-        chemin: cheminDocument(commande, `FACTURE-${slug(commande.numero_bl)}.pdf`),
-        contenu: new Uint8Array(buffer),
-      });
+      pdfs.push(new Uint8Array(buffer));
     }
   }
 
-  return fichiers;
+  return pdfs;
 }
 
 /**
@@ -181,7 +159,7 @@ async function enregistrerAuditEtTelechargements({
   fichiers: number;
   ip: string | null;
 }): Promise<Response | null> {
-  // Seuls les bons de charge reellement inclus dans le ZIP sont marques comme
+  // Seuls les bons de charge reellement inclus dans le PDF sont marques comme
   // telecharges (les bons deja consommes ont ete sautes, pas re-livres).
   const telechargementsBonCharge =
     portee === "commercial" && documents.includes("bon_charge")
@@ -282,8 +260,8 @@ export async function exporterDocumentsCommandes({
       ? await chargerBonsDeChargeDejaTelecharges(commandes)
       : new Set<string>();
 
-  // Fichiers par commande (BL / facture).
-  const fichiers = await construireFichiersCommande({ commandes, documents });
+  // PDF par commande (BL / facture).
+  const pdfs = await construirePdfsCommande({ commandes, documents });
 
   // Bon de charge consolide : un seul PDF pour toutes les commandes retenues.
   let pdfConsolide: Uint8Array | undefined;
@@ -318,47 +296,34 @@ export async function exporterDocumentsCommandes({
     }
   }
 
-  // Packaging : un seul PDF si le bon de charge consolide est le seul document,
-  // sinon un ZIP (BL/facture par commande + bon de charge consolide a la racine).
-  const seulementConsolide =
-    veutBonCharge && documents.length === 1 && fichiers.length === 0;
-
-  let corps: Uint8Array;
-  let contentType: string;
-  let filename: string;
-  let nombreFichiers: number;
-  const date = new Date().toISOString().slice(0, 10);
-
-  if (seulementConsolide && pdfConsolide) {
-    corps = pdfConsolide;
-    contentType = "application/pdf";
-    filename = `bon-de-charge-consolide_${date}.pdf`;
-    nombreFichiers = 1;
-  } else {
-    if (pdfConsolide) {
-      fichiers.push({ chemin: "BON-DE-CHARGE.pdf", contenu: pdfConsolide });
-    }
-
-    if (fichiers.length === 0) {
-      return reponseErreur(
-        "Aucun document disponible pour les commandes selectionnees.",
-        404,
-      );
-    }
-
-    if (fichiers.length > MAX_FICHIERS) {
-      return reponseErreur(
-        `Selection trop volumineuse : ${fichiers.length} fichiers. Limite actuelle : ${MAX_FICHIERS}. Reduire le nombre de commandes.`,
-        413,
-      );
-    }
-
-    corps = creerZip(fichiers);
-    contentType = "application/zip";
-    const prefixe = portee === "admin" ? "documents_commandes" : "mes_documents_commandes";
-    filename = `${prefixe}_${date}.zip`;
-    nombreFichiers = fichiers.length;
+  if (pdfConsolide) {
+    pdfs.push(pdfConsolide);
   }
+
+  if (pdfs.length === 0) {
+    return reponseErreur(
+      "Aucun document disponible pour les commandes selectionnees.",
+      404,
+    );
+  }
+
+  if (pdfs.length > MAX_DOCUMENTS_PDF) {
+    return reponseErreur(
+      `Selection trop volumineuse : ${pdfs.length} documents. Limite actuelle : ${MAX_DOCUMENTS_PDF}. Reduire le nombre de commandes.`,
+      413,
+    );
+  }
+
+  const date = new Date().toISOString().slice(0, 10);
+  const titre =
+    portee === "admin"
+      ? "Dossier documents commandes"
+      : "Dossier documents commercial";
+  const corps = await fusionnerPdfs(pdfs, titre);
+  const prefixe =
+    portee === "admin" ? "dossier_commandes" : "mes_documents_commandes";
+  const filename = `${prefixe}_${date}.pdf`;
+  const nombreFichiers = pdfs.length;
 
   const ip = await lireIpRequete();
   const erreurEnregistrement = await enregistrerAuditEtTelechargements({
@@ -376,7 +341,7 @@ export async function exporterDocumentsCommandes({
 
   return new Response(corps as BodyInit, {
     headers: entetesFichierPrive(
-      contentType,
+      "application/pdf",
       `attachment; filename="${filename}"`,
     ),
   });

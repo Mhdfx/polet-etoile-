@@ -258,7 +258,7 @@ export default async function CommandesCommercialPage({
               </div>
               <Button type="submit" variant="outline" size="sm">
                 <Download />
-                ZIP selection
+                PDF selection
               </Button>
             </div>
 

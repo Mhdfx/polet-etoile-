@@ -1,5 +1,8 @@
 import Decimal from "decimal.js";
-import { chargerLogoDataUri } from "@/app/commandes/document-data";
+import {
+  chargerCachetDataUri,
+  chargerLogoDataUri,
+} from "@/app/commandes/document-data";
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
 
@@ -13,7 +16,14 @@ function formatNombre(valeur: Decimal, decimales: number): string {
 export type BonChargeConsolideData = {
   societe: {
     raisonSociale: string;
+    ice?: string;
+    rc?: string;
+    identifiantFiscal?: string;
+    patente?: string;
+    adresse?: string;
+    telephone?: string;
     logo?: string;
+    cachet?: string;
   };
   genereLe: string;
   commercial: string;
@@ -103,7 +113,20 @@ export async function chargerBonChargeConsolide(params: {
     commerciaux.length === 1 ? commerciaux[0] : "Plusieurs commerciaux";
 
   const parametres = await prisma.parametreSysteme.findMany({
-    where: { cle: { in: ["raison_sociale", "logo_url"] } },
+    where: {
+      cle: {
+        in: [
+          "raison_sociale",
+          "ice",
+          "rc",
+          "identifiant_fiscal",
+          "patente",
+          "adresse",
+          "telephone",
+          "logo_url",
+        ],
+      },
+    },
     select: { cle: true, valeur: true },
   });
   const parametresMap = new Map(parametres.map((p) => [p.cle, p.valeur]));
@@ -111,7 +134,14 @@ export async function chargerBonChargeConsolide(params: {
   return {
     societe: {
       raisonSociale: parametresMap.get("raison_sociale") || "COQ PLUS SARL",
+      ice: parametresMap.get("ice"),
+      rc: parametresMap.get("rc"),
+      identifiantFiscal: parametresMap.get("identifiant_fiscal"),
+      patente: parametresMap.get("patente"),
+      adresse: parametresMap.get("adresse"),
+      telephone: parametresMap.get("telephone"),
       logo: await chargerLogoDataUri(parametresMap.get("logo_url")),
+      cachet: await chargerCachetDataUri(),
     },
     genereLe: formatDateHeure(new Date()),
     commercial,
