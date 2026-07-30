@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { DeconnexionButton } from "@/components/deconnexion-button";
+import { chargerLogoApplication } from "@/lib/logo-application";
 import { cn } from "@/lib/utils";
 import type { UtilisateurSession } from "@/lib/session";
 
@@ -115,7 +116,7 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-export function AppShell({
+export async function AppShell({
   utilisateur,
   espace,
   cheminActif,
@@ -123,6 +124,7 @@ export function AppShell({
   description,
   children,
 }: AppShellProps) {
+  const logoApplication = await chargerLogoApplication();
   const navigation =
     espace === "admin" ? navigationAdmin : navigationCommercial;
   const racine = espace === "admin" ? "/admin" : "/commercial";
@@ -150,12 +152,13 @@ export function AppShell({
           <div className="relative flex min-h-20 items-center gap-3 px-5">
             <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-white/25">
               <Image
-                src="/cachet.png"
+                src={logoApplication}
                 alt="Coq Plus"
                 width={40}
                 height={40}
                 className="h-full w-full object-contain"
                 priority
+                unoptimized={logoApplication.startsWith("/uploads/")}
               />
             </div>
             <div className="leading-tight">

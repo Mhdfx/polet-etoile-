@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getUtilisateurSession, cheminAccueilPourRole } from "@/lib/session";
+import { chargerLogoApplication } from "@/lib/logo-application";
 import { ConnexionForm } from "./connexion-form";
 
 export default async function ConnexionPage() {
@@ -9,6 +10,7 @@ export default async function ConnexionPage() {
   if (utilisateur) {
     redirect(cheminAccueilPourRole(utilisateur.role));
   }
+  const logoApplication = await chargerLogoApplication();
 
   return (
     <main className="grid min-h-dvh bg-background lg:grid-cols-[1.1fr_1fr]">
@@ -25,12 +27,13 @@ export default async function ConnexionPage() {
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-white p-1">
             <Image
-              src="/cachet.png"
+              src={logoApplication}
               alt="Coq Plus"
               width={36}
               height={36}
               className="h-full w-full object-contain"
               priority
+              unoptimized={logoApplication.startsWith("/uploads/")}
             />
           </div>
           <div className="leading-tight">
@@ -61,12 +64,13 @@ export default async function ConnexionPage() {
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-white p-1 ring-1 ring-border">
               <Image
-                src="/cachet.png"
+                src={logoApplication}
                 alt="Coq Plus"
                 width={36}
                 height={36}
                 className="h-full w-full object-contain"
                 priority
+                unoptimized={logoApplication.startsWith("/uploads/")}
               />
             </div>
             <div className="leading-tight">
