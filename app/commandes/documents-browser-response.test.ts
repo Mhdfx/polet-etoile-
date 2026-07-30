@@ -41,4 +41,29 @@ describe("adapterErreurDocumentsPourNavigateur", () => {
     expect(resultat).toBe(response);
     expect(resultat.status).toBe(403);
   });
+
+  it("utilise l'origine publique transmise par le reverse proxy", async () => {
+    const request = new Request("http://localhost:3000/admin/commandes/documents", {
+      headers: {
+        accept: "text/html",
+        host: "localhost:3000",
+        "x-forwarded-host": "coqplus.ma",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const response = new Response("Selectionner au moins une commande.", {
+      status: 400,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+
+    const resultat = await adapterErreurDocumentsPourNavigateur({
+      request,
+      response,
+      retour: "/admin/commandes",
+    });
+
+    expect(resultat.headers.get("location")).toBe(
+      "https://coqplus.ma/admin/commandes?erreurDocuments=Selectionner+au+moins+une+commande.",
+    );
+  });
 });

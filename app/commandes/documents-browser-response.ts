@@ -17,7 +17,15 @@ export async function adapterErreurDocumentsPourNavigateur({
   }
 
   const message = (await response.text()).trim() || "Le document n'a pas pu être généré.";
-  const destination = new URL(retour, request.url);
+  const urlRequete = new URL(request.url);
+  const hotePublic =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const protocolePublic =
+    request.headers.get("x-forwarded-proto") ?? urlRequete.protocol.replace(":", "");
+  const originePublique = hotePublic
+    ? `${protocolePublic}://${hotePublic}`
+    : urlRequete.origin;
+  const destination = new URL(retour, originePublique);
   destination.searchParams.set("erreurDocuments", message);
   return Response.redirect(destination, 303);
 }
