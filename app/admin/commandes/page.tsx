@@ -32,6 +32,7 @@ type ParametresRecherche = Promise<{
   debut?: string;
   fin?: string;
   taille?: string;
+  erreurDocuments?: string;
 }>;
 
 function lienPage(params: Record<string, string | undefined>, page: number) {
@@ -168,6 +169,14 @@ export default async function CommandesAdminPage({
       description="Toutes les commandes, creation admin, bons de charge, paiements calcules, filtres et exports."
     >
       <div className="grid min-w-0 gap-4">
+        {params.erreurDocuments ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+          >
+            {params.erreurDocuments}
+          </div>
+        ) : null}
         <div className="grid gap-4 md:grid-cols-4">
           <CarteKPI label="Commandes filtrees" valeur={String(totauxListe.total)} tonalite="neutre" />
           <CarteKPI label="Réglées" valeur={String(totauxListe.payees)} tonalite="vert" />

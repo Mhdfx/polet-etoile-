@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   ClipboardList,
@@ -147,8 +148,15 @@ export function AppShell({
           <div className="pointer-events-none absolute inset-x-4 top-20 h-px bg-white/15" />
 
           <div className="relative flex min-h-20 items-center gap-3 px-5">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-xl font-black text-sidebar shadow-sm ring-1 ring-white/25">
-              P
+            <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-white/25">
+              <Image
+                src="/cachet.png"
+                alt="Coq Plus"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
             <div className="leading-tight">
               <p className="text-base font-bold tracking-tight">Coq Plus</p>

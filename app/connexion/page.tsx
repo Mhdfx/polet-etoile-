@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { getUtilisateurSession, cheminAccueilPourRole } from "@/lib/session";
 import { ConnexionForm } from "./connexion-form";
 
@@ -22,8 +23,15 @@ export default async function ConnexionPage() {
         />
 
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-md bg-white text-xl font-black text-primary">
-            P
+          <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-white p-1">
+            <Image
+              src="/cachet.png"
+              alt="Coq Plus"
+              width={36}
+              height={36}
+              className="h-full w-full object-contain"
+              priority
+            />
           </div>
           <div className="leading-tight">
             <p className="text-base font-bold">Coq Plus</p>
@@ -51,8 +59,15 @@ export default async function ConnexionPage() {
       <section className="flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-xl font-black text-primary-foreground">
-              P
+            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-white p-1 ring-1 ring-border">
+              <Image
+                src="/cachet.png"
+                alt="Coq Plus"
+                width={36}
+                height={36}
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
             <div className="leading-tight">
               <p className="text-base font-bold text-foreground">Coq Plus</p>
