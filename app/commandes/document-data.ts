@@ -265,7 +265,7 @@ export async function chargerLogoDataUri(cheminPublic?: string): Promise<string 
         const contenu = await readFile(cheminDisque);
         return `data:${mime};base64,${contenu.toString("base64")}`;
       } catch {
-        // Le cachet officiel sert de marque de repli ci-dessous.
+        // Le logo Coq Plus embarque sert de marque de repli ci-dessous.
       }
     }
   }
@@ -275,7 +275,7 @@ export async function chargerLogoDataUri(cheminPublic?: string): Promise<string 
 
 export async function chargerCachetDataUri(): Promise<string | undefined> {
   try {
-    const cheminDisque = path.join(process.cwd(), "public", "cachet.png");
+    const cheminDisque = path.join(process.cwd(), "public", "logo-coq-plus.png");
     const contenu = await readFile(cheminDisque);
     return `data:image/png;base64,${contenu.toString("base64")}`;
   } catch {

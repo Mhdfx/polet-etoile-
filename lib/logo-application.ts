@@ -4,7 +4,7 @@ import path from "node:path";
 import { prisma } from "@/lib/db";
 import { estCheminLogoPublic } from "@/lib/logo-upload";
 
-export const LOGO_APPLICATION_REPLI = "/cachet.png";
+export const LOGO_APPLICATION_REPLI = "/logo-coq-plus.png";
 
 export function choisirLogoApplication(valeur?: string | null): string {
   return valeur && estCheminLogoPublic(valeur)

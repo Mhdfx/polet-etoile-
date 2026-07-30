@@ -18,7 +18,7 @@ describe("choisirLogoApplication", () => {
   });
 
   it.each([undefined, null, "", "/image.png", "https://exemple.test/logo.png"])(
-    "revient au cachet officiel si le chemin est absent ou invalide",
+    "revient au logo Coq Plus embarque si le chemin est absent ou invalide",
     (valeur) => {
       expect(choisirLogoApplication(valeur)).toBe(LOGO_APPLICATION_REPLI);
     },
