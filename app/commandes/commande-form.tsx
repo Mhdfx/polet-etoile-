@@ -36,6 +36,7 @@ import {
 import { calculerPrixNet, sommerMontants } from "@/lib/decimal";
 import { formatMontant } from "@/lib/format";
 import { normaliserSaisieQuantite } from "@/lib/saisie";
+import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 import { creerCommandeAdmin, creerCommandeCommercial } from "./actions";
 
 type OptionProduit = {
@@ -121,9 +122,13 @@ export function CommandeForm(props: CommandeFormProps) {
   const [brouillonCharge, setBrouillonCharge] = useState(false);
   const [estHorsLigne, setEstHorsLigne] = useState(false);
 
-  const produitsParId = useMemo(
-    () => new Map(props.produits.map((produit) => [produit.id, produit])),
+  const produitsTries = useMemo(
+    () => trierAlphabetiquement(props.produits, (produit) => produit.nom),
     [props.produits],
+  );
+  const produitsParId = useMemo(
+    () => new Map(produitsTries.map((produit) => [produit.id, produit])),
+    [produitsTries],
   );
   const clientsAvecCommercial = useMemo(
     () => (props.mode === "admin" ? props.clients : []),
@@ -281,12 +286,23 @@ export function CommandeForm(props: CommandeFormProps) {
       parId.set(client.id, client);
     }
 
-    return Array.from(parId.values());
+    return trierAlphabetiquement(Array.from(parId.values()), (client) => client.nom);
   }, [clientsCreesInline, props.clients]);
 
   const clientsDisponibles = clientsStandards;
 
-  const commerciaux = props.mode === "admin" ? props.commerciaux : undefined;
+  const commerciaux = useMemo(
+    () => props.mode === "admin"
+      ? trierAlphabetiquement(props.commerciaux, (commercial) => commercial.nom)
+      : undefined,
+    [props],
+  );
+  const clientsExternes = useMemo(
+    () => props.mode === "admin"
+      ? trierAlphabetiquement(props.clientsExternes, (client) => client.nom)
+      : [],
+    [props],
+  );
   const commerciauxParId = useMemo(
     () =>
       commerciaux
@@ -510,7 +526,7 @@ export function CommandeForm(props: CommandeFormProps) {
                     <SelectValue placeholder="Choisir un responsable" />
                   </SelectTrigger>
                   <SelectContent>
-                    {props.commerciaux.map((commercial) => (
+                    {commerciaux?.map((commercial) => (
                       <SelectItem key={commercial.id} value={commercial.id}>
                         {commercial.nom}
                       </SelectItem>
@@ -585,7 +601,7 @@ export function CommandeForm(props: CommandeFormProps) {
                   <SelectValue placeholder="Choisir un client externe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {props.clientsExternes.map((client) => (
+                  {clientsExternes.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.nom} - {client.ville}
                     </SelectItem>
@@ -631,7 +647,7 @@ export function CommandeForm(props: CommandeFormProps) {
                       <SelectValue placeholder="Choisir un produit" />
                     </SelectTrigger>
                     <SelectContent>
-                      {props.produits.map((option) => (
+                      {produitsTries.map((option) => (
                         <SelectItem key={option.id} value={option.id}>
                           {option.nom} - {option.prixReferenceLabel}
                         </SelectItem>

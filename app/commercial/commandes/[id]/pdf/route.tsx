@@ -9,7 +9,7 @@ import { requireCommercial } from "@/lib/session";
 
 type RouteProps = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: RouteProps) {
+export async function POST(_request: Request, { params }: RouteProps) {
   const commercial = await requireCommercial();
   const { id } = await params;
   const commande = await chargerCommandeDocument(id, commercial.id);
@@ -54,4 +54,17 @@ export async function GET(_request: Request, { params }: RouteProps) {
       `inline; filename="${commande.numeroBl}.pdf"`,
     ),
   });
+}
+
+export function GET() {
+  return new Response(
+    "Utilisez le bouton de telechargement depuis la commande. Cette protection evite de consommer le telechargement unique par prechargement automatique.",
+    {
+      status: 405,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        allow: "POST",
+      },
+    },
+  );
 }

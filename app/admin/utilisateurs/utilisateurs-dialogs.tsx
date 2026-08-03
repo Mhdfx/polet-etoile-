@@ -215,7 +215,7 @@ export function DialogueNouvelUtilisateur({
             </Select>
           </Champ>
 
-          <Champ id="user-mdp" label="Mot de passe" obligatoire erreur={erreurs.motDePasse}>
+          <Champ id="user-mdp" label="Mot de passe" obligatoire erreur={erreurs.motDePasse} description="12 caracteres minimum.">
             <Input
               id="user-mdp"
               type="password"
@@ -307,7 +307,7 @@ export function DialogueMotDePasse({
         <form onSubmit={soumettre} className="grid gap-4" noValidate>
           <BanniereErreur message={messageErreur} />
 
-          <Champ id="mdp-nouveau" label="Nouveau mot de passe" obligatoire erreur={erreurs.motDePasse}>
+          <Champ id="mdp-nouveau" label="Nouveau mot de passe" obligatoire erreur={erreurs.motDePasse} description="12 caracteres minimum. Les sessions actives seront fermees.">
             <Input
               id="mdp-nouveau"
               type="password"

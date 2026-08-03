@@ -24,7 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="fr"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('coq-plus-theme');var v=['bleu','rouge','vert','ardoise','sombre'].includes(t)?t:'bleu';var r=document.documentElement;r.classList.toggle('dark',v==='sombre');r.dataset.palette=v==='sombre'?'bleu':v;r.style.colorScheme=v==='sombre'?'dark':'light'}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="antialiased">
         <ChunkReloadGuard />
         {children}

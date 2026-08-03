@@ -8,19 +8,12 @@ import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
 import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { calculerTotauxCommande, libelleTypeCommande } from "@/lib/commandes-vue";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 
 const TAILLES_PAGE = [10, 25, 50, 100] as const;
 
@@ -134,6 +127,10 @@ export default async function CommandesAdminPage({
       select: { id: true, nom_complet: true },
     }),
   ]);
+  const commerciauxTries = trierAlphabetiquement(
+    commerciaux,
+    (utilisateur) => utilisateur.nom_complet,
+  );
 
   const commandesFiltrees = commandesBrutes.filter((commande) => {
     if (!statut) {
@@ -186,69 +183,55 @@ export default async function CommandesAdminPage({
           <CarteKPI label="Reste filtre" valeur={formatMontant(totauxListe.reste)} tonalite="rouge" />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <form className="flex flex-wrap items-end gap-2">
-            <input
-              name="q"
-              defaultValue={recherche}
-              placeholder="BL, client, commercial..."
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <select
-              name="commercial"
-              defaultValue={commercial ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
-              <option value="">Tous les commerciaux</option>
-              {commerciaux.map((item) => (
+          <form className="flex flex-wrap items-end gap-2" aria-label="Filtres des commandes">
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Recherche
+              <input name="q" defaultValue={recherche} placeholder="BL, client, responsable..." className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Responsable
+            <select name="commercial" defaultValue={commercial ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
+              <option value="">Tous les responsables</option>
+              {commerciauxTries.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.nom_complet}
                 </option>
               ))}
             </select>
-            <select
-              name="type"
-              defaultValue={type ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
-              <option value="">Tous types</option>
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Type
+            <select name="type" defaultValue={type ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
+              <option value="">Tous les types</option>
               <option value="EXTERNE">Externe</option>
               <option value="STANDARD">Standard</option>
             </select>
-            <select
-              name="statut"
-              defaultValue={statut ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
-              <option value="">Tous statuts</option>
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Statut
+            <select name="statut" defaultValue={statut ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
+              <option value="">Tous les statuts</option>
               <option value="en_attente">Non réglée</option>
               <option value="paye">Réglée</option>
             </select>
-            <input
-              name="debut"
-              type="date"
-              defaultValue={params.debut ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <input
-              name="fin"
-              type="date"
-              defaultValue={params.fin ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <select
-              name="taille"
-              defaultValue={String(taillePage)}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Du
+              <input name="debut" type="date" defaultValue={params.debut ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Au
+              <input name="fin" type="date" defaultValue={params.fin ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Affichage
+            <select name="taille" defaultValue={String(taillePage)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
               {TAILLES_PAGE.map((taille) => (
                 <option key={taille} value={taille}>
                   {taille} / page
                 </option>
               ))}
             </select>
+            </label>
             <Button type="submit" variant="outline">
               Filtrer
             </Button>
+            {(recherche || commercial || type || statut || params.debut || params.fin || params.taille) ? (
+              <Button type="button" variant="ghost" asChild><Link href="/admin/commandes">Reinitialiser</Link></Button>
+            ) : null}
           </form>
           {erreurPeriode ? (
             <p role="alert" className="w-full text-sm text-destructive">
@@ -314,7 +297,7 @@ export default async function CommandesAdminPage({
               </Button>
             </div>
 
-            <div className="grid gap-3 p-3 2xl:hidden">
+            <div className="grid gap-3 p-3 xl:grid-cols-2">
               <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 text-sm font-medium">
                 <CaseSelectionToutesCommandes />
                 Tout selectionner sur cette page
@@ -373,120 +356,6 @@ export default async function CommandesAdminPage({
               })}
             </div>
 
-            <Table className="hidden w-full table-fixed text-sm 2xl:table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[44px] text-center"><CaseSelectionToutesCommandes /></TableHead>
-                  <TableHead className="w-[96px]">BL</TableHead>
-                  <TableHead className="w-[92px]">Date</TableHead>
-                  <TableHead className="w-[168px]">Client</TableHead>
-                  <TableHead className="w-[92px]">Region</TableHead>
-                  <TableHead className="w-[112px]">Commercial</TableHead>
-                  <TableHead className="w-[74px]">Type</TableHead>
-                  <TableHead className="w-[86px] text-right">Total</TableHead>
-                  <TableHead className="w-[86px] text-right">Reste</TableHead>
-                  <TableHead className="w-[88px]">Statut</TableHead>
-                  <TableHead className="w-[48px] text-center">BL</TableHead>
-                  <TableHead className="w-[68px] text-center">Facture</TableHead>
-                  <TableHead className="w-[100px] text-center">Bon charge</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {commandes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
-                      Aucune commande.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  commandes.map((commande) => {
-                    const totaux = calculerTotauxCommande(
-                      commande.lignes,
-                      commande.paiements,
-                    );
-                    const client = commande.client ?? commande.client_externe;
-                    return (
-                      <TableRow key={commande.id}>
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            name="commandeIds"
-                            value={commande.id}
-                            data-selection-commande="true"
-                            aria-label={`Selectionner ${commande.numero_bl}`}
-                            className="h-4 w-4 accent-primary"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/admin/commandes/${commande.id}`}
-                            className="font-medium text-primary underline-offset-4 hover:underline"
-                          >
-                            {commande.numero_bl}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{formatDate(commande.date_commande)}</TableCell>
-                        <TableCell>
-                          <span className="block max-w-[18ch] truncate" title={client?.nom ?? "-"}>
-                            {client?.nom ?? "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="truncate">{client?.region_ville ?? "-"}</TableCell>
-                        <TableCell className="truncate">{commande.utilisateur.nom_complet}</TableCell>
-                        <TableCell className="truncate">{libelleTypeCommande(commande.type_commande)}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatMontant(totaux.total)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatMontant(totaux.resteDu)}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeStatut statut={totaux.statutPaiement} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button variant="ghost" size="icon-sm" asChild>
-                            <Link
-                              href={`/admin/commandes/${commande.id}/pdf`}
-                              target="_blank"
-                              title={`PDF BL ${commande.numero_bl}`}
-                              aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
-                            >
-                              <FileText />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button variant="ghost" size="icon-sm" asChild>
-                            <Link
-                              href={`/admin/commandes/${commande.id}/facture`}
-                              target="_blank"
-                              title={`PDF facture ${commande.numero_facture}`}
-                              aria-label={`Ouvrir la facture ${commande.numero_facture}`}
-                            >
-                              <FileText />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <BonChargeCommandeButton
-                            commandeId={commande.id}
-                            bonCharge={
-                              commande.bon_charge
-                                ? {
-                                    id: commande.bon_charge.id,
-                                    numeroBc: commande.bon_charge.numero_bc,
-                                    supprime: Boolean(commande.bon_charge.deleted_at),
-                                  }
-                                : null
-                            }
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
           </form>
         </div>
 

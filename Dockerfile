@@ -6,15 +6,17 @@ RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-# Variables factices UNIQUEMENT pour l'etape de build (collecte des pages Next) :
-# lib/db.ts exige DATABASE_URL a l'import, mais aucune connexion n'est ouverte au
-# build (adapter MariaDB paresseux). Les vraies valeurs viennent du .env au runtime.
-ENV DATABASE_URL="mysql://build:build@127.0.0.1:3306/build"
-ENV BETTER_AUTH_SECRET="dummy-build-only-not-used-at-runtime"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run prisma:generate
-RUN npm run build
+# Variables factices limitees a chaque commande de build : lib/db.ts exige
+# DATABASE_URL a l'import, mais aucune connexion n'est ouverte ici. Elles ne
+# persistent ni dans les couches suivantes ni dans l'image d'execution.
+RUN DATABASE_URL="mysql://build:build@127.0.0.1:3306/build" \
+    BETTER_AUTH_SECRET="dummy-build-only-not-used-at-runtime" \
+    npm run prisma:generate
+RUN DATABASE_URL="mysql://build:build@127.0.0.1:3306/build" \
+    BETTER_AUTH_SECRET="dummy-build-only-not-used-at-runtime" \
+    npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -46,4 +48,3 @@ USER nextjs
 
 EXPOSE 3000
 ENTRYPOINT ["./scripts/docker-entrypoint.sh"]
-

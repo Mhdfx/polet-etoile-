@@ -1,20 +1,13 @@
 import Link from "next/link";
 import Decimal from "decimal.js";
 import type { Prisma } from "@prisma/client";
-import { Download, FileText, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
 import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { BoutonTelechargementCommercial } from "@/app/commandes/bouton-telechargement-commercial";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
@@ -177,48 +170,39 @@ export default async function CommandesCommercialPage({
           <CarteKPI label="Reste filtre" valeur={formatMontant(totauxListe.reste)} tonalite="rouge" />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <form className="flex flex-wrap items-end gap-2">
-            <input
-              name="q"
-              defaultValue={recherche}
-              placeholder="BL ou client..."
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <input
-              name="debut"
-              type="date"
-              defaultValue={params.debut ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <input
-              name="fin"
-              type="date"
-              defaultValue={params.fin ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            />
-            <select
-              name="statut"
-              defaultValue={statut ?? ""}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
-              <option value="">Tous statuts</option>
-              <option value="en_attente">Non réglée</option>
-              <option value="paye">Réglée</option>
-            </select>
-            <select
-              name="taille"
-              defaultValue={String(taillePage)}
-              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
-            >
-              {TAILLES_PAGE.map((taille) => (
-                <option key={taille} value={taille}>
-                  {taille} / page
-                </option>
-              ))}
-            </select>
+          <form className="flex flex-wrap items-end gap-2" aria-label="Filtres des commandes">
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Recherche
+              <input name="q" defaultValue={recherche} placeholder="BL ou client..." className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Du
+              <input name="debut" type="date" defaultValue={params.debut ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Au
+              <input name="fin" type="date" defaultValue={params.fin ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Statut
+              <select name="statut" defaultValue={statut ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
+                <option value="">Tous les statuts</option>
+                <option value="en_attente">Non réglée</option>
+                <option value="paye">Réglée</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Affichage
+              <select name="taille" defaultValue={String(taillePage)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
+                {TAILLES_PAGE.map((taille) => <option key={taille} value={taille}>{taille} / page</option>)}
+              </select>
+            </label>
             <Button type="submit" variant="outline">
               Filtrer
             </Button>
+            {(recherche || statut || params.debut || params.fin || params.taille) ? (
+              <Button type="button" variant="ghost" asChild><Link href="/commercial/commandes">Reinitialiser</Link></Button>
+            ) : null}
           </form>
           {erreurPeriode ? (
             <p role="alert" className="w-full text-sm text-destructive">
@@ -277,7 +261,7 @@ export default async function CommandesCommercialPage({
               </Button>
             </div>
 
-            <div className="grid gap-3 p-3 2xl:hidden">
+            <div className="grid gap-3 p-3 xl:grid-cols-2">
               <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 text-sm font-medium">
                 <CaseSelectionToutesCommandes />
                 Tout selectionner sur cette page
@@ -322,140 +306,31 @@ export default async function CommandesCommercialPage({
                       <div><dt className="text-muted-foreground">Reste</dt><dd className="tabular-nums">{formatMontant(totaux.resteDu)}</dd></div>
                     </dl>
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs">
-                      <span className={bonChargeTelechargeAt ? "text-muted-foreground" : ""}>
-                        BC : {commande.bon_charge?.numero_bc ?? "Aucun"}
-                        {bonChargeTelechargeAt ? ` · telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : ""}
-                      </span>
-                      {blTelechargeAt ? (
-                        <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground" aria-disabled="true">
-                          BL telecharge le {formatDateHeure(blTelechargeAt)}
-                        </span>
-                      ) : (
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/commercial/commandes/${commande.id}/pdf`} target="_blank">
-                            <FileText /> Telecharger BL
-                          </Link>
-                        </Button>
-                      )}
+                      <div className="grid gap-1 text-muted-foreground">
+                        <span>BC : {commande.bon_charge?.numero_bc ?? "Aucun"}</span>
+                        {bonChargeTelechargeAt ? <span>Telecharge le {formatDateHeure(bonChargeTelechargeAt)}</span> : null}
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <BoutonTelechargementCommercial
+                          commandeId={commande.id}
+                          typeDocument="bl"
+                          libelle="Telecharger BL"
+                          indisponible={Boolean(blTelechargeAt)}
+                          motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
+                        />
+                        <BoutonTelechargementCommercial
+                          commandeId={commande.id}
+                          typeDocument="bon_charge"
+                          libelle="Telecharger BC"
+                          indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
+                          motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+                        />
+                      </div>
                     </div>
                   </article>
                 );
               })}
             </div>
-
-            <Table className="hidden w-full table-fixed 2xl:table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[44px] text-center"><CaseSelectionToutesCommandes /></TableHead>
-                  <TableHead>BL</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Date reglement</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Reste</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Bon charge</TableHead>
-                  <TableHead className="text-right">BL</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {commandes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
-                      Aucune commande.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  commandes.map((commande) => {
-                    const totaux = calculerTotauxCommande(
-                      commande.lignes,
-                      commande.paiements,
-                    );
-                    const dateReglement =
-                      totaux.statutPaiement === "paye"
-                        ? commande.paiements
-                            .map((paiement) => paiement.date_paiement)
-                            .sort((a, b) => b.getTime() - a.getTime())[0]
-                        : undefined;
-                    const bonChargeTelecharge = Boolean(
-                      commande.bon_charge?.telechargements_documents.length,
-                    );
-                    const bonChargeTelechargeAt =
-                      commande.bon_charge?.telechargements_documents[0]?.created_at;
-                    const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
-                    const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
-                      (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
-
-                    return (
-                      <TableRow key={commande.id}>
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            name="commandeIds"
-                            value={commande.id}
-                            data-selection-commande="true"
-                            disabled={aucunDocumentDisponible}
-                            aria-label={`Selectionner ${commande.numero_bl}`}
-                            className="h-4 w-4 accent-primary"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/commercial/commandes/${commande.id}`}
-                            className="font-medium text-primary underline-offset-4 hover:underline"
-                          >
-                            {commande.numero_bl}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{formatDate(commande.date_commande)}</TableCell>
-                        <TableCell>{commande.client?.nom ?? "-"}</TableCell>
-                        <TableCell>{commande.client?.region_ville ?? "-"}</TableCell>
-                        <TableCell>{dateReglement ? formatDate(dateReglement) : "-"}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatMontant(totaux.total)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatMontant(totaux.resteDu)}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeStatut statut={totaux.statutPaiement} />
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {commande.bon_charge
-                            ? bonChargeTelecharge
-                              ? `Telecharge le ${formatDateHeure(bonChargeTelechargeAt!)}`
-                              : commande.bon_charge.numero_bc
-                            : "Aucun"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {blTelechargeAt ? (
-                            <span
-                              className="inline-flex min-h-9 items-center rounded-md bg-muted px-2 text-xs text-muted-foreground"
-                              title={`Telecharge le ${formatDateHeure(blTelechargeAt)}`}
-                              aria-disabled="true"
-                            >
-                              {formatDate(blTelechargeAt)}
-                            </span>
-                          ) : (
-                            <Button variant="ghost" size="icon-sm" asChild>
-                              <Link
-                                href={`/commercial/commandes/${commande.id}/pdf`}
-                                target="_blank"
-                                title={`PDF BL ${commande.numero_bl}`}
-                                aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
-                              >
-                                <FileText />
-                              </Link>
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
           </form>
         </div>
 

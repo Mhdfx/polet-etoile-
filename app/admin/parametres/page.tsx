@@ -122,6 +122,12 @@ export default async function ParametresPage() {
           </div>
         </div>
 
+        {!valeurs.numeroAgrement.trim() ? (
+          <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Le numero d&apos;agrement legal n&apos;est pas encore renseigne. Ajoutez la valeur officielle ci-dessous pour qu&apos;elle apparaisse sur le BL et la liste des prix.
+          </div>
+        ) : null}
+
         <ParametresForm valeurs={valeurs} />
 
         <section className="overflow-hidden rounded-lg border border-border bg-card">

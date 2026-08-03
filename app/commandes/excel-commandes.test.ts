@@ -13,6 +13,19 @@ const commande = {
 };
 
 describe("remplirWorkbookCommandes", () => {
+  it("genere un fichier XLSX binaire lisible", async () => {
+    const workbook = remplirWorkbookCommandes({
+      commandes: [commande],
+      statut: undefined,
+      portee: "admin",
+    });
+
+    const contenu = await workbook.xlsx.writeBuffer();
+
+    expect(contenu.byteLength).toBeGreaterThan(1_000);
+    expect(Array.from(new Uint8Array(contenu).slice(0, 2))).toEqual([0x50, 0x4b]);
+  });
+
   it("ecrit les montants admin comme nombres Excel avec format DH", () => {
     const workbook = remplirWorkbookCommandes({
       commandes: [commande],

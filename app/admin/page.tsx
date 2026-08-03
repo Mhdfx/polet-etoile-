@@ -459,29 +459,29 @@ export default async function AdminPage({
 
         <section className="grid gap-4 xl:grid-cols-3">
           <RankingPanel
-            title="Ranking commerciaux"
-            eyebrow="Top CA sur la periode"
+            title="Classement des commerciaux"
+            eyebrow="Meilleurs chiffres d'affaires sur la periode"
             lignes={topCommerciaux}
             valeur="ca"
             icon={Trophy}
           />
           <RankingPanel
-            title="Best sellers produits"
-            eyebrow="Top volumes vendus"
+            title="Produits les plus vendus"
+            eyebrow="Plus grands volumes vendus"
             lignes={topProduits}
             valeur="quantite"
             icon={Package}
           />
           <RankingPanel
             title="Villes les plus fortes"
-            eyebrow="Top CA par ville"
+            eyebrow="Meilleurs chiffres d'affaires par ville"
             lignes={topVilles}
             valeur="ca"
             icon={MapPin}
           />
           <RankingPanel
             title="Meilleurs clients"
-            eyebrow="Top CA client"
+            eyebrow="Meilleurs chiffres d'affaires par client"
             lignes={topClients}
             valeur="ca"
             icon={Users}

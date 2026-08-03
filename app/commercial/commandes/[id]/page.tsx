@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
+import { BoutonTelechargementCommercial } from "@/app/commandes/bouton-telechargement-commercial";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,6 +49,22 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
         },
       },
       paiements: { select: { montant: true } },
+      telechargements_documents: {
+        where: { type_document: "BL" },
+        select: { created_at: true },
+        take: 1,
+      },
+      bon_charge: {
+        where: { deleted_at: null },
+        select: {
+          numero_bc: true,
+          telechargements_documents: {
+            where: { type_document: "BON_CHARGE" },
+            select: { created_at: true },
+            take: 1,
+          },
+        },
+      },
     },
   });
 
@@ -60,6 +77,9 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
   }
 
   const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+  const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
+  const bonChargeTelechargeAt =
+    commande.bon_charge?.telechargements_documents[0]?.created_at;
 
   return (
     <AppShell
@@ -74,11 +94,22 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
           <Button variant="outline" asChild>
             <Link href="/commercial/commandes">Retour aux commandes</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/commercial/commandes/${commande.id}/pdf`} target="_blank">
-              PDF BL
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <BoutonTelechargementCommercial
+              commandeId={commande.id}
+              typeDocument="bl"
+              libelle="Telecharger le BL"
+              indisponible={Boolean(blTelechargeAt)}
+              motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
+            />
+            <BoutonTelechargementCommercial
+              commandeId={commande.id}
+              typeDocument="bon_charge"
+              libelle={commande.bon_charge ? `Telecharger ${commande.bon_charge.numero_bc}` : "Bon de charge indisponible"}
+              indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
+              motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
