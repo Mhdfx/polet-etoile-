@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { DeconnexionButton } from "@/components/deconnexion-button";
+import { SelecteurTheme } from "@/components/selecteur-theme";
 import { chargerLogoApplication } from "@/lib/logo-application";
 import { cn } from "@/lib/utils";
 import type { UtilisateurSession } from "@/lib/session";
@@ -146,7 +147,7 @@ export async function AppShell({
       </a>
       <section className="flex min-h-dvh w-full bg-background">
         <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground shadow-[18px_0_45px_rgba(15,23,42,0.10)] md:flex md:flex-col">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_8%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(180deg,var(--sidebar)_0%,#0b57bb_48%,#08459b_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_8%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(180deg,var(--sidebar)_0%,var(--sidebar-accent)_100%)]" />
           <div className="pointer-events-none absolute inset-x-4 top-20 h-px bg-white/15" />
 
           <div className="relative flex min-h-20 items-center gap-3 px-5">
@@ -259,6 +260,7 @@ export async function AppShell({
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
+                <SelecteurTheme />
                 <div className="hidden items-center gap-3 sm:flex">
                   <div className="text-right text-xs leading-tight">
                     <p className="font-semibold text-foreground">

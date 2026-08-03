@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/session";
 import { erreursParChamp, type ResultatAction } from "@/lib/validations/commun";
 import {
   schemaCreationUtilisateur,
+  schemaModificationUtilisateur,
   schemaObjectif,
   schemaReinitialisationMotDePasse,
 } from "@/lib/validations/utilisateur";
@@ -23,6 +24,111 @@ function erreurServeur(erreur: unknown, action: string): ResultatAction {
   console.error(`[utilisateurs:${action}] erreur ${idErreur}`, erreur);
 
   return { ok: false, message: `${MESSAGE_ERREUR_SERVEUR} (réf. ${idErreur})` };
+}
+
+export async function modifierUtilisateur(entree: unknown): Promise<ResultatAction> {
+  const admin = await requireAdmin();
+  const validation = schemaModificationUtilisateur.safeParse(entree);
+  if (!validation.success) {
+    return { ok: false, erreurs: erreursParChamp(validation.error) };
+  }
+
+  const { id, nomComplet, nomUtilisateur, role } = validation.data;
+  try {
+    const ip = await adresseIpRequete();
+    const resultat = await prisma.$transaction(async (tx) => {
+      const utilisateur = await tx.user.findFirst({
+        where: { id, deleted_at: null },
+        select: {
+          nom_utilisateur: true,
+          nom_complet: true,
+          email: true,
+          role: true,
+          actif: true,
+        },
+      });
+      if (!utilisateur) {
+        return { ok: false as const, message: "Utilisateur introuvable" };
+      }
+
+      if (id === admin.id && role !== utilisateur.role) {
+        return {
+          ok: false as const,
+          message: "Vous ne pouvez pas modifier votre propre role",
+        };
+      }
+      if (
+        utilisateur.role === "ADMIN" &&
+        role !== "ADMIN" &&
+        utilisateur.actif &&
+        (await dernierAdminActif(tx, id))
+      ) {
+        return {
+          ok: false as const,
+          message: "Impossible de retirer le role du dernier administrateur actif",
+        };
+      }
+
+      const email = emailTechnique(nomUtilisateur);
+      const doublon = await tx.user.findFirst({
+        where: {
+          id: { not: id },
+          OR: [{ nom_utilisateur: nomUtilisateur }, { email }],
+        },
+        select: { id: true },
+      });
+      if (doublon) {
+        return {
+          ok: false as const,
+          erreurs: { nomUtilisateur: "Ce nom d'utilisateur est deja pris" },
+        };
+      }
+
+      await tx.user.update({
+        where: { id },
+        data: {
+          nom_complet: nomComplet,
+          nom_utilisateur: nomUtilisateur,
+          email,
+          role,
+        },
+      });
+
+      const identiteOuRoleModifie =
+        utilisateur.nom_utilisateur !== nomUtilisateur || utilisateur.role !== role;
+      if (identiteOuRoleModifie) {
+        await tx.session.deleteMany({ where: { userId: id } });
+      }
+
+      await ecrireAudit(
+        tx,
+        {
+          utilisateurId: admin.id,
+          action: "utilisateur.modification",
+          entite: "users",
+          entiteId: id,
+          avant: {
+            nom_utilisateur: utilisateur.nom_utilisateur,
+            nom_complet: utilisateur.nom_complet,
+            role: utilisateur.role,
+          },
+          apres: {
+            nom_utilisateur: nomUtilisateur,
+            nom_complet: nomComplet,
+            role,
+          },
+        },
+        ip,
+      );
+
+      return { ok: true as const };
+    });
+
+    if (resultat.ok) revalidatePath("/admin/utilisateurs");
+    return resultat;
+  } catch (erreur) {
+    return erreurServeur(erreur, "modification");
+  }
 }
 
 function emailTechnique(nomUtilisateur: string): string {

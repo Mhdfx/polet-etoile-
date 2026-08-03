@@ -55,6 +55,13 @@ export const schemaReinitialisationMotDePasse = avecConfirmation(
   }),
 );
 
+export const schemaModificationUtilisateur = z.object({
+  id: z.string().min(1),
+  nomComplet: champNomComplet,
+  nomUtilisateur: champNomUtilisateur,
+  role: champRole,
+});
+
 export const schemaObjectif = z.object({
   utilisateurId: z.string().min(1),
   mois: z
@@ -69,4 +76,5 @@ export type CreationUtilisateur = z.infer<typeof schemaCreationUtilisateur>;
 export type ReinitialisationMotDePasse = z.infer<
   typeof schemaReinitialisationMotDePasse
 >;
+export type ModificationUtilisateur = z.infer<typeof schemaModificationUtilisateur>;
 export type Objectif = z.infer<typeof schemaObjectif>;

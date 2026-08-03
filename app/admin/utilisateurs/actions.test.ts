@@ -38,6 +38,7 @@ import {
   creerUtilisateur,
   definirActivationUtilisateur,
   definirObjectif,
+  modifierUtilisateur,
   reinitialiserMotDePasse,
   supprimerUtilisateur,
 } from "./actions";
@@ -177,6 +178,70 @@ describe("reinitialiserMotDePasse", () => {
   });
 });
 
+describe("modifierUtilisateur", () => {
+  it("modifie l'identite et le role puis ferme les sessions", async () => {
+    txMock.user.findFirst
+      .mockResolvedValueOnce({
+        nom_utilisateur: "commercial.nord",
+        nom_complet: "Commercial Nord",
+        email: "commercial.nord@coq-plus.local",
+        role: "COMMERCIAL",
+        actif: true,
+      })
+      .mockResolvedValueOnce(null);
+
+    const resultat = await modifierUtilisateur({
+      id: "com-1",
+      nomComplet: "Responsable Nord",
+      nomUtilisateur: "responsable.nord",
+      role: "ADMIN",
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.user.update).toHaveBeenCalledWith({
+      where: { id: "com-1" },
+      data: {
+        nom_complet: "Responsable Nord",
+        nom_utilisateur: "responsable.nord",
+        email: "responsable.nord@coq-plus.local",
+        role: "ADMIN",
+      },
+    });
+    expect(txMock.session.deleteMany).toHaveBeenCalledWith({
+      where: { userId: "com-1" },
+    });
+    expect(txMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: "utilisateur.modification" }),
+      }),
+    );
+  });
+
+  it("interdit de retirer le role du dernier administrateur actif", async () => {
+    txMock.user.findFirst.mockResolvedValue({
+      nom_utilisateur: "admin.secondaire",
+      nom_complet: "Admin Secondaire",
+      email: "admin.secondaire@coq-plus.local",
+      role: "ADMIN",
+      actif: true,
+    });
+    txMock.user.count.mockResolvedValue(0);
+
+    const resultat = await modifierUtilisateur({
+      id: "admin-2",
+      nomComplet: "Admin Secondaire",
+      nomUtilisateur: "admin.secondaire",
+      role: "COMMERCIAL",
+    });
+
+    expect(resultat.ok).toBe(false);
+    if (!resultat.ok) {
+      expect(resultat.message).toContain("dernier administrateur");
+    }
+    expect(txMock.user.update).not.toHaveBeenCalled();
+  });
+});
+
 describe("definirActivationUtilisateur", () => {
   it("interdit de desactiver son propre compte", async () => {
     const resultat = await definirActivationUtilisateur("admin-1", false);
@@ -271,7 +336,7 @@ describe("definirObjectif", () => {
 
     const resultat = await definirObjectif({
       utilisateurId: "admin-1",
-      mois: "2026-07",
+      mois: "2026-09",
       montant: "60 000,00",
     });
 

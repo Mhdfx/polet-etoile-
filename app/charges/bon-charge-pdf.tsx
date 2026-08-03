@@ -306,7 +306,7 @@ function identifiantsSociete({ societe }: BonChargeDocumentData): string {
 }
 
 function footerSociete({ societe }: BonChargeDocumentData): string {
-  const telephone = societe.telephone || "+212626184088";
+  const telephone = societe.telephone || "+212 660924488";
   return [
     `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
     identifiantsSociete({ societe } as BonChargeDocumentData),

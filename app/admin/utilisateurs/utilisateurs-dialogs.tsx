@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { creerUtilisateur, reinitialiserMotDePasse } from "./actions";
+import { creerUtilisateur, modifierUtilisateur, reinitialiserMotDePasse } from "./actions";
 
 type ErreursChamps = Record<string, string>;
 
@@ -36,6 +36,86 @@ function BanniereErreur({ message }: { message?: string }) {
     >
       {message}
     </p>
+  );
+}
+
+export function DialogueModifierUtilisateur({
+  ouvert,
+  onFermer,
+  onSucces,
+  utilisateur,
+}: {
+  ouvert: boolean;
+  onFermer: () => void;
+  onSucces?: () => void;
+  utilisateur: {
+    id: string;
+    nomComplet: string;
+    nomUtilisateur: string;
+    role: "ADMIN" | "COMMERCIAL";
+  };
+}) {
+  const [nomComplet, setNomComplet] = useState(utilisateur.nomComplet);
+  const [nomUtilisateur, setNomUtilisateur] = useState(utilisateur.nomUtilisateur);
+  const [role, setRole] = useState(utilisateur.role);
+  const [erreurs, setErreurs] = useState<ErreursChamps>({});
+  const [messageErreur, setMessageErreur] = useState<string>();
+  const [enCours, startTransition] = useTransition();
+
+  function soumettre(evenement: FormEvent<HTMLFormElement>) {
+    evenement.preventDefault();
+    setErreurs({});
+    setMessageErreur(undefined);
+    startTransition(async () => {
+      const resultat = await modifierUtilisateur({
+        id: utilisateur.id,
+        nomComplet,
+        nomUtilisateur,
+        role,
+      });
+      if (resultat.ok) {
+        onSucces?.();
+        onFermer();
+        return;
+      }
+      setErreurs(resultat.erreurs ?? {});
+      setMessageErreur(resultat.message);
+    });
+  }
+
+  return (
+    <Dialog open={ouvert} onOpenChange={(prochain) => (!prochain && !enCours ? onFermer() : null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Modifier l&apos;utilisateur</DialogTitle>
+          <DialogDescription>
+            Un changement d&apos;identifiant ou de role ferme les sessions actives.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={soumettre} className="grid gap-4" noValidate>
+          <BanniereErreur message={messageErreur} />
+          <Champ id="edit-user-nom-complet" label="Nom complet" obligatoire erreur={erreurs.nomComplet}>
+            <Input id="edit-user-nom-complet" value={nomComplet} onChange={(e) => setNomComplet(e.target.value)} aria-invalid={Boolean(erreurs.nomComplet)} />
+          </Champ>
+          <Champ id="edit-user-nom-utilisateur" label="Nom d'utilisateur" obligatoire erreur={erreurs.nomUtilisateur}>
+            <Input id="edit-user-nom-utilisateur" value={nomUtilisateur} onChange={(e) => setNomUtilisateur(e.target.value)} autoComplete="off" aria-invalid={Boolean(erreurs.nomUtilisateur)} />
+          </Champ>
+          <Champ id="edit-user-role" label="Role" obligatoire erreur={erreurs.role}>
+            <Select value={role} onValueChange={(valeur) => setRole(valeur as "ADMIN" | "COMMERCIAL")}>
+              <SelectTrigger id="edit-user-role" aria-invalid={Boolean(erreurs.role)}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ADMIN">Administrateur</SelectItem>
+                <SelectItem value="COMMERCIAL">Commercial</SelectItem>
+              </SelectContent>
+            </Select>
+          </Champ>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={enCours} onClick={onFermer}>Annuler</Button>
+            <Bouton type="submit" chargement={enCours}>Enregistrer</Bouton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -129,8 +209,8 @@ export function DialogueNouvelUtilisateur({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="COMMERCIAL">Commercial</SelectItem>
                 <SelectItem value="ADMIN">Administrateur</SelectItem>
+                <SelectItem value="COMMERCIAL">Commercial</SelectItem>
               </SelectContent>
             </Select>
           </Champ>

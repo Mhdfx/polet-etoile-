@@ -17,7 +17,7 @@ export default async function NouvelleCommandeCommercialPage() {
       // suivi_stock : exclut les pseudo-produits (RELIQUAT PAYEMENT), reserves
       // a la saisie admin, du selecteur de commande commercial.
       where: { actif: true, deleted_at: null, suivi_stock: true },
-      orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+      orderBy: { nom: "asc" },
       select: {
         id: true,
         nom: true,

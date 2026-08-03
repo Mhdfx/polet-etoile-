@@ -44,6 +44,7 @@ export const schemaParametresSysteme = z.object({
   patente: champTexteOptionnel(40),
   adresse: champTexteOptionnel(500),
   telephone: champTexteOptionnel(40),
+  numeroAgrement: champTexteOptionnel(80),
   logoUrl: z
     .string()
     .trim()
@@ -67,6 +68,10 @@ export const schemaParametresSysteme = z.object({
   prefixeBl: champTexteCourt("Le prefixe BL", 20).regex(
     /^[A-Za-z0-9_-]+$/,
     "Le prefixe BL accepte lettres, chiffres, tirets et underscores",
+  ),
+  prefixeFacture: champTexteCourt("Le prefixe facture", 20).regex(
+    /^[A-Za-z0-9_-]+$/,
+    "Le prefixe facture accepte lettres, chiffres, tirets et underscores",
   ),
   fuseauHoraire: champTexteCourt("Le fuseau horaire", 80),
 });

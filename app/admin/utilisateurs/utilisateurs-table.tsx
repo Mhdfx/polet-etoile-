@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState, useTransition, type FormEvent } from "r
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { KeyRound, Plus, Power, Search, Target, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Plus, Power, Search, Target, Trash2 } from "lucide-react";
 import { BadgeStatut } from "@/components/badge-statut";
 import { Bouton } from "@/components/bouton";
 import { DataTable } from "@/components/data-table";
@@ -16,6 +16,7 @@ import type { ResultatAction } from "@/lib/validations/commun";
 import { definirActivationUtilisateur, supprimerUtilisateur } from "./actions";
 import {
   DialogueMotDePasse,
+  DialogueModifierUtilisateur,
   DialogueNouvelUtilisateur,
 } from "./utilisateurs-dialogs";
 
@@ -51,6 +52,7 @@ export function UtilisateursTable({
   const [saisieRecherche, setSaisieRecherche] = useState(recherche);
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [utilisateurMdp, setUtilisateurMdp] = useState<LigneUtilisateur | null>(null);
+  const [utilisateurEdition, setUtilisateurEdition] = useState<LigneUtilisateur | null>(null);
   const [messageEchec, setMessageEchec] = useState<string>();
 
   function naviguer(prochainePage: number, prochaineRecherche: string) {
@@ -127,6 +129,15 @@ export function UtilisateursTable({
 
           return (
             <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Modifier le nom, l'identifiant ou le role"
+                aria-label={`Modifier ${utilisateur.nomComplet}`}
+                onClick={() => setUtilisateurEdition(utilisateur)}
+              >
+                <Pencil />
+              </Button>
               {utilisateur.role === "COMMERCIAL" ? (
                 <Button
                   variant="ghost"
@@ -283,6 +294,15 @@ export function UtilisateursTable({
           ouvert
           utilisateur={{ id: utilisateurMdp.id, nomComplet: utilisateurMdp.nomComplet }}
           onFermer={() => setUtilisateurMdp(null)}
+        />
+      ) : null}
+
+      {utilisateurEdition ? (
+        <DialogueModifierUtilisateur
+          ouvert
+          utilisateur={utilisateurEdition}
+          onFermer={() => setUtilisateurEdition(null)}
+          onSucces={rafraichirApresMutation}
         />
       ) : null}
     </div>

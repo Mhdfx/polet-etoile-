@@ -13,6 +13,7 @@ async function main() {
 
   await prisma.$transaction(async (tx) => {
     await tx.paiement.deleteMany({});
+    await tx.telechargementDocument.deleteMany({});
     await tx.ligneCommande.deleteMany({});
     await tx.commande.deleteMany({});
     await tx.ligneBonCharge.deleteMany({});
@@ -33,6 +34,11 @@ async function main() {
     await tx.compteurBl.upsert({
       where: { cle: "numero_bc" },
       create: { cle: "numero_bc", valeur: 0 },
+      update: { valeur: 0 },
+    });
+    await tx.compteurBl.upsert({
+      where: { cle: "numero_facture" },
+      create: { cle: "numero_facture", valeur: 0 },
       update: { valeur: 0 },
     });
   });

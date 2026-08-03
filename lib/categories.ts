@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 
 export async function listerCategoriesProduits(): Promise<string[]> {
   const [parametre, categoriesProduits] = await Promise.all([
@@ -31,6 +32,5 @@ export async function listerCategoriesProduits(): Promise<string[]> {
     ...categoriesProduits.map((produit) => produit.categorie.trim()),
   ]);
 
-  return [...fusion].filter(Boolean);
+  return trierAlphabetiquement([...fusion].filter(Boolean), (categorie) => categorie);
 }
-

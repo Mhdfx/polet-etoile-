@@ -345,7 +345,7 @@ function footerSociete({ societe }: BonChargeConsolideData): string {
   return [
     `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
     identifiantsSociete(societe),
-    `Tel : ${societe.telephone || "+212626184088"}`,
+    `Tel : ${societe.telephone || "+212 660924488"}`,
   ]
     .filter((valeur) => valeur && valeur !== "-")
     .join(" - ");

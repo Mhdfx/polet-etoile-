@@ -16,11 +16,13 @@ export type CommandeDocumentData = {
     patente?: string;
     adresse?: string;
     telephone?: string;
+    numeroAgrement?: string;
     logo?: string;
     cachet?: string;
   };
   id: string;
   numeroBl: string;
+  numeroFacture: string;
   date: string;
   client: string;
   codeClient: string;
@@ -52,6 +54,7 @@ export async function chargerCommandeDocument(
     select: {
       id: true,
       numero_bl: true,
+      numero_facture: true,
       utilisateur_id: true,
       date_commande: true,
       client: { select: { id: true, nom: true, region_ville: true, adresse: true } },
@@ -93,6 +96,7 @@ export async function chargerCommandeDocument(
           "patente",
           "adresse",
           "telephone",
+          "numero_agrement",
           "logo_url",
           "taux_tva",
         ],
@@ -119,11 +123,13 @@ export async function chargerCommandeDocument(
       patente: params.get("patente"),
       adresse: params.get("adresse"),
       telephone: params.get("telephone"),
+      numeroAgrement: params.get("numero_agrement"),
       logo: await chargerLogoDataUri(params.get("logo_url")),
       cachet: await chargerCachetDataUri(),
     },
     id: commande.id,
     numeroBl: commande.numero_bl,
+    numeroFacture: commande.numero_facture,
     date: formatDate(commande.date_commande),
     client: client?.nom ?? "-",
     codeClient: client ? codeClientDocument(client.id, Boolean(commande.client_externe)) : "",

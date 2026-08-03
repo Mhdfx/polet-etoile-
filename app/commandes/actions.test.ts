@@ -6,6 +6,7 @@ const {
   txMock,
   transactionMock,
   attribuerNumeroBLMock,
+  attribuerNumeroFactureMock,
 } = vi.hoisted(() => {
   const txMock = {
     user: { findFirst: vi.fn() },
@@ -29,6 +30,7 @@ const {
     requireAdminMock: vi.fn(),
     requireCommercialMock: vi.fn(),
     attribuerNumeroBLMock: vi.fn(),
+    attribuerNumeroFactureMock: vi.fn(),
     transactionMock: vi.fn(
       async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock),
     ),
@@ -44,6 +46,9 @@ vi.mock("@/lib/session", () => ({
   requireCommercial: requireCommercialMock,
 }));
 vi.mock("@/lib/bl", () => ({ attribuerNumeroBL: attribuerNumeroBLMock }));
+vi.mock("@/lib/facture", () => ({
+  attribuerNumeroFacture: attribuerNumeroFactureMock,
+}));
 vi.mock("@/lib/db", () => ({ prisma: { $transaction: transactionMock } }));
 
 import {
@@ -61,6 +66,10 @@ beforeEach(() => {
   requireAdminMock.mockResolvedValue(admin);
   requireCommercialMock.mockResolvedValue(commercial);
   attribuerNumeroBLMock.mockResolvedValue({ compteur: 9, numeroBl: "CP-000009" });
+  attribuerNumeroFactureMock.mockResolvedValue({
+    compteur: 4,
+    numeroFacture: "FACT-000004",
+  });
   txMock.user.findFirst.mockResolvedValue({ id: "com-1" });
   txMock.client.findFirst.mockResolvedValue({ id: "client-1" });
   txMock.clientExterne.findFirst.mockResolvedValue({ id: "ext-1" });
@@ -105,10 +114,13 @@ describe("creerCommandeCommercial", () => {
 
     expect(resultat.ok).toBe(true);
     expect(attribuerNumeroBLMock).toHaveBeenCalledWith(txMock);
+    expect(attribuerNumeroFactureMock).toHaveBeenCalledWith(txMock);
     expect(txMock.commande.create).toHaveBeenCalledWith({
       data: {
         numero_bl: "CP-000009",
         numero_bl_compteur: 9,
+        numero_facture: "FACT-000004",
+        numero_facture_compteur: 4,
         utilisateur_id: "com-1",
         type_commande: "STANDARD",
         client_id: "client-1",

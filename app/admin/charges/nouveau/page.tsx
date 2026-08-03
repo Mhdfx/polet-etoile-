@@ -18,7 +18,7 @@ export default async function NouveauBonChargePage() {
     // Seuls les produits physiques suivis en stock peuvent être chargés.
     prisma.produit.findMany({
       where: { actif: true, deleted_at: null, suivi_stock: true },
-      orderBy: { ordre_affichage: "asc" },
+      orderBy: { nom: "asc" },
       select: { id: true, nom: true },
     }),
   ]);

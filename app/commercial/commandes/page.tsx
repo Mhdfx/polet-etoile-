@@ -5,6 +5,7 @@ import { Download, FileText, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
+import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,7 +18,7 @@ import {
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
-import { formatDate, formatMontant } from "@/lib/format";
+import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
 import { requireCommercial } from "@/lib/session";
 
 const TAILLES_PAGE = [10, 25, 50, 100] as const;
@@ -104,6 +105,11 @@ export default async function CommandesCommercialPage({
       client: { select: { nom: true, region_ville: true } },
       lignes: { where: { deleted_at: null }, select: { prix_net: true } },
       paiements: { select: { montant: true, date_paiement: true } },
+      telechargements_documents: {
+        where: { type_document: "BL" },
+        select: { created_at: true },
+        take: 1,
+      },
       bon_charge: {
         where: { deleted_at: null },
         select: {
@@ -111,7 +117,7 @@ export default async function CommandesCommercialPage({
           numero_bc: true,
           telechargements_documents: {
             where: { type_document: "BON_CHARGE" },
-            select: { id: true },
+            select: { created_at: true },
             take: 1,
           },
         },
@@ -196,8 +202,8 @@ export default async function CommandesCommercialPage({
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Tous statuts</option>
-              <option value="paye">Réglée</option>
               <option value="en_attente">Non réglée</option>
+              <option value="paye">Réglée</option>
             </select>
             <select
               name="taille"
@@ -236,7 +242,7 @@ export default async function CommandesCommercialPage({
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <form action="/commercial/commandes/documents" method="post">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-3 py-3 text-sm">
               <div className="flex flex-wrap items-center gap-3">
@@ -262,7 +268,7 @@ export default async function CommandesCommercialPage({
                   Bons de charge
                 </label>
                 <span className="text-xs text-muted-foreground">
-                  Bon de charge : telechargement commercial unique.
+                  BL et bon de charge : un seul telechargement commercial, date tracee.
                 </span>
               </div>
               <Button type="submit" variant="outline" size="sm">
@@ -271,10 +277,76 @@ export default async function CommandesCommercialPage({
               </Button>
             </div>
 
-            <Table>
+            <div className="grid gap-3 p-3 2xl:hidden">
+              <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 text-sm font-medium">
+                <CaseSelectionToutesCommandes />
+                Tout selectionner sur cette page
+              </label>
+              {commandes.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Aucune commande.
+                </p>
+              ) : commandes.map((commande) => {
+                const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+                const dateReglement = totaux.statutPaiement === "paye"
+                  ? commande.paiements.map((paiement) => paiement.date_paiement).sort((a, b) => b.getTime() - a.getTime())[0]
+                  : undefined;
+                const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
+                const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
+                const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
+                  (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
+                return (
+                  <article key={commande.id} className="grid gap-3 rounded-lg border border-border p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <label className="flex min-h-11 items-center gap-3 font-semibold">
+                        <input
+                          type="checkbox"
+                          name="commandeIds"
+                          value={commande.id}
+                          data-selection-commande="true"
+                          disabled={aucunDocumentDisponible}
+                          aria-label={`Selectionner ${commande.numero_bl}`}
+                          className="size-4 accent-primary"
+                        />
+                        <Link href={`/commercial/commandes/${commande.id}`} className="text-primary hover:underline">
+                          {commande.numero_bl}
+                        </Link>
+                      </label>
+                      <BadgeStatut statut={totaux.statutPaiement} />
+                    </div>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div><dt className="text-muted-foreground">Date</dt><dd>{formatDate(commande.date_commande)}</dd></div>
+                      <div><dt className="text-muted-foreground">Reglement</dt><dd>{dateReglement ? formatDate(dateReglement) : "-"}</dd></div>
+                      <div className="col-span-2"><dt className="text-muted-foreground">Client / region</dt><dd className="font-medium">{commande.client?.nom ?? "-"} · {commande.client?.region_ville ?? "-"}</dd></div>
+                      <div><dt className="text-muted-foreground">Total</dt><dd className="tabular-nums">{formatMontant(totaux.total)}</dd></div>
+                      <div><dt className="text-muted-foreground">Reste</dt><dd className="tabular-nums">{formatMontant(totaux.resteDu)}</dd></div>
+                    </dl>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+                      <span className={bonChargeTelechargeAt ? "text-muted-foreground" : ""}>
+                        BC : {commande.bon_charge?.numero_bc ?? "Aucun"}
+                        {bonChargeTelechargeAt ? ` · telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : ""}
+                      </span>
+                      {blTelechargeAt ? (
+                        <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground" aria-disabled="true">
+                          BL telecharge le {formatDateHeure(blTelechargeAt)}
+                        </span>
+                      ) : (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/commercial/commandes/${commande.id}/pdf`} target="_blank">
+                            <FileText /> Telecharger BL
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <Table className="hidden w-full table-fixed 2xl:table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[44px] text-center">Sel.</TableHead>
+                  <TableHead className="w-[44px] text-center"><CaseSelectionToutesCommandes /></TableHead>
                   <TableHead>BL</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Client</TableHead>
@@ -309,6 +381,11 @@ export default async function CommandesCommercialPage({
                     const bonChargeTelecharge = Boolean(
                       commande.bon_charge?.telechargements_documents.length,
                     );
+                    const bonChargeTelechargeAt =
+                      commande.bon_charge?.telechargements_documents[0]?.created_at;
+                    const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
+                    const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
+                      (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
 
                     return (
                       <TableRow key={commande.id}>
@@ -317,6 +394,8 @@ export default async function CommandesCommercialPage({
                             type="checkbox"
                             name="commandeIds"
                             value={commande.id}
+                            data-selection-commande="true"
+                            disabled={aucunDocumentDisponible}
                             aria-label={`Selectionner ${commande.numero_bl}`}
                             className="h-4 w-4 accent-primary"
                           />
@@ -345,21 +424,31 @@ export default async function CommandesCommercialPage({
                         <TableCell className="text-xs text-muted-foreground">
                           {commande.bon_charge
                             ? bonChargeTelecharge
-                              ? "Deja telecharge"
+                              ? `Telecharge le ${formatDateHeure(bonChargeTelechargeAt!)}`
                               : commande.bon_charge.numero_bc
                             : "Aucun"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon-sm" asChild>
-                            <Link
-                              href={`/commercial/commandes/${commande.id}/pdf`}
-                              target="_blank"
-                              title={`PDF BL ${commande.numero_bl}`}
-                              aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                          {blTelechargeAt ? (
+                            <span
+                              className="inline-flex min-h-9 items-center rounded-md bg-muted px-2 text-xs text-muted-foreground"
+                              title={`Telecharge le ${formatDateHeure(blTelechargeAt)}`}
+                              aria-disabled="true"
                             >
-                              <FileText />
-                            </Link>
-                          </Button>
+                              {formatDate(blTelechargeAt)}
+                            </span>
+                          ) : (
+                            <Button variant="ghost" size="icon-sm" asChild>
+                              <Link
+                                href={`/commercial/commandes/${commande.id}/pdf`}
+                                target="_blank"
+                                title={`PDF BL ${commande.numero_bl}`}
+                                aria-label={`Ouvrir le PDF BL ${commande.numero_bl}`}
+                              >
+                                <FileText />
+                              </Link>
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

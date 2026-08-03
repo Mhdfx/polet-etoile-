@@ -41,6 +41,7 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
     select: {
       id: true,
       numero_bl: true,
+      numero_facture: true,
       type_commande: true,
       date_commande: true,
       client: { select: { nom: true, region_ville: true } },
@@ -100,6 +101,11 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
             <Button variant="outline" asChild>
               <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank">
                 PDF BL
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/admin/commandes/${commande.id}/facture`} target="_blank">
+                Facture {commande.numero_facture}
               </Link>
             </Button>
             <BonChargeCommandeButton

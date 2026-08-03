@@ -32,6 +32,7 @@ import { formatDate, formatMontant, formatQuantite } from "@/lib/format";
 import {
   calculerImpayeTotal,
   calculerKpiPeriode,
+  calculerKpiPilotage,
   filtrerCommandesPeriode,
 } from "@/lib/kpi";
 import { calculerCartesEpinglees, lireEpinglesKpi } from "@/lib/kpi-epingles";
@@ -257,6 +258,7 @@ export default async function AdminPage({
     ),
   );
   const kpiPeriode = calculerKpiPeriode(commandesPeriode);
+  const kpiPilotage = calculerKpiPilotage(commandesPeriode);
   const impaye = calculerImpayeTotal(commandesImpaye);
   const classementCommerciaux = new Map<string, LigneClassement>();
   const classementProduits = new Map<string, LigneClassement>();
@@ -391,7 +393,7 @@ export default async function AdminPage({
           </p>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <CarteKPI
             label="Chiffre d'affaires du mois"
             valeur={formatMontant(kpiMois.chiffreAffaires)}
@@ -428,6 +430,13 @@ export default async function AdminPage({
             icon={AlertTriangle}
           />
         </div>
+
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Indicateurs de pilotage complementaires">
+          <CarteKPI label="Panier moyen" valeur={formatMontant(kpiPilotage.panierMoyen)} detail="Sur la periode filtree" tonalite="bleu" />
+          <CarteKPI label="Taux d'encaissement" valeur={`${kpiPilotage.tauxEncaissement.toFixed(1).replace(".", ",")} %`} detail="Montant encaisse / chiffre d'affaires" tonalite="vert" />
+          <CarteKPI label="Commandes reglees" valeur={`${kpiPilotage.tauxCommandesReglees.toFixed(1).replace(".", ",")} %`} detail="Part des commandes sans reste du" tonalite="neutre" />
+          <CarteKPI label="Clients servis" valeur={String(kpiPilotage.clientsServis)} detail="Clients distincts sur la periode" tonalite="neutre" />
+        </section>
 
         {cartesEpinglees.length > 0 ? (
           <section className="grid gap-2">

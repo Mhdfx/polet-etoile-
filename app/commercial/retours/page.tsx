@@ -50,7 +50,7 @@ export default async function RetoursCommercialPage({
       // Retour physique : uniquement les produits suivis en stock (pas le
       // pseudo-produit RELIQUAT PAYEMENT).
       where: { actif: true, deleted_at: null, suivi_stock: true },
-      orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+      orderBy: { nom: "asc" },
       select: { id: true, nom: true },
     }),
     prisma.retour.findMany({

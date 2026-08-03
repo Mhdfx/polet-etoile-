@@ -294,6 +294,13 @@ const styles = StyleSheet.create({
     color: ROUGE_FONCE,
     fontWeight: 700,
   },
+  agreementText: {
+    marginTop: 2,
+    color: ROUGE_FONCE,
+    fontSize: 6.5,
+    fontWeight: 700,
+    textAlign: "center",
+  },
   footer: {
     position: "absolute",
     left: 30,
@@ -491,6 +498,11 @@ function Stamp({ commande }: { commande: CommandeDocumentData }) {
           <Text style={styles.stampText}>ICE {commande.societe.ice || "-"}</Text>
         </View>
       )}
+      {commande.societe.numeroAgrement ? (
+        <Text style={styles.agreementText}>
+          Agrement : {commande.societe.numeroAgrement}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -507,7 +519,7 @@ function identifiantsSociete({ societe }: CommandeDocumentData): string {
 }
 
 function footerSociete({ societe }: CommandeDocumentData): string {
-  const telephone = societe.telephone || "+212626184088";
+  const telephone = societe.telephone || "+212 660924488";
   return [
     `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
     identifiantsSociete({ societe } as CommandeDocumentData),

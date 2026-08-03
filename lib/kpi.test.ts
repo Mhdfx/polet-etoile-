@@ -3,6 +3,7 @@ import {
   calculerImpayeTotal,
   calculerKpiCommandes,
   calculerKpiPeriode,
+  calculerKpiPilotage,
   filtrerCommandesPeriode,
   formaterEntreesTop,
 } from "./kpi";
@@ -41,6 +42,20 @@ describe("calculerKpiCommandes", () => {
     expect(kpi.montantImpaye.toFixed(2)).toBe("0.00");
     expect(kpi.topClients).toEqual([]);
     expect(formaterEntreesTop(kpi.topProduits)).toEqual([]);
+  });
+});
+
+describe("calculerKpiPilotage", () => {
+  it("calcule panier, encaissement, reglement et clients distincts", () => {
+    const kpi = calculerKpiPilotage([
+      { client: { id: "c1" }, lignes: [{ prix_net: "100" }], paiements: [{ montant: "100" }] },
+      { client: { id: "c1" }, lignes: [{ prix_net: "300" }], paiements: [{ montant: "100" }] },
+      { client_externe: { id: "c2" }, lignes: [{ prix_net: "200" }], paiements: [{ montant: "200" }] },
+    ]);
+    expect(kpi.panierMoyen.toFixed(2)).toBe("200.00");
+    expect(kpi.tauxEncaissement.toFixed(1)).toBe("66.7");
+    expect(kpi.tauxCommandesReglees.toFixed(1)).toBe("66.7");
+    expect(kpi.clientsServis).toBe(2);
   });
 });
 

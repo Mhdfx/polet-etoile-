@@ -6,6 +6,7 @@ import { BonChargeCommandeButton } from "@/app/charges/bon-charge-commande-butto
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
+import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -116,6 +117,7 @@ export default async function CommandesAdminPage({
       select: {
         id: true,
         numero_bl: true,
+        numero_facture: true,
         type_commande: true,
         date_commande: true,
         client: { select: { nom: true, region_ville: true } },
@@ -209,8 +211,8 @@ export default async function CommandesAdminPage({
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Tous types</option>
-              <option value="STANDARD">Standard</option>
               <option value="EXTERNE">Externe</option>
+              <option value="STANDARD">Standard</option>
             </select>
             <select
               name="statut"
@@ -218,8 +220,8 @@ export default async function CommandesAdminPage({
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Tous statuts</option>
-              <option value="paye">Réglée</option>
               <option value="en_attente">Non réglée</option>
+              <option value="paye">Réglée</option>
             </select>
             <input
               name="debut"
@@ -312,10 +314,69 @@ export default async function CommandesAdminPage({
               </Button>
             </div>
 
-            <Table className="w-full table-fixed text-sm">
+            <div className="grid gap-3 p-3 2xl:hidden">
+              <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 text-sm font-medium">
+                <CaseSelectionToutesCommandes />
+                Tout selectionner sur cette page
+              </label>
+              {commandes.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Aucune commande.
+                </p>
+              ) : commandes.map((commande) => {
+                const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+                const client = commande.client ?? commande.client_externe;
+                return (
+                  <article key={commande.id} className="grid gap-3 rounded-lg border border-border p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <label className="flex min-h-11 items-center gap-3 font-semibold">
+                        <input
+                          type="checkbox"
+                          name="commandeIds"
+                          value={commande.id}
+                          data-selection-commande="true"
+                          aria-label={`Selectionner ${commande.numero_bl}`}
+                          className="size-4 accent-primary"
+                        />
+                        <Link href={`/admin/commandes/${commande.id}`} className="text-primary hover:underline">
+                          {commande.numero_bl}
+                        </Link>
+                      </label>
+                      <BadgeStatut statut={totaux.statutPaiement} />
+                    </div>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div><dt className="text-muted-foreground">Date</dt><dd>{formatDate(commande.date_commande)}</dd></div>
+                      <div><dt className="text-muted-foreground">Type</dt><dd>{libelleTypeCommande(commande.type_commande)}</dd></div>
+                      <div className="col-span-2"><dt className="text-muted-foreground">Client / region</dt><dd className="font-medium">{client?.nom ?? "-"} · {client?.region_ville ?? "-"}</dd></div>
+                      <div className="col-span-2"><dt className="text-muted-foreground">Responsable</dt><dd>{commande.utilisateur.nom_complet}</dd></div>
+                      <div><dt className="text-muted-foreground">Total</dt><dd className="tabular-nums">{formatMontant(totaux.total)}</dd></div>
+                      <div><dt className="text-muted-foreground">Reste</dt><dd className="tabular-nums">{formatMontant(totaux.resteDu)}</dd></div>
+                    </dl>
+                    <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank"><FileText /> BL</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/commandes/${commande.id}/facture`} target="_blank"><FileText /> {commande.numero_facture}</Link>
+                      </Button>
+                      <BonChargeCommandeButton
+                        commandeId={commande.id}
+                        bonCharge={commande.bon_charge ? {
+                          id: commande.bon_charge.id,
+                          numeroBc: commande.bon_charge.numero_bc,
+                          supprime: Boolean(commande.bon_charge.deleted_at),
+                        } : null}
+                      />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <Table className="hidden w-full table-fixed text-sm 2xl:table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[44px] text-center">Sel.</TableHead>
+                  <TableHead className="w-[44px] text-center"><CaseSelectionToutesCommandes /></TableHead>
                   <TableHead className="w-[96px]">BL</TableHead>
                   <TableHead className="w-[92px]">Date</TableHead>
                   <TableHead className="w-[168px]">Client</TableHead>
@@ -351,6 +412,7 @@ export default async function CommandesAdminPage({
                             type="checkbox"
                             name="commandeIds"
                             value={commande.id}
+                            data-selection-commande="true"
                             aria-label={`Selectionner ${commande.numero_bl}`}
                             className="h-4 w-4 accent-primary"
                           />
@@ -398,8 +460,8 @@ export default async function CommandesAdminPage({
                             <Link
                               href={`/admin/commandes/${commande.id}/facture`}
                               target="_blank"
-                              title={`PDF facture ${commande.numero_bl}`}
-                              aria-label={`Ouvrir la facture ${commande.numero_bl}`}
+                              title={`PDF facture ${commande.numero_facture}`}
+                              aria-label={`Ouvrir la facture ${commande.numero_facture}`}
                             >
                               <FileText />
                             </Link>

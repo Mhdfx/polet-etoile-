@@ -34,7 +34,7 @@ export default async function ModifierCommandeAdminPage({ params }: PageProps) {
       }),
       prisma.produit.findMany({
         where: { actif: true, deleted_at: null },
-        orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+        orderBy: { nom: "asc" },
         select: { id: true, nom: true, prix_reference: true },
       }),
       prisma.client.findMany({
@@ -58,7 +58,7 @@ export default async function ModifierCommandeAdminPage({ params }: PageProps) {
           actif: true,
           deleted_at: null,
         },
-        orderBy: [{ role: "asc" }, { nom_complet: "asc" }],
+        orderBy: { nom_complet: "asc" },
         select: { id: true, nom_complet: true, nom_utilisateur: true, role: true },
       }),
     ]);

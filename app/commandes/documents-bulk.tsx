@@ -103,15 +103,36 @@ async function chargerBonsDeChargeDejaTelecharges(
   );
 }
 
+async function chargerBlDejaTelecharges(
+  commandes: CommandeSelectionnee[],
+): Promise<Map<string, Date>> {
+  const telechargements = await prisma.telechargementDocument.findMany({
+    where: {
+      type_document: "BL",
+      commande_id: { in: commandes.map((commande) => commande.id) },
+    },
+    select: { commande_id: true, created_at: true },
+  });
+
+  return new Map(
+    telechargements.map((telechargement) => [
+      telechargement.commande_id,
+      telechargement.created_at,
+    ]),
+  );
+}
+
 /**
  * Pages PDF par commande : BL puis facture pour chaque commande selectionnee.
  * Elles seront fusionnees avec le bon de charge consolide dans un seul fichier.
  */
 async function construirePdfsCommande({
   commandes,
+  commandesBl,
   documents,
 }: {
   commandes: CommandeSelectionnee[];
+  commandesBl: CommandeSelectionnee[];
   documents: DocumentCommande[];
 }): Promise<Uint8Array[]> {
   const pdfs: Uint8Array[] = [];
@@ -119,10 +140,15 @@ async function construirePdfsCommande({
     return pdfs;
   }
 
+  const idsBl = new Set(commandesBl.map((commande) => commande.id));
   for (const commande of commandes) {
+    const inclutBl = documents.includes("bl") && idsBl.has(commande.id);
+    const inclutFacture = documents.includes("facture");
+    if (!inclutBl && !inclutFacture) continue;
+
     const commandeDocument = await chargerCommandeDocument(commande.id);
 
-    if (documents.includes("bl")) {
+    if (inclutBl) {
       const buffer = await renderToBuffer(<BonLivraisonPdf commande={commandeDocument} />);
       pdfs.push(new Uint8Array(buffer));
     }
@@ -147,6 +173,7 @@ async function enregistrerAuditEtTelechargements({
   portee,
   documents,
   commandes,
+  commandesBl,
   bonsChargeInclus,
   fichiers,
   ip,
@@ -155,10 +182,13 @@ async function enregistrerAuditEtTelechargements({
   portee: PorteeExport;
   documents: DocumentCommande[];
   commandes: CommandeSelectionnee[];
+  commandesBl: CommandeSelectionnee[];
   bonsChargeInclus: BonChargeInclus[];
   fichiers: number;
   ip: string | null;
 }): Promise<Response | null> {
+  const telechargementsBl =
+    portee === "commercial" && documents.includes("bl") ? commandesBl : [];
   // Seuls les bons de charge reellement inclus dans le PDF sont marques comme
   // telecharges (les bons deja consommes ont ete sautes, pas re-livres).
   const telechargementsBonCharge =
@@ -168,15 +198,31 @@ async function enregistrerAuditEtTelechargements({
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (telechargementsBonCharge.length > 0) {
+      const telechargements: Array<{
+        utilisateur_id: string;
+        commande_id: string;
+        bon_charge_id: string | null;
+        type_document: TypeDocumentTelecharge;
+        ip_address: string | null;
+      }> = [
+        ...telechargementsBl.map((commande) => ({
+          utilisateur_id: utilisateur.id,
+          commande_id: commande.id,
+          bon_charge_id: null,
+          type_document: "BL" as TypeDocumentTelecharge,
+          ip_address: ip,
+        })),
+        ...telechargementsBonCharge.map((telechargement) => ({
+          utilisateur_id: utilisateur.id,
+          commande_id: telechargement.commandeId,
+          bon_charge_id: telechargement.bonChargeId,
+          type_document: "BON_CHARGE" as TypeDocumentTelecharge,
+          ip_address: ip,
+        })),
+      ];
+      if (telechargements.length > 0) {
         await tx.telechargementDocument.createMany({
-          data: telechargementsBonCharge.map((telechargement) => ({
-            utilisateur_id: utilisateur.id,
-            commande_id: telechargement.commandeId,
-            bon_charge_id: telechargement.bonChargeId,
-            type_document: "BON_CHARGE" satisfies TypeDocumentTelecharge,
-            ip_address: ip,
-          })),
+          data: telechargements,
         });
       }
 
@@ -205,7 +251,7 @@ async function enregistrerAuditEtTelechargements({
       erreur.code === "P2002"
     ) {
       return reponseErreur(
-        "Un bon de charge selectionne vient deja d'etre telecharge. Rechargez la page et recommencez.",
+        "Un BL ou bon de charge selectionne a deja ete telecharge. Rechargez la page et demandez-le a l'administrateur.",
         409,
       );
     }
@@ -255,13 +301,25 @@ export async function exporterDocumentsCommandes({
 
   const veutBonCharge = documents.includes("bon_charge");
 
+  let commandesBl = commandes;
+  if (portee === "commercial" && documents.includes("bl")) {
+    const blDejaTelecharges = await chargerBlDejaTelecharges(commandes);
+    commandesBl = commandes.filter((commande) => !blDejaTelecharges.has(commande.id));
+    if (documents.length === 1 && commandesBl.length === 0) {
+      return reponseErreur(
+        "Tous les BL selectionnes ont deja ete telecharges. Demandez-les a l'administrateur.",
+        409,
+      );
+    }
+  }
+
   const bonsDeChargeDejaTelecharges =
     portee === "commercial" && veutBonCharge
       ? await chargerBonsDeChargeDejaTelecharges(commandes)
       : new Set<string>();
 
   // PDF par commande (BL / facture).
-  const pdfs = await construirePdfsCommande({ commandes, documents });
+  const pdfs = await construirePdfsCommande({ commandes, commandesBl, documents });
 
   // Bon de charge consolide : un seul PDF pour toutes les commandes retenues.
   let pdfConsolide: Uint8Array | undefined;
@@ -331,6 +389,7 @@ export async function exporterDocumentsCommandes({
     portee,
     documents,
     commandes,
+    commandesBl,
     bonsChargeInclus,
     fichiers: nombreFichiers,
     ip,

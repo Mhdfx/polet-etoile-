@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { CLE_COMPTEUR_BL } from "@/lib/bl";
 import { prisma } from "@/lib/db";
+import { CLE_COMPTEUR_FACTURE } from "@/lib/facture";
 import { formatDateHeure } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { ParametresForm } from "./parametres-form";
@@ -20,10 +21,12 @@ const valeursDefaut = {
   identifiantFiscal: "72064177",
   patente: "39504226",
   adresse: "RDC 1 LOT EL FARAH MOHAMMEDIA",
-  telephone: "",
+  telephone: "+212 660924488",
+  numeroAgrement: "",
   logoUrl: "",
   tauxTva: "0",
   prefixeBl: "CP",
+  prefixeFacture: "FACT",
   fuseauHoraire: "Africa/Casablanca",
 };
 
@@ -35,20 +38,23 @@ const mapCles = {
   patente: "patente",
   adresse: "adresse",
   telephone: "telephone",
+  numero_agrement: "numeroAgrement",
   logo_url: "logoUrl",
   taux_tva: "tauxTva",
   prefixe_bl: "prefixeBl",
+  prefixe_facture: "prefixeFacture",
   fuseau_horaire: "fuseauHoraire",
 } as const;
 
 export default async function ParametresPage() {
   const admin = await requireAdmin();
-  const [parametres, compteurBl, historique, versions] = await Promise.all([
+  const [parametres, compteurBl, compteurFacture, historique, versions] = await Promise.all([
     prisma.parametreSysteme.findMany({
       where: { cle: { in: Object.keys(mapCles) } },
       select: { cle: true, valeur: true },
     }),
     prisma.compteurBl.findUnique({ where: { cle: CLE_COMPTEUR_BL }, select: { valeur: true } }),
+    prisma.compteurBl.findUnique({ where: { cle: CLE_COMPTEUR_FACTURE }, select: { valeur: true } }),
     prisma.auditLog.findMany({
       where: { entite: "parametres_systeme" },
       orderBy: { created_at: "desc" },
@@ -86,7 +92,7 @@ export default async function ParametresPage() {
       description="Identite societe, fiscalite, numerotation BL et fuseau horaire."
     >
       <div className="grid gap-5">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg bg-card p-4 text-sm shadow-sm ring-1 ring-border">
             <p className="font-medium">Version application</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">{versionApp}</p>
@@ -103,6 +109,15 @@ export default async function ParametresPage() {
             </p>
             <p className="text-xs text-muted-foreground">
               Lecture seule. Numerotation verrouillee par transaction MySQL.
+            </p>
+          </div>
+          <div className="rounded-lg bg-card p-4 text-sm shadow-sm ring-1 ring-border">
+            <p className="font-medium">Compteur facture courant</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {compteurFacture?.valeur ?? 0}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sequence independante, verrouillee par transaction MySQL.
             </p>
           </div>
         </div>

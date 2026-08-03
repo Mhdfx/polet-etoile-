@@ -108,7 +108,7 @@ export default async function ClientsAdminPage({
     }),
     prisma.user.findMany({
       where: { role: { in: ["ADMIN", "COMMERCIAL"] }, actif: true, deleted_at: null },
-      orderBy: [{ role: "asc" }, { nom_complet: "asc" }],
+      orderBy: { nom_complet: "asc" },
       select: { id: true, nom_complet: true, nom_utilisateur: true, role: true },
     }),
     listerVillesMaroc(),

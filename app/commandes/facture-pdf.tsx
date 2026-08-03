@@ -271,10 +271,8 @@ const styles = StyleSheet.create({
 });
 
 export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
-  const numeroFacture = `FACT-${commande.numeroBl}`;
-
   return (
-    <Document title={`Facture ${commande.numeroBl}`}>
+    <Document title={`Facture ${commande.numeroFacture}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.topBar} fixed />
         <View style={styles.header} fixed>
@@ -285,14 +283,14 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
               <Text style={styles.companyLine}>{commande.societe.adresse || "-"}</Text>
               <Text style={styles.companyLine}>{identifiantsSociete(commande)}</Text>
               <Text style={styles.companyLine}>
-                Tel : {commande.societe.telephone || "+212626184088"}
+                Tel : {commande.societe.telephone || "+212 660924488"}
               </Text>
             </View>
           </View>
 
           <View style={styles.invoiceHead}>
             <Text style={styles.title}>Facture</Text>
-            <Text style={styles.invoiceNumber}>{numeroFacture}</Text>
+            <Text style={styles.invoiceNumber}>{commande.numeroFacture}</Text>
           </View>
         </View>
 
@@ -434,7 +432,7 @@ function identifiantsSociete({ societe }: CommandeDocumentData): string {
 }
 
 function footerSociete({ societe }: CommandeDocumentData): string {
-  const telephone = societe.telephone || "+212626184088";
+  const telephone = societe.telephone || "+212 660924488";
   return [
     `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
     identifiantsSociete({ societe } as CommandeDocumentData),

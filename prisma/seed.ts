@@ -3,6 +3,7 @@ import { hashPassword } from "better-auth/crypto";
 import { calculerPrixNet } from "@/lib/decimal";
 import { prisma } from "@/lib/db";
 import { attribuerNumeroBL } from "@/lib/bl";
+import { attribuerNumeroFacture } from "@/lib/facture";
 import { syncCatalogueCdc } from "@/lib/sync-catalogue";
 import { VILLES_MAROC_DEFAUT } from "@/lib/villes";
 
@@ -139,6 +140,12 @@ async function main() {
     update: {},
   });
 
+  await prisma.compteurBl.upsert({
+    where: { cle: "numero_facture" },
+    create: { cle: "numero_facture", valeur: 0 },
+    update: {},
+  });
+
   const admin = await upsertUtilisateur({
     nom_utilisateur: "admin",
     nom_complet: "Administrateur",
@@ -170,10 +177,12 @@ async function main() {
     { cle: "identifiant_fiscal", valeur: "72064177" },
     { cle: "patente", valeur: "39504226" },
     { cle: "adresse", valeur: "RDC 1 LOT EL FARAH MOHAMMEDIA" },
-    { cle: "telephone", valeur: "" },
+    { cle: "telephone", valeur: "+212 660924488" },
+    { cle: "numero_agrement", valeur: "" },
     { cle: "taux_tva", valeur: "0" },
     { cle: "prefixe_bl", valeur: "CP" },
     { cle: "prefixe_bc", valeur: "BC" },
+    { cle: "prefixe_facture", valeur: "FACT" },
     { cle: "fuseau_horaire", valeur: "Africa/Casablanca" },
   ];
 
@@ -351,6 +360,7 @@ async function main() {
 
     if (!commandeExistante) {
       const bl = await attribuerNumeroBL(tx);
+      const facture = await attribuerNumeroFacture(tx);
       const ligne1 = calculerPrixNet("120.000", "23.50");
       const ligne2 = calculerPrixNet("35.500", "48.00");
       const total = ligne1.plus(ligne2);
@@ -360,6 +370,8 @@ async function main() {
           id: "seed-commande-payee",
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
+          numero_facture: facture.numeroFacture,
+          numero_facture_compteur: facture.compteur,
           client_id: clientBoucherie.id,
           utilisateur_id: commercialCom1.id,
           date_commande: new Date("2026-07-08T10:00:00.000Z"),
@@ -397,6 +409,7 @@ async function main() {
 
     if (!commandeExistante) {
       const bl = await attribuerNumeroBL(tx);
+      const facture = await attribuerNumeroFacture(tx);
       const ligne = calculerPrixNet("80.000", "28.00");
 
       await tx.commande.create({
@@ -404,6 +417,8 @@ async function main() {
           id: "seed-commande-partielle",
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
+          numero_facture: facture.numeroFacture,
+          numero_facture_compteur: facture.compteur,
           client_id: clientRestaurant.id,
           utilisateur_id: commercialCom2.id,
           date_commande: new Date("2026-07-08T18:30:00.000Z"),
@@ -434,6 +449,7 @@ async function main() {
 
     if (!commandeExistante) {
       const bl = await attribuerNumeroBL(tx);
+      const facture = await attribuerNumeroFacture(tx);
       const ligne = calculerPrixNet("50.000", "21.00");
 
       await tx.commande.create({
@@ -441,6 +457,8 @@ async function main() {
           id: "seed-commande-externe",
           numero_bl: bl.numeroBl,
           numero_bl_compteur: bl.compteur,
+          numero_facture: facture.numeroFacture,
+          numero_facture_compteur: facture.compteur,
           client_externe_id: clientExterne.id,
           utilisateur_id: commercialCom1.id,
           type_commande: "EXTERNE",
@@ -488,11 +506,14 @@ async function main() {
           return;
         }
         const bl = await attribuerNumeroBL(tx);
+        const facture = await attribuerNumeroFacture(tx);
         await tx.commande.create({
           data: {
             id: idCommande,
             numero_bl: bl.numeroBl,
             numero_bl_compteur: bl.compteur,
+            numero_facture: facture.numeroFacture,
+            numero_facture_compteur: facture.compteur,
             client_id: client.id,
             utilisateur_id: commercial.id,
             date_commande: dateCommande,

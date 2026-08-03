@@ -19,6 +19,7 @@ export type TarifsDocumentData = {
     raisonSociale: string;
     adresse?: string;
     telephone?: string;
+    numeroAgrement?: string;
     ice?: string;
     identifiantFiscal?: string;
     logo?: string;
@@ -140,6 +141,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+  },
+  agreement: {
+    marginTop: 6,
+    color: ROUGE,
+    fontSize: 7.5,
+    fontWeight: 700,
+    textAlign: "center",
   },
   titleLine: {
     width: 78,
@@ -377,6 +385,10 @@ function TarifsPage({
         <Text style={styles.datePillText}>TARIFS DU {data.date}</Text>
       </View>
 
+      {data.societe.numeroAgrement ? (
+        <Text style={styles.agreement}>AGREMENT : {data.societe.numeroAgrement}</Text>
+      ) : null}
+
       <View style={styles.titleRow}>
         <View style={styles.titleLine} />
         <View style={styles.titleDot} />
@@ -443,7 +455,7 @@ function WatermarkLayer() {
 
 
 function Footer({ data }: { data: TarifsDocumentData }) {
-  const telephone = data.societe.telephone || "+212 626 18 40 88";
+  const telephone = data.societe.telephone || "+212 660924488";
   const adresse = data.societe.adresse || "RDC 1 LOT EL FARAH MOHAMMEDIA";
   const ice = data.societe.ice || "-";
   const identifiantFiscal = data.societe.identifiantFiscal || "-";

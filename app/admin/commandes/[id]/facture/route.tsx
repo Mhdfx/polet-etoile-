@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
   return new Response(buffer as unknown as BodyInit, {
     headers: entetesFichierPrive(
       "application/pdf",
-      `inline; filename="FACTURE-${commande.numeroBl}.pdf"`,
+      `inline; filename="${commande.numeroFacture}.pdf"`,
     ),
   });
 }

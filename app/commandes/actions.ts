@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import type { Prisma, TypeCommande } from "@prisma/client";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { attribuerNumeroBL } from "@/lib/bl";
+import { attribuerNumeroFacture } from "@/lib/facture";
 import {
   calculerCommande,
   ProduitCommandeDuplique,
@@ -188,10 +189,13 @@ async function creerCommandeTransactionnelle({
   }
 
   const bl = await attribuerNumeroBL(tx);
+  const facture = await attribuerNumeroFacture(tx);
   const commande = await tx.commande.create({
     data: {
       numero_bl: bl.numeroBl,
       numero_bl_compteur: bl.compteur,
+      numero_facture: facture.numeroFacture,
+      numero_facture_compteur: facture.compteur,
       utilisateur_id: commercialId,
       type_commande: typeCommande,
       client_id: typeCommande === "STANDARD" ? clientId : null,
@@ -218,6 +222,8 @@ async function creerCommandeTransactionnelle({
       apres: {
         numero_bl: bl.numeroBl,
         numero_bl_compteur: bl.compteur,
+        numero_facture: facture.numeroFacture,
+        numero_facture_compteur: facture.compteur,
         utilisateur_id: commercialId,
         client_id: clientId,
         client_externe_id: clientExterneId,

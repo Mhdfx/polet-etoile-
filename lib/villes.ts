@@ -1,3 +1,5 @@
+import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
+
 // Liste officielle CTM Maroc fournie par le client
 // (booking.ctm.ma), completee par les villes demandees par le client final.
 // Cette liste est volontairement
@@ -136,5 +138,5 @@ export const VILLES_MAROC_DEFAUT = [
 ] as const;
 
 export async function listerVillesMaroc(): Promise<string[]> {
-  return [...VILLES_MAROC_DEFAUT];
+  return trierAlphabetiquement(VILLES_MAROC_DEFAUT, (ville) => ville);
 }

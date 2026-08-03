@@ -22,9 +22,11 @@ const clesParametres = {
   patente: "patente",
   adresse: "adresse",
   telephone: "telephone",
+  numeroAgrement: "numero_agrement",
   logoUrl: "logo_url",
   tauxTva: "taux_tva",
   prefixeBl: "prefixe_bl",
+  prefixeFacture: "prefixe_facture",
   fuseauHoraire: "fuseau_horaire",
 } as const;
 

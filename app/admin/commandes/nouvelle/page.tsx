@@ -15,7 +15,7 @@ export default async function NouvelleCommandeAdminPage() {
   const [produits, clients, clientsExternes, responsables, villes] = await Promise.all([
     prisma.produit.findMany({
       where: { actif: true, deleted_at: null },
-      orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+      orderBy: { nom: "asc" },
       select: {
         id: true,
         nom: true,
@@ -40,7 +40,7 @@ export default async function NouvelleCommandeAdminPage() {
     }),
     prisma.user.findMany({
       where: { role: { in: ["ADMIN", "COMMERCIAL"] }, actif: true, deleted_at: null },
-      orderBy: [{ role: "asc" }, { nom_complet: "asc" }],
+      orderBy: { nom_complet: "asc" },
       select: { id: true, nom_complet: true, nom_utilisateur: true, role: true },
     }),
     listerVillesMaroc(),

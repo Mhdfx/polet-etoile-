@@ -17,9 +17,11 @@ type ParametresFormProps = {
     patente: string;
     adresse: string;
     telephone: string;
+    numeroAgrement: string;
     logoUrl: string;
     tauxTva: string;
     prefixeBl: string;
+    prefixeFacture: string;
     fuseauHoraire: string;
   };
 };
@@ -99,6 +101,14 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
             onChange={modifierChamp("telephone")}
           />
         </Champ>
+        <Champ id="numeroAgrement" label="Numero d'agrement" erreur={erreurs.numeroAgrement}>
+          <Input
+            id="numeroAgrement"
+            name="numeroAgrement"
+            value={valeursForm.numeroAgrement}
+            onChange={modifierChamp("numeroAgrement")}
+          />
+        </Champ>
         <Champ id="ice" label="ICE" erreur={erreurs.ice}>
           <Input id="ice" name="ice" value={valeursForm.ice} onChange={modifierChamp("ice")} />
         </Champ>
@@ -140,8 +150,8 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
         </Champ>
       </section>
 
-      <section className="grid gap-4 rounded-lg bg-card p-4 shadow-sm ring-1 ring-border md:grid-cols-3">
-        <h2 className="md:col-span-3 text-sm font-semibold">Regles systeme</h2>
+      <section className="grid gap-4 rounded-lg bg-card p-4 shadow-sm ring-1 ring-border md:grid-cols-4">
+        <h2 className="md:col-span-4 text-sm font-semibold">Regles systeme</h2>
         <Champ id="tauxTva" label="Taux TVA (%)" erreur={erreurs.tauxTva}>
           <Input
             id="tauxTva"
@@ -157,6 +167,14 @@ export function ParametresForm({ valeurs }: ParametresFormProps) {
             name="prefixeBl"
             value={valeursForm.prefixeBl}
             onChange={modifierChamp("prefixeBl")}
+          />
+        </Champ>
+        <Champ id="prefixeFacture" label="Prefixe facture" erreur={erreurs.prefixeFacture}>
+          <Input
+            id="prefixeFacture"
+            name="prefixeFacture"
+            value={valeursForm.prefixeFacture}
+            onChange={modifierChamp("prefixeFacture")}
           />
         </Champ>
         <Champ id="fuseauHoraire" label="Fuseau horaire" erreur={erreurs.fuseauHoraire}>
