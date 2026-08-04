@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth-client";
 
 export function ConnexionForm() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -31,26 +29,35 @@ export function ConnexionForm() {
     }
 
     setChargement(true);
-    const resultat = await signIn.username({
-      username: identifiant,
-      password: motDePasse,
-      rememberMe: false,
-    });
-    setChargement(false);
 
-    if (resultat.error) {
-      // CDC §5.1 : ne jamais indiquer lequel des deux champs est errone.
-      const tropDeTentatives = resultat.error.status === 429;
+    try {
+      const resultat = await signIn.username({
+        username: identifiant,
+        password: motDePasse,
+        rememberMe: false,
+      });
+
+      if (resultat.error) {
+        setChargement(false);
+        // CDC §5.1 : ne jamais indiquer lequel des deux champs est errone.
+        const tropDeTentatives = resultat.error.status === 429;
+        setErreur(
+          tropDeTentatives
+            ? "Trop de tentatives. Patientez une minute avant de reessayer."
+            : "Nom d'utilisateur ou mot de passe incorrect.",
+        );
+        return;
+      }
+
+      // Une navigation document complete force le serveur a relire la session
+      // fraichement posee avant de choisir le dashboard admin ou commercial.
+      window.location.replace("/");
+    } catch {
+      setChargement(false);
       setErreur(
-        tropDeTentatives
-          ? "Trop de tentatives. Patientez une minute avant de reessayer."
-          : "Nom d'utilisateur ou mot de passe incorrect.",
+        "Connexion momentanement indisponible. Verifiez votre reseau puis reessayez.",
       );
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
