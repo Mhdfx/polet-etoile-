@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderLeft: `1 solid ${BORDURE}`,
     borderTop: `1 solid ${BORDURE}`,
+    borderBottom: `1 solid ${BORDURE}`,
     borderRadius: 8,
     overflow: "hidden",
   },

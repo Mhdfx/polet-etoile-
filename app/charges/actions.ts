@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { attribuerNumeroBC } from "@/lib/bc";
+import { assurerBonChargeDepuisCommande } from "@/app/charges/bon-charge-depuis-commande";
 import {
   calculerLignesCharge,
   ProduitChargeDuplique,
@@ -163,105 +164,27 @@ export async function creerBonChargeDepuisCommande(commandeId: string): Promise<
     const ip = await adresseIpRequete();
 
     const resultat = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`
-        SELECT id FROM commandes
-        WHERE id = ${commandeId} AND deleted_at IS NULL
-        FOR UPDATE
-      `;
-
-      const commande = await tx.commande.findFirst({
-        where: { id: commandeId, deleted_at: null },
-        select: {
-          id: true,
-          numero_bl: true,
-          utilisateur_id: true,
-          date_commande: true,
-          bon_charge: {
-            select: { id: true, numero_bc: true, deleted_at: true },
-          },
-          lignes: {
-            where: { deleted_at: null },
-            select: {
-              produit_id: true,
-              quantite: true,
-              produit: { select: { id: true, suivi_stock: true } },
-            },
-          },
-        },
-      });
-
-      if (!commande) {
-        return { ok: false as const, message: "Commande introuvable" };
-      }
-
-      if (commande.bon_charge) {
-        return {
-          ok: false as const,
-          message: commande.bon_charge.deleted_at
-            ? `Le bon de charge ${commande.bon_charge.numero_bc} a deja ete genere puis supprime pour cette commande.`
-            : `Le bon de charge ${commande.bon_charge.numero_bc} existe deja pour cette commande.`,
-        };
-      }
-
-      const lignesStock = commande.lignes
-        .filter((ligne) => ligne.produit.suivi_stock)
-        .map((ligne) => ({
-          produitId: ligne.produit_id,
-          quantite: ligne.quantite.toFixed(3),
-        }));
-
-      if (lignesStock.length === 0) {
-        return {
-          ok: false as const,
-          message: "Cette commande ne contient aucun produit physique a charger.",
-        };
-      }
-
-      const produitsAutorises = commande.lignes
-        .filter((ligne) => ligne.produit.suivi_stock)
-        .map((ligne) => ({ id: ligne.produit_id }));
-      const lignesCalculees = calculerLignesCharge(lignesStock, produitsAutorises);
-      const bc = await attribuerNumeroBC(tx);
-
-      const bonCharge = await tx.bonCharge.create({
-        data: {
-          numero_bc: bc.numeroBc,
-          numero_bc_compteur: bc.compteur,
-          commande_id: commande.id,
-          commercial_id: commande.utilisateur_id,
-          cree_par: admin.id,
-          date_charge: commande.date_commande,
-          commentaire: `Genere depuis la commande ${commande.numero_bl}`,
-          lignes: {
-            create: lignesCalculees.map((ligne) => ({
-              produit_id: ligne.produitId,
-              quantite_kg: ligne.quantite,
-            })),
-          },
-        },
-        select: { id: true },
-      });
-
-      await ecrireAudit(
-        tx,
-        {
-          utilisateurId: admin.id,
-          action: "bon_charge.creation_depuis_commande",
-          entite: "bons_charge",
-          entiteId: bonCharge.id,
-          apres: {
-            numero_bc: bc.numeroBc,
-            numero_bc_compteur: bc.compteur,
-            commande_id: commande.id,
-            numero_bl: commande.numero_bl,
-            commercial_id: commande.utilisateur_id,
-            lignes: lignesCalculees,
-          },
-        },
+      const creation = await assurerBonChargeDepuisCommande(tx, {
+        commandeId,
+        acteurId: admin.id,
         ip,
-      );
+      });
 
-      return { ok: true as const, bonChargeId: bonCharge.id, numeroBc: bc.numeroBc };
+      if (creation.statut === "cree") {
+        return {
+          ok: true as const,
+          bonChargeId: creation.bonChargeId,
+          numeroBc: creation.numeroBc,
+        };
+      }
+
+      return {
+        ok: false as const,
+        message:
+          creation.statut === "existant"
+            ? `Le bon de charge ${creation.numeroBc} existe deja pour cette commande.`
+            : creation.message,
+      };
     });
 
     if (resultat.ok) {

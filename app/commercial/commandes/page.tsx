@@ -97,7 +97,13 @@ export default async function CommandesCommercialPage({
       numero_bl: true,
       date_commande: true,
       client: { select: { nom: true, region_ville: true } },
-      lignes: { where: { deleted_at: null }, select: { prix_net: true } },
+      lignes: {
+        where: { deleted_at: null },
+        select: {
+          prix_net: true,
+          produit: { select: { suivi_stock: true } },
+        },
+      },
       paiements: { select: { montant: true, date_paiement: true } },
       telechargements_documents: {
         where: { type_document: "BL" },
@@ -139,8 +145,9 @@ export default async function CommandesCommercialPage({
   );
   const bonChargeDisponibleSurPage = commandes.some(
     (commande) =>
-      Boolean(commande.bon_charge) &&
-      !commande.bon_charge?.telechargements_documents[0],
+      !commande.bon_charge?.telechargements_documents[0] &&
+      (Boolean(commande.bon_charge) ||
+        commande.lignes.some((ligne) => ligne.produit.suivi_stock)),
   );
 
   const pagesTotal = Math.max(1, Math.ceil(totalLignes / taillePage));
@@ -268,7 +275,9 @@ export default async function CommandesCommercialPage({
                 </label>
                 <span className="text-xs text-muted-foreground">
                   BL et bon de charge : un seul telechargement commercial, date tracee.
-                  {!bonChargeDisponibleSurPage ? " Aucun bon de charge disponible sur cette page." : ""}
+                  {!bonChargeDisponibleSurPage
+                    ? " Aucun bon de charge disponible sur cette page."
+                    : " Un BC manquant sera genere au premier telechargement."}
                 </span>
                 <CompteurSelectionCommandes />
                 <span className="text-xs text-muted-foreground">
@@ -297,8 +306,12 @@ export default async function CommandesCommercialPage({
                   : undefined;
                 const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
                 const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
+                const peutObtenirBonCharge =
+                  !bonChargeTelechargeAt &&
+                  (Boolean(commande.bon_charge) ||
+                    commande.lignes.some((ligne) => ligne.produit.suivi_stock));
                 const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
-                  (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
+                  !peutObtenirBonCharge;
                 return (
                   <article key={commande.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="flex min-h-14 items-center justify-between gap-3 bg-muted/20 px-4 py-1">
@@ -333,7 +346,10 @@ export default async function CommandesCommercialPage({
                       </div>
                       <div className="col-span-2 min-w-0 bg-card px-3 py-2.5">
                         <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bon de charge</dt>
-                        <dd className="mt-0.5 font-medium">{commande.bon_charge?.numero_bc ?? "Aucun"}</dd>
+                        <dd className="mt-0.5 font-medium">
+                          {commande.bon_charge?.numero_bc ??
+                            (peutObtenirBonCharge ? "Genere au telechargement" : "Indisponible")}
+                        </dd>
                       </div>
                       <div className="min-w-0 bg-card px-3 py-2.5">
                         <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</dt>
@@ -359,9 +375,9 @@ export default async function CommandesCommercialPage({
                         <BoutonTelechargementCommercial
                           commandeId={commande.id}
                           typeDocument="bon_charge"
-                          libelle="Telecharger BC"
-                          indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
-                          motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+                          libelle={commande.bon_charge ? "Telecharger BC" : "Generer et telecharger BC"}
+                          indisponible={!peutObtenirBonCharge}
+                          motifIndisponible={bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : !peutObtenirBonCharge ? "Aucun produit physique a charger" : undefined}
                         />
                       </div>
                     </div>
@@ -414,8 +430,12 @@ export default async function CommandesCommercialPage({
                         : undefined;
                       const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
                       const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
+                      const peutObtenirBonCharge =
+                        !bonChargeTelechargeAt &&
+                        (Boolean(commande.bon_charge) ||
+                          commande.lignes.some((ligne) => ligne.produit.suivi_stock));
                       const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
-                        (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
+                        !peutObtenirBonCharge;
                       return (
                         <tr key={commande.id} className="border-b border-border/80 transition-colors last:border-b-0 hover:bg-muted/40">
                           <td className="px-2 py-3 text-center">
@@ -462,8 +482,8 @@ export default async function CommandesCommercialPage({
                                 commandeId={commande.id}
                                 typeDocument="bon_charge"
                                 libelle="BC"
-                                indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
-                                motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+                                indisponible={!peutObtenirBonCharge}
+                                motifIndisponible={bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : !peutObtenirBonCharge ? "Aucun produit physique a charger" : undefined}
                               />
                             </div>
                           </td>

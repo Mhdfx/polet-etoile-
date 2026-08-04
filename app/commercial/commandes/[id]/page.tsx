@@ -45,7 +45,7 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
           quantite: true,
           prix_unitaire: true,
           prix_net: true,
-          produit: { select: { nom: true } },
+          produit: { select: { nom: true, suivi_stock: true } },
         },
       },
       paiements: { select: { montant: true } },
@@ -80,6 +80,10 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
   const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
   const bonChargeTelechargeAt =
     commande.bon_charge?.telechargements_documents[0]?.created_at;
+  const peutObtenirBonCharge =
+    !bonChargeTelechargeAt &&
+    (Boolean(commande.bon_charge) ||
+      commande.lignes.some((ligne) => ligne.produit.suivi_stock));
 
   return (
     <AppShell
@@ -105,9 +109,9 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
             <BoutonTelechargementCommercial
               commandeId={commande.id}
               typeDocument="bon_charge"
-              libelle={commande.bon_charge ? `Telecharger ${commande.bon_charge.numero_bc}` : "Bon de charge indisponible"}
-              indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
-              motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+              libelle={commande.bon_charge ? `Telecharger ${commande.bon_charge.numero_bc}` : "Generer et telecharger le BC"}
+              indisponible={!peutObtenirBonCharge}
+              motifIndisponible={bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : !peutObtenirBonCharge ? "Aucun produit physique a charger" : undefined}
             />
           </div>
         </div>

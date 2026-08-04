@@ -297,6 +297,7 @@ export default async function CommandesAdminPage({
                 <CompteurSelectionCommandes />
                 <span className="text-xs text-muted-foreground">
                   Un seul PDF regroupe tous les documents des commandes cochées.
+                  Les BC manquants sont générés automatiquement.
                 </span>
               </div>
               <Button type="submit" variant="outline" size="sm">

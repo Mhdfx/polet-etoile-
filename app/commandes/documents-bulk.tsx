@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { Prisma, type TypeDocumentTelecharge } from "@prisma/client";
 import { chargerBonChargeConsolide } from "@/app/charges/bon-charge-consolide-data";
 import { BonChargeConsolidePdf } from "@/app/charges/bon-charge-consolide-pdf";
+import { assurerBonChargeDepuisCommande } from "@/app/charges/bon-charge-depuis-commande";
 import { BonLivraisonPdf } from "@/app/commandes/bon-livraison-pdf";
 import { chargerCommandeDocument } from "@/app/commandes/document-data";
 import {
@@ -290,7 +291,7 @@ export async function exporterDocumentsCommandes({
     return documents;
   }
 
-  const commandes = await chargerCommandesSelectionnees({
+  let commandes = await chargerCommandesSelectionnees({
     ids,
     portee,
     utilisateurId: utilisateur.id,
@@ -300,6 +301,46 @@ export async function exporterDocumentsCommandes({
   }
 
   const veutBonCharge = documents.includes("bon_charge");
+  const ip = await lireIpRequete();
+
+  // Un export BC peut aussi servir de generation : chaque bon manquant est cree
+  // sous verrou avant de construire le PDF. Cote commercial, la propriete est
+  // reverifiee dans la requete verrouillee. Les commandes sont triees avant les
+  // verrous afin d'eviter les interblocages lors de deux exports concurrents.
+  if (veutBonCharge) {
+    const commandesSansBon = commandes
+      .filter((commande) => !commande.bon_charge)
+      .map((commande) => commande.id)
+      .sort();
+
+    if (commandesSansBon.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        for (const commandeId of commandesSansBon) {
+          await assurerBonChargeDepuisCommande(tx, {
+            commandeId,
+            acteurId: utilisateur.id,
+            ...(portee === "commercial"
+              ? { commercialIdAttendu: utilisateur.id }
+              : {}),
+            ip,
+            actionAudit:
+              portee === "commercial"
+                ? "bon_charge.creation_automatique_commercial"
+                : "bon_charge.creation_automatique_export_admin",
+          });
+        }
+      });
+
+      commandes = await chargerCommandesSelectionnees({
+        ids,
+        portee,
+        utilisateurId: utilisateur.id,
+      });
+      if (commandes instanceof Response) {
+        return commandes;
+      }
+    }
+  }
 
   let commandesBl = commandes;
   if (portee === "commercial" && documents.includes("bl")) {
@@ -385,7 +426,6 @@ export async function exporterDocumentsCommandes({
   const filename = `${prefixe}_${nombreCommandes}_commande${nombreCommandes > 1 ? "s" : ""}_${date}.pdf`;
   const nombreFichiers = pdfs.length;
 
-  const ip = await lireIpRequete();
   const erreurEnregistrement = await enregistrerAuditEtTelechargements({
     utilisateur,
     portee,

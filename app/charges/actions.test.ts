@@ -29,6 +29,7 @@ vi.mock("@/lib/session", () => ({ requireAdmin: requireAdminMock }));
 vi.mock("@/lib/db", () => ({ prisma: { $transaction: transactionMock } }));
 
 import { creerBonCharge, creerBonChargeDepuisCommande } from "./actions";
+import { assurerBonChargeDepuisCommande } from "./bon-charge-depuis-commande";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -163,6 +164,53 @@ describe("creerBonChargeDepuisCommande", () => {
         }),
       }),
     );
+  });
+
+  it("verifie le proprietaire lors de la generation commerciale a la demande", async () => {
+    const resultat = await assurerBonChargeDepuisCommande(txMock as never, {
+      commandeId: "commande-1",
+      acteurId: "com-1",
+      commercialIdAttendu: "com-1",
+      ip: "10.0.0.1",
+      actionAudit: "bon_charge.creation_automatique_commercial",
+    });
+
+    expect(resultat.statut).toBe("cree");
+    expect(txMock.commande.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "commande-1",
+          deleted_at: null,
+          utilisateur_id: "com-1",
+        },
+      }),
+    );
+    expect(txMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          utilisateur_id: "com-1",
+          action: "bon_charge.creation_automatique_commercial",
+        }),
+      }),
+    );
+  });
+
+  it("ne genere jamais le bon d'une commande hors portefeuille", async () => {
+    txMock.commande.findFirst.mockResolvedValue(null);
+
+    const resultat = await assurerBonChargeDepuisCommande(txMock as never, {
+      commandeId: "commande-autre-commercial",
+      acteurId: "com-1",
+      commercialIdAttendu: "com-1",
+      ip: null,
+    });
+
+    expect(resultat).toEqual({
+      statut: "introuvable",
+      message: "Commande introuvable",
+    });
+    expect(txMock.bonCharge.create).not.toHaveBeenCalled();
+    expect(txMock.auditLog.create).not.toHaveBeenCalled();
   });
 
   it("refuse de generer un deuxieme bon de charge pour la meme commande", async () => {

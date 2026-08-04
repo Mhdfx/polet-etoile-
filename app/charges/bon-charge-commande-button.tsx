@@ -56,6 +56,7 @@ export function BonChargeCommandeButton({
         variant="outline"
         chargement={enCours}
         aria-label="Créer le bon de charge de cette commande"
+        title="Générer le bon de charge depuis cette commande"
         onClick={async () => {
           if (enCours) return;
           setMessage(undefined);
@@ -73,7 +74,7 @@ export function BonChargeCommandeButton({
           router.refresh();
         }}
       >
-        <Truck className="h-4 w-4" /> {compact ? "BC" : "Bon de charge"}
+        <Truck className="h-4 w-4" /> {compact ? "Créer BC" : "Créer le bon de charge"}
       </Bouton>
       {message ? <p className="max-w-48 text-right text-xs text-destructive">{message}</p> : null}
     </div>
