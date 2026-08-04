@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
 import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
+import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-commandes";
 import { Button } from "@/components/ui/button";
 import { BoutonTelechargementCommercial } from "@/app/commandes/bouton-telechargement-commercial";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
@@ -133,6 +134,15 @@ export default async function CommandesCommercialPage({
     page * taillePage,
   );
 
+  const blDisponibleSurPage = commandes.some(
+    (commande) => !commande.telechargements_documents[0],
+  );
+  const bonChargeDisponibleSurPage = commandes.some(
+    (commande) =>
+      Boolean(commande.bon_charge) &&
+      !commande.bon_charge?.telechargements_documents[0],
+  );
+
   const pagesTotal = Math.max(1, Math.ceil(totalLignes / taillePage));
   const totauxListe = commandesFiltrees.reduce(
     (acc, commande) => {
@@ -156,11 +166,14 @@ export default async function CommandesCommercialPage({
     >
       <div className="grid min-w-0 gap-4">
         {params.erreurDocuments ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
-          >
-            {params.erreurDocuments}
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+            <span>{params.erreurDocuments}</span>
+            <a
+              href={lienPage({ ...params, erreurDocuments: undefined }, page)}
+              className="shrink-0 rounded-md px-2 py-1 text-xs underline-offset-4 hover:bg-destructive/10 hover:underline"
+            >
+              Fermer
+            </a>
           </div>
         ) : null}
         <div className="grid gap-4 md:grid-cols-4">
@@ -236,7 +249,8 @@ export default async function CommandesCommercialPage({
                     type="checkbox"
                     name="documents"
                     value="bl"
-                    defaultChecked
+                    defaultChecked={blDisponibleSurPage}
+                    disabled={!blDisponibleSurPage}
                     className="h-4 w-4 accent-primary"
                   />
                   BL
@@ -246,22 +260,28 @@ export default async function CommandesCommercialPage({
                     type="checkbox"
                     name="documents"
                     value="bon_charge"
-                    defaultChecked
+                    defaultChecked={bonChargeDisponibleSurPage}
+                    disabled={!bonChargeDisponibleSurPage}
                     className="h-4 w-4 accent-primary"
                   />
                   Bons de charge
                 </label>
                 <span className="text-xs text-muted-foreground">
                   BL et bon de charge : un seul telechargement commercial, date tracee.
+                  {!bonChargeDisponibleSurPage ? " Aucun bon de charge disponible sur cette page." : ""}
+                </span>
+                <CompteurSelectionCommandes />
+                <span className="text-xs text-muted-foreground">
+                  Un seul PDF regroupe tous les documents des commandes cochées.
                 </span>
               </div>
               <Button type="submit" variant="outline" size="sm">
                 <Download />
-                PDF selection
+                Télécharger le PDF groupé
               </Button>
             </div>
 
-            <div className="grid gap-3 p-3 xl:grid-cols-2">
+            <div className="grid gap-3 p-3 min-[1180px]:hidden">
               <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 text-sm font-medium">
                 <CaseSelectionToutesCommandes />
                 Tout selectionner sur cette page
@@ -280,8 +300,8 @@ export default async function CommandesCommercialPage({
                 const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
                   (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
                 return (
-                  <article key={commande.id} className="grid gap-3 rounded-lg border border-border p-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
+                  <article key={commande.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                    <div className="flex min-h-14 items-center justify-between gap-3 bg-muted/20 px-4 py-1">
                       <label className="flex min-h-11 items-center gap-3 font-semibold">
                         <input
                           type="checkbox"
@@ -298,16 +318,34 @@ export default async function CommandesCommercialPage({
                       </label>
                       <BadgeStatut statut={totaux.statutPaiement} />
                     </div>
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                      <div><dt className="text-muted-foreground">Date</dt><dd>{formatDate(commande.date_commande)}</dd></div>
-                      <div><dt className="text-muted-foreground">Reglement</dt><dd>{dateReglement ? formatDate(dateReglement) : "-"}</dd></div>
-                      <div className="col-span-2"><dt className="text-muted-foreground">Client / region</dt><dd className="font-medium">{commande.client?.nom ?? "-"} · {commande.client?.region_ville ?? "-"}</dd></div>
-                      <div><dt className="text-muted-foreground">Total</dt><dd className="tabular-nums">{formatMontant(totaux.total)}</dd></div>
-                      <div><dt className="text-muted-foreground">Reste</dt><dd className="tabular-nums">{formatMontant(totaux.resteDu)}</dd></div>
+                    <dl className="grid grid-cols-2 gap-px border-y border-border bg-border text-sm sm:grid-cols-4">
+                      <div className="min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Date</dt>
+                        <dd className="mt-0.5 font-medium">{formatDate(commande.date_commande)}</dd>
+                      </div>
+                      <div className="min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Règlement</dt>
+                        <dd className="mt-0.5 font-medium">{dateReglement ? formatDate(dateReglement) : "-"}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Client / région</dt>
+                        <dd className="mt-0.5 break-words font-semibold">{commande.client?.nom ?? "-"} · {commande.client?.region_ville ?? "-"}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Bon de charge</dt>
+                        <dd className="mt-0.5 font-medium">{commande.bon_charge?.numero_bc ?? "Aucun"}</dd>
+                      </div>
+                      <div className="min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</dt>
+                        <dd className="mt-0.5 font-semibold tabular-nums">{formatMontant(totaux.total)}</dd>
+                      </div>
+                      <div className="min-w-0 bg-card px-3 py-2.5">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Reste</dt>
+                        <dd className="mt-0.5 font-semibold tabular-nums">{formatMontant(totaux.resteDu)}</dd>
+                      </div>
                     </dl>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/10 px-3 py-3 text-xs">
                       <div className="grid gap-1 text-muted-foreground">
-                        <span>BC : {commande.bon_charge?.numero_bc ?? "Aucun"}</span>
                         {bonChargeTelechargeAt ? <span>Telecharge le {formatDateHeure(bonChargeTelechargeAt)}</span> : null}
                       </div>
                       <div className="flex flex-wrap justify-end gap-2">
@@ -330,6 +368,111 @@ export default async function CommandesCommercialPage({
                   </article>
                 );
               })}
+            </div>
+
+            <div className="hidden min-[1180px]:block">
+              {commandes.length === 0 ? (
+                <p className="border-t border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  Aucune commande.
+                </p>
+              ) : (
+                <table className="w-full table-fixed border-collapse text-[11px] 2xl:text-xs">
+                  <colgroup>
+                    <col className="w-[6%]" />
+                    <col className="w-[19%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[15%]" />
+                  </colgroup>
+                  <thead className="bg-primary/10 text-foreground">
+                    <tr className="border-b border-border">
+                      <th className="px-2 py-3 text-center font-semibold">
+                        <span className="inline-flex items-center gap-2">
+                          <CaseSelectionToutesCommandes libelle="Selectionner toutes les commandes du tableau" />
+                          <span>#</span>
+                        </span>
+                      </th>
+                      <th className="px-2 py-3 text-left font-semibold">Client</th>
+                      <th className="px-2 py-3 text-left font-semibold">Région</th>
+                      <th className="px-2 py-3 text-left font-semibold">Date</th>
+                      <th className="px-2 py-3 text-left font-semibold">Date règlement</th>
+                      <th className="px-2 py-3 text-center font-semibold">Statut</th>
+                      <th className="px-2 py-3 text-right font-semibold">Montant</th>
+                      <th className="px-2 py-3 text-center font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commandes.map((commande, index) => {
+                      const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
+                      const dateReglement = totaux.statutPaiement === "paye"
+                        ? commande.paiements
+                            .map((paiement) => paiement.date_paiement)
+                            .sort((a, b) => b.getTime() - a.getTime())[0]
+                        : undefined;
+                      const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
+                      const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
+                      const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
+                        (!commande.bon_charge || Boolean(bonChargeTelechargeAt));
+                      return (
+                        <tr key={commande.id} className="border-b border-border/80 transition-colors last:border-b-0 hover:bg-muted/40">
+                          <td className="px-2 py-3 text-center">
+                            <span className="inline-flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                name="commandeIds"
+                                value={commande.id}
+                                data-selection-commande="true"
+                                disabled={aucunDocumentDisponible}
+                                aria-label={`Selectionner ${commande.numero_bl}`}
+                                className="size-4 accent-primary"
+                              />
+                              <span className="tabular-nums text-muted-foreground">{(page - 1) * taillePage + index + 1}</span>
+                            </span>
+                          </td>
+                          <td className="px-2 py-3">
+                            <Link
+                              href={`/commercial/commandes/${commande.id}`}
+                              className="block truncate font-semibold text-foreground hover:text-primary hover:underline"
+                              title={`${commande.numero_bl} - ${commande.client?.nom ?? "Client"}`}
+                            >
+                              {commande.client?.nom ?? "-"}
+                            </Link>
+                            <span className="block truncate text-[10px] text-muted-foreground">{commande.numero_bl}</span>
+                          </td>
+                          <td className="truncate px-2 py-3" title={commande.client?.region_ville ?? "-"}>{commande.client?.region_ville ?? "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-3 tabular-nums">{formatDate(commande.date_commande)}</td>
+                          <td className="whitespace-nowrap px-2 py-3 tabular-nums text-muted-foreground">{dateReglement ? formatDateHeure(dateReglement) : "-"}</td>
+                          <td className="px-2 py-3 text-center"><BadgeStatut statut={totaux.statutPaiement} className="text-[10px]" /></td>
+                          <td className="whitespace-nowrap px-2 py-3 text-right font-semibold tabular-nums">{formatMontant(totaux.total)}</td>
+                          <td className="px-2 py-3">
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              <BoutonTelechargementCommercial
+                                compact
+                                commandeId={commande.id}
+                                typeDocument="bl"
+                                libelle="BL"
+                                indisponible={Boolean(blTelechargeAt)}
+                                motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
+                              />
+                              <BoutonTelechargementCommercial
+                                compact
+                                commandeId={commande.id}
+                                typeDocument="bon_charge"
+                                libelle="BC"
+                                indisponible={!commande.bon_charge || Boolean(bonChargeTelechargeAt)}
+                                motifIndisponible={!commande.bon_charge ? "Aucun bon de charge disponible" : bonChargeTelechargeAt ? `BC telecharge le ${formatDateHeure(bonChargeTelechargeAt)}` : undefined}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </form>
         </div>

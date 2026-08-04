@@ -227,34 +227,19 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     minHeight: 34,
   },
-  stampWrap: {
+  companyStampWrap: {
     position: "absolute",
     right: 54,
-    bottom: 52,
-    width: 90,
-    height: 90,
+    bottom: 48,
+    width: 92,
+    height: 92,
     alignItems: "center",
     justifyContent: "center",
   },
-  stampImage: {
-    width: 90,
-    height: 90,
+  companyStamp: {
+    width: 92,
+    height: 92,
     objectFit: "contain",
-  },
-  stampFallback: {
-    width: 74,
-    height: 74,
-    border: `2 solid ${ROUGE}`,
-    borderRadius: 37,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.65,
-  },
-  stampText: {
-    color: ROUGE_FONCE,
-    fontSize: 6.5,
-    fontWeight: 700,
-    textAlign: "center",
   },
   footer: {
     position: "absolute",
@@ -351,7 +336,7 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
           </View>
         </View>
 
-        <Stamp commande={commande} />
+        <CompanyStamp commande={commande} />
         <Text style={styles.footer} fixed>
           {footerSociete(commande)}
         </Text>
@@ -369,6 +354,17 @@ function Logo({ commande }: { commande: CommandeDocumentData }) {
   return (
     <View style={styles.logoFallback}>
       <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+    </View>
+  );
+}
+
+function CompanyStamp({ commande }: { commande: CommandeDocumentData }) {
+  if (!commande.societe.cachet) return null;
+
+  return (
+    <View style={styles.companyStampWrap}>
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <Image src={commande.societe.cachet} style={styles.companyStamp} />
     </View>
   );
 }
@@ -399,23 +395,6 @@ function SummaryLine({
       <View style={styles.summaryValue}>
         <Text>{value}</Text>
       </View>
-    </View>
-  );
-}
-
-function Stamp({ commande }: { commande: CommandeDocumentData }) {
-  return (
-    <View style={styles.stampWrap}>
-      {commande.societe.cachet ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
-        <Image src={commande.societe.cachet} style={styles.stampImage} />
-      ) : (
-        <View style={styles.stampFallback}>
-          <Text style={styles.stampText}>{commande.societe.raisonSociale}</Text>
-          <Text style={styles.stampText}>RC {commande.societe.rc || "-"}</Text>
-          <Text style={styles.stampText}>ICE {commande.societe.ice || "-"}</Text>
-        </View>
-      )}
     </View>
   );
 }

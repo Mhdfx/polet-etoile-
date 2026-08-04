@@ -19,6 +19,7 @@ export type CommandeDocumentData = {
     numeroAgrement?: string;
     logo?: string;
     cachet?: string;
+    tamponAgrement?: string;
   };
   id: string;
   numeroBl: string;
@@ -126,6 +127,7 @@ export async function chargerCommandeDocument(
       numeroAgrement: params.get("numero_agrement"),
       logo: await chargerLogoDataUri(params.get("logo_url")),
       cachet: await chargerCachetDataUri(),
+      tamponAgrement: await chargerTamponAgrementDataUri(),
     },
     id: commande.id,
     numeroBl: commande.numero_bl,
@@ -276,15 +278,25 @@ export async function chargerLogoDataUri(cheminPublic?: string): Promise<string 
     }
   }
 
-  return chargerCachetDataUri();
+  return chargerImagePubliqueDataUri("logo-coq-plus.png");
 }
 
 export async function chargerCachetDataUri(): Promise<string | undefined> {
+  return chargerImagePubliqueDataUri("tampon-societe-bleu.png");
+}
+
+async function chargerImagePubliqueDataUri(
+  nomFichier: string,
+): Promise<string | undefined> {
   try {
-    const cheminDisque = path.join(process.cwd(), "public", "logo-coq-plus.png");
+    const cheminDisque = path.join(process.cwd(), "public", nomFichier);
     const contenu = await readFile(cheminDisque);
     return `data:image/png;base64,${contenu.toString("base64")}`;
   } catch {
     return undefined;
   }
+}
+
+export async function chargerTamponAgrementDataUri(): Promise<string | undefined> {
+  return chargerImagePubliqueDataUri("tampon-agrement-sanitaire.png");
 }

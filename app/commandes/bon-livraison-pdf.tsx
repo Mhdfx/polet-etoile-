@@ -9,44 +9,36 @@ import {
 } from "@react-pdf/renderer";
 import type { CommandeDocumentData } from "./document-data";
 
-const ROUGE = "#c1121f";
-const ROUGE_FONCE = "#8f0d17";
-const TEXTE = "#1f2937";
-const GRIS = "#667085";
-const BORDURE = "#cfd6df";
-const FOND = "#f7f9fc";
+const ROUGE = "#b11226";
+const ROUGE_FONCE = "#7f0d1b";
+const BLEU_TAMPON = "#173a91";
+const TEXTE = "#151515";
+const BORDURE = "#202020";
+const FOND = "#f5f6f8";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 26,
-    paddingHorizontal: 30,
-    paddingBottom: 30,
+    paddingTop: 14,
+    paddingHorizontal: 24,
+    paddingBottom: 42,
     fontFamily: "Helvetica",
-    fontSize: 8.6,
+    fontSize: 8.2,
     color: TEXTE,
     backgroundColor: "#ffffff",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  logoHeader: {
+    height: 55,
     alignItems: "center",
-    borderBottom: `2 solid ${ROUGE}`,
-    paddingBottom: 12,
-    marginBottom: 14,
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    width: 270,
+    justifyContent: "center",
+    marginBottom: 3,
   },
   logo: {
-    width: 58,
-    height: 58,
+    width: 66,
+    height: 52,
     objectFit: "contain",
   },
   logoFallback: {
-    width: 58,
+    width: 76,
     height: 58,
     border: `2 solid ${ROUGE}`,
     borderRadius: 6,
@@ -54,102 +46,115 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoFallbackText: {
-    color: ROUGE,
-    fontSize: 8,
+    color: ROUGE_FONCE,
+    fontSize: 10,
     fontWeight: 700,
     textAlign: "center",
   },
-  companyName: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: ROUGE_FONCE,
-    marginBottom: 3,
-  },
-  companyLine: {
-    fontSize: 7.2,
-    color: GRIS,
-    lineHeight: 1.25,
-  },
-  titleBlock: {
-    alignItems: "flex-end",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: ROUGE_FONCE,
-    textTransform: "uppercase",
-  },
-  numberPill: {
-    marginTop: 7,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    color: "#ffffff",
-    backgroundColor: ROUGE,
-    fontSize: 10,
-    fontWeight: 700,
-  },
-  grid: {
+  heroRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
-  },
-  card: {
-    flex: 1,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 6,
-    padding: 9,
-    backgroundColor: "#ffffff",
-  },
-  tintedCard: {
-    backgroundColor: FOND,
-  },
-  label: {
-    fontSize: 6.8,
-    color: GRIS,
-    textTransform: "uppercase",
-    fontWeight: 700,
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 9.2,
-    fontWeight: 700,
-    lineHeight: 1.3,
-  },
-  smallValue: {
-    fontSize: 8,
-    lineHeight: 1.35,
-  },
-  deliveryBox: {
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 12,
-    backgroundColor: FOND,
-  },
-  deliveryTitle: {
-    fontSize: 10,
-    fontWeight: 700,
-    color: ROUGE_FONCE,
+    gap: 7,
     marginBottom: 5,
   },
-  deliveryText: {
-    lineHeight: 1.35,
+  numberPanel: {
+    flex: 1,
+    border: `1 solid ${BORDURE}`,
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  table: {
+  numberLabel: {
+    width: 145,
+    fontSize: 10,
+    fontWeight: 700,
+  },
+  numberValue: {
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  customerPanel: {
+    width: 164,
+    minHeight: 96,
+    border: `1 solid ${BORDURE}`,
+    borderRadius: 8,
+    padding: 9,
+  },
+  customerName: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 10.5,
+    marginBottom: 8,
+  },
+  customerLine: {
+    fontSize: 7.8,
+    lineHeight: 1.35,
+    marginBottom: 3,
+  },
+  metaTable: {
+    flex: 1,
+    height: 52,
+    flexDirection: "row",
     borderLeft: `1 solid ${BORDURE}`,
     borderTop: `1 solid ${BORDURE}`,
-    borderRadius: 6,
+    borderRadius: 8,
     overflow: "hidden",
   },
-  row: {
-    flexDirection: "row",
-    minHeight: 24,
+  metaColumn: {
+    flex: 1,
+    borderRight: `1 solid ${BORDURE}`,
   },
-  headRow: {
+  metaLabel: {
+    minHeight: 24,
+    borderBottom: `1 solid ${BORDURE}`,
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 8.8,
+    fontWeight: 700,
+    textTransform: "uppercase",
+  },
+  metaValue: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 9,
+    fontWeight: 700,
+  },
+  deliverySite: {
+    flexDirection: "row",
+    alignItems: "center",
     minHeight: 28,
-    backgroundColor: ROUGE,
-    color: "#ffffff",
+    paddingHorizontal: 15,
+    gap: 18,
+  },
+  deliveryLabel: {
+    fontSize: 9.2,
+    fontWeight: 700,
+  },
+  deliveryValue: {
+    fontSize: 9.2,
+    fontWeight: 700,
+  },
+  productTable: {
+    height: 240,
+    borderLeft: `1 solid ${BORDURE}`,
+    borderTop: `1 solid ${BORDURE}`,
+  },
+  productHeader: {
+    minHeight: 27,
+    flexDirection: "row",
+    backgroundColor: FOND,
+  },
+  productRows: {
+    flex: 1,
+  },
+  productRow: {
+    minHeight: 21,
+    flexDirection: "row",
+  },
+  emptyProductSpace: {
+    flex: 1,
+    flexDirection: "row",
   },
   cell: {
     borderRight: `1 solid ${BORDURE}`,
@@ -157,57 +162,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     justifyContent: "center",
   },
-  designation: { width: 230 },
-  nombre: { width: 58, textAlign: "center" },
-  poids: { width: 70, textAlign: "right" },
-  prix: { width: 78, textAlign: "right" },
-  total: { width: 99, textAlign: "right" },
-  headText: {
+  designation: { width: 240 },
+  nombre: { width: 62, textAlign: "center" },
+  poids: { width: 70, textAlign: "center" },
+  prix: { width: 72, textAlign: "center" },
+  total: { flex: 1, textAlign: "center" },
+  headerText: {
+    fontSize: 8.8,
     fontWeight: 700,
     textAlign: "center",
+    textTransform: "uppercase",
   },
-  productText: {
+  productName: {
     fontWeight: 700,
   },
-  totalsArea: {
+  summaryArea: {
     flexDirection: "row",
-    gap: 14,
-    marginTop: 12,
+    justifyContent: "space-between",
+    gap: 16,
+    marginTop: 7,
+    minHeight: 72,
   },
-  lettersBox: {
+  amountWords: {
     flex: 1,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 6,
-    padding: 10,
-    minHeight: 74,
+    paddingHorizontal: 10,
+    paddingTop: 4,
   },
-  lettersTitle: {
-    fontSize: 8,
+  amountWordsLabel: {
+    fontSize: 8.3,
     fontWeight: 700,
-    color: ROUGE_FONCE,
     marginBottom: 8,
   },
-  lettersText: {
+  amountWordsValue: {
+    fontFamily: "Helvetica-Bold",
     fontSize: 9,
+    lineHeight: 1.4,
+  },
+  totalsColumn: {
+    width: 145,
+  },
+  boxesCount: {
+    height: 24,
+    border: `1 solid ${BORDURE}`,
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: 700,
-    lineHeight: 1.45,
+    marginBottom: 4,
   },
   totalsBox: {
-    width: 170,
     borderLeft: `1 solid ${BORDURE}`,
     borderTop: `1 solid ${BORDURE}`,
-    borderRadius: 6,
+    borderRadius: 7,
     overflow: "hidden",
   },
   totalLine: {
+    height: 22,
     flexDirection: "row",
-    minHeight: 25,
   },
   totalLabel: {
-    width: 86,
+    width: 82,
     borderRight: `1 solid ${BORDURE}`,
     borderBottom: `1 solid ${BORDURE}`,
-    paddingLeft: 9,
+    paddingLeft: 10,
     justifyContent: "center",
     fontWeight: 700,
   },
@@ -215,103 +231,153 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRight: `1 solid ${BORDURE}`,
     borderBottom: `1 solid ${BORDURE}`,
-    paddingRight: 9,
+    paddingRight: 8,
     justifyContent: "center",
     textAlign: "right",
-    fontWeight: 700,
-  },
-  paymentAndSignatures: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 14,
-    alignItems: "flex-start",
-  },
-  paymentBox: {
-    width: 215,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 6,
-    padding: 9,
-    minHeight: 96,
-  },
-  paymentGrid: {
-    marginTop: 6,
-    borderLeft: `1 solid ${BORDURE}`,
-    borderTop: `1 solid ${BORDURE}`,
+    fontFamily: "Helvetica-Bold",
   },
   paymentRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    gap: 16,
+    marginTop: 3,
   },
-  paymentCell: {
+  paymentTable: {
+    width: 306,
+    height: 43,
+    flexDirection: "row",
+    borderLeft: `1 solid ${BORDURE}`,
+    borderTop: `1 solid ${BORDURE}`,
+  },
+  paymentColumn: {
     flex: 1,
-    minHeight: 22,
     borderRight: `1 solid ${BORDURE}`,
+  },
+  paymentLabel: {
+    height: 22,
     borderBottom: `1 solid ${BORDURE}`,
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 7,
+    fontSize: 7.4,
     fontWeight: 700,
   },
-  signatureBox: {
+  paymentValue: {
     flex: 1,
-    minHeight: 96,
-    border: `1 solid ${BORDURE}`,
-    borderRadius: 6,
-    padding: 9,
+    borderBottom: `1 solid ${BORDURE}`,
   },
-  signatureLine: {
-    marginTop: "auto",
-    borderTop: `1 solid ${BORDURE}`,
-    paddingTop: 5,
-    color: GRIS,
-    fontSize: 7,
+  netBox: {
+    width: 110,
+    border: `1.2 solid ${BORDURE}`,
   },
-  stampWrap: {
-    position: "absolute",
-    right: 44,
-    bottom: 52,
-    width: 92,
-    height: 92,
+  netLabel: {
+    height: 27,
+    borderBottom: `1 solid ${BORDURE}`,
     alignItems: "center",
     justifyContent: "center",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 10,
   },
-  stampImage: {
-    width: 92,
-    height: 92,
-    objectFit: "contain",
+  netValue: {
+    height: 37,
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 11,
   },
-  stampFallback: {
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: 6,
+    paddingHorizontal: 10,
+  },
+  conditionsBox: {
+    width: 185,
+    border: `1 solid ${BORDURE}`,
+  },
+  conditionsTitle: {
+    height: 20,
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 7.5,
+    fontWeight: 700,
+  },
+  conditionsText: {
+    minHeight: 36,
+    padding: 5,
+    fontSize: 6.6,
+    lineHeight: 1.25,
+  },
+  stampArea: {
+    width: 112,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  agreementStamp: {
     width: 76,
     height: 76,
+    objectFit: "contain",
+  },
+  companyStamp: {
+    width: 86,
+    height: 86,
+    objectFit: "contain",
+  },
+  agreementFallback: {
+    width: 80,
+    height: 80,
     border: `2 solid ${ROUGE}`,
-    borderRadius: 38,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0.65,
   },
-  stampText: {
-    textAlign: "center",
-    fontSize: 6.5,
+  agreementFallbackText: {
+    width: 62,
     color: ROUGE_FONCE,
+    textAlign: "center",
+    fontSize: 6.4,
     fontWeight: 700,
+    lineHeight: 1.3,
   },
-  agreementText: {
-    marginTop: 2,
-    color: ROUGE_FONCE,
-    fontSize: 6.5,
-    fontWeight: 700,
+  companyFallback: {
+    width: 80,
+    height: 80,
+    border: `2 solid ${BLEU_TAMPON}`,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  companyFallbackText: {
+    width: 62,
+    color: BLEU_TAMPON,
     textAlign: "center",
+    fontSize: 6.4,
+    fontWeight: 700,
+    lineHeight: 1.3,
   },
   footer: {
     position: "absolute",
-    left: 30,
-    right: 30,
-    bottom: 16,
+    left: 24,
+    right: 24,
+    bottom: 13,
     borderTop: `1 solid ${ROUGE}`,
-    paddingTop: 6,
-    textAlign: "center",
+    paddingTop: 5,
+    alignItems: "center",
+  },
+  footerPrimary: {
     color: ROUGE_FONCE,
-    fontSize: 6.4,
+    fontSize: 6.8,
     fontWeight: 700,
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  footerSecondary: {
+    color: ROUGE_FONCE,
+    fontSize: 6.5,
+    fontWeight: 700,
+    textAlign: "center",
   },
 });
 
@@ -319,112 +385,112 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
   return (
     <Document title={`BL ${commande.numeroBl}`}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header} fixed>
-          <View style={styles.brand}>
-            <Logo commande={commande} />
-            <View>
-              <Text style={styles.companyName}>{commande.societe.raisonSociale}</Text>
-              <Text style={styles.companyLine}>{commande.societe.adresse || "-"}</Text>
-              <Text style={styles.companyLine}>{identifiantsSociete(commande)}</Text>
+        <View style={styles.logoHeader} fixed>
+          <Logo commande={commande} />
+        </View>
+
+        <View style={styles.heroRow} wrap={false}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.numberPanel}>
+              <Text style={styles.numberLabel}>BL N° :</Text>
+              <Text style={styles.numberValue}>{commande.numeroBl}</Text>
+            </View>
+            <View style={{ height: 5 }} />
+            <View style={styles.metaTable}>
+              <MetaColumn label="Date" value={commande.date} />
+              <MetaColumn label="Code client" value={commande.codeClient} />
+              <MetaColumn label="N° CDM client" value="-" />
             </View>
           </View>
 
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>Bon de livraison</Text>
-            <Text style={styles.numberPill}>{commande.numeroBl}</Text>
+          <View style={styles.customerPanel}>
+            <Text style={styles.customerName}>{commande.client}</Text>
+            <Text style={styles.customerLine}>{commande.adresseClient}</Text>
+            <Text style={styles.customerLine}>{commande.ville}</Text>
+            <Text style={styles.customerLine}>Commercial : {commande.commercial}</Text>
+            <Text style={styles.customerLine}>ICE : -</Text>
           </View>
         </View>
 
-        <View style={styles.grid} wrap={false}>
-          <InfoCard label="Date BL" value={commande.date} />
-          <InfoCard label="Code client" value={commande.codeClient} />
-          <InfoCard label="Commercial" value={commande.commercial} />
-        </View>
-
-        <View style={styles.grid} wrap={false}>
-          <InfoCard
-            label="Client livre"
-            value={commande.client}
-            detail={`${commande.ville}\n${commande.adresseClient}`}
-            tinted
-          />
-          <InfoCard
-            label="Suivi livraison"
-            value="Marchandise livrée en kg"
-            detail="À vérifier et signer à la réception."
-            tinted
-          />
-        </View>
-
-        <View style={styles.deliveryBox} wrap={false}>
-          <Text style={styles.deliveryTitle}>Site de livraison</Text>
-          <Text style={styles.deliveryText}>
+        <View style={styles.deliverySite} wrap={false}>
+          <Text style={styles.deliveryLabel}>Site de livraison :</Text>
+          <Text style={styles.deliveryValue}>
             {commande.client} - {commande.adresseClient !== "-" ? commande.adresseClient : commande.ville}
           </Text>
         </View>
 
-        <View style={styles.table}>
-          <View style={[styles.row, styles.headRow]} fixed>
-            <Text style={[styles.cell, styles.designation, styles.headText]}>Désignation</Text>
-            <Text style={[styles.cell, styles.nombre, styles.headText]}>Nombre</Text>
-            <Text style={[styles.cell, styles.poids, styles.headText]}>Poids KG</Text>
-            <Text style={[styles.cell, styles.prix, styles.headText]}>Prix unit</Text>
-            <Text style={[styles.cell, styles.total, styles.headText]}>Total</Text>
+        <View style={styles.productTable}>
+          <View style={styles.productHeader} fixed>
+            <Text style={[styles.cell, styles.designation, styles.headerText]}>Désignation</Text>
+            <Text style={[styles.cell, styles.nombre, styles.headerText]}>Nombre</Text>
+            <Text style={[styles.cell, styles.poids, styles.headerText]}>Poids KG</Text>
+            <Text style={[styles.cell, styles.prix, styles.headerText]}>Prix unit</Text>
+            <Text style={[styles.cell, styles.total, styles.headerText]}>Total</Text>
           </View>
-          {commande.lignes.map((ligne, index) => (
-            <View key={`${ligne.produit}-${index}`} style={styles.row} wrap={false}>
-              <Text style={[styles.cell, styles.designation, styles.productText]}>
-                {ligne.produit}
-              </Text>
-              <Text style={[styles.cell, styles.nombre]} />
-              <Text style={[styles.cell, styles.poids]}>{ligne.quantite}</Text>
-              <Text style={[styles.cell, styles.prix]}>{ligne.prixUnitaire}</Text>
-              <Text style={[styles.cell, styles.total]}>{ligne.prixNet}</Text>
+          <View style={styles.productRows}>
+            {commande.lignes.map((ligne, index) => (
+              <View key={`${ligne.produit}-${index}`} style={styles.productRow} wrap={false}>
+                <Text style={[styles.cell, styles.designation, styles.productName]}>{ligne.produit}</Text>
+                <Text style={[styles.cell, styles.nombre]} />
+                <Text style={[styles.cell, styles.poids]}>{ligne.quantite}</Text>
+                <Text style={[styles.cell, styles.prix]}>{ligne.prixUnitaire}</Text>
+                <Text style={[styles.cell, styles.total]}>{ligne.prixNet}</Text>
+              </View>
+            ))}
+            <View style={styles.emptyProductSpace}>
+              <View style={[styles.cell, styles.designation]} />
+              <View style={[styles.cell, styles.nombre]} />
+              <View style={[styles.cell, styles.poids]} />
+              <View style={[styles.cell, styles.prix]} />
+              <View style={[styles.cell, styles.total]} />
             </View>
-          ))}
-        </View>
-
-        <View style={styles.totalsArea} wrap={false}>
-          <View style={styles.lettersBox}>
-            <Text style={styles.lettersTitle}>Arrêtée la présente livraison à la somme de :</Text>
-            <Text style={styles.lettersText}>{commande.montantEnLettres}</Text>
-          </View>
-          <View style={styles.totalsBox}>
-            <TotalLine label="Total HT" value={commande.totalHt} />
-            <TotalLine label={`TVA ${commande.tauxTva}%`} value={commande.tva} />
-            <TotalLine label="Total TTC" value={commande.totalTtc} />
           </View>
         </View>
 
-        <View style={styles.paymentAndSignatures} wrap={false}>
-          <View style={styles.paymentBox}>
-            <Text style={styles.label}>Règlement</Text>
-            <Text style={styles.smallValue}>
-              Ce bon de livraison accompagne la marchandise. La facture et le suivi de
-              paiement restent gérés par l&apos;administration.
+        <View style={styles.summaryArea} wrap={false}>
+          <View style={styles.amountWords}>
+            <Text style={styles.amountWordsLabel}>Arrêtée la présente livraison à la somme de :</Text>
+            <Text style={styles.amountWordsValue}>{commande.montantEnLettres}</Text>
+          </View>
+          <View style={styles.totalsColumn}>
+            <View style={styles.boxesCount}><Text>Nombre de caisses :</Text></View>
+            <View style={styles.totalsBox}>
+              <TotalLine label="Total HT" value={commande.totalHt} />
+              <TotalLine label={`TVA ${commande.tauxTva}%`} value={commande.tva} />
+              <TotalLine label="Total TTC" value={commande.totalTtc} />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.paymentRow} wrap={false}>
+          <View style={styles.paymentTable}>
+            <PaymentColumn label="Mode de règlement" />
+            <PaymentColumn label="Condition de paiement" />
+            <PaymentColumn label="Date d'échéance" />
+          </View>
+          <View style={styles.netBox}>
+            <View style={styles.netLabel}><Text>NET À PAYER</Text></View>
+            <View style={styles.netValue}><Text>{commande.totalTtc}</Text></View>
+          </View>
+        </View>
+
+        <View style={styles.bottomRow} wrap={false}>
+          <View style={styles.conditionsBox}>
+            <View style={styles.conditionsTitle}><Text>CONDITIONS DE RÈGLEMENT</Text></View>
+            <Text style={styles.conditionsText}>
+              LOI 32-10 - 78.1/78.2/78.3{"\n"}
+              CLAUSE DE RÉSERVE DE PROPRIÉTÉ{"\n"}
+              APPLICABLE
             </Text>
-            <View style={styles.paymentGrid}>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentCell}>Mode</Text>
-                <Text style={styles.paymentCell}>Condition</Text>
-                <Text style={styles.paymentCell}>Échéance</Text>
-              </View>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentCell} />
-                <Text style={styles.paymentCell} />
-                <Text style={styles.paymentCell} />
-              </View>
-            </View>
           </View>
-
-          <SignatureBox title="Réception client" />
-          <SignatureBox title="Livreur / dépôt" />
+          <AgreementStamp commande={commande} />
+          <CompanyStamp commande={commande} />
         </View>
 
-        <Stamp commande={commande} />
-        <Text style={styles.footer} fixed>
-          {footerSociete(commande)}
-        </Text>
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerPrimary}>{footerPrimary(commande)}</Text>
+          <Text style={styles.footerSecondary}>{footerSecondary(commande)}</Text>
+        </View>
       </Page>
     </Document>
   );
@@ -435,30 +501,18 @@ function Logo({ commande }: { commande: CommandeDocumentData }) {
     // eslint-disable-next-line jsx-a11y/alt-text
     return <Image src={commande.societe.logo} style={styles.logo} />;
   }
-
   return (
     <View style={styles.logoFallback}>
-      <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+      <Text style={styles.logoFallbackText}>{commande.societe.raisonSociale}</Text>
     </View>
   );
 }
 
-function InfoCard({
-  label,
-  value,
-  detail,
-  tinted = false,
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  tinted?: boolean;
-}) {
+function MetaColumn({ label, value }: { label: string; value: string }) {
   return (
-    <View style={tinted ? [styles.card, styles.tintedCard] : styles.card}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value || "-"}</Text>
-      {detail ? <Text style={styles.smallValue}>{detail}</Text> : null}
+    <View style={styles.metaColumn}>
+      <View style={styles.metaLabel}><Text>{label}</Text></View>
+      <View style={styles.metaValue}><Text>{value || "-"}</Text></View>
     </View>
   );
 }
@@ -466,65 +520,72 @@ function InfoCard({
 function TotalLine({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.totalLine}>
-      <View style={styles.totalLabel}>
-        <Text>{label}</Text>
-      </View>
-      <View style={styles.totalValue}>
-        <Text>{value}</Text>
-      </View>
+      <View style={styles.totalLabel}><Text>{label}</Text></View>
+      <View style={styles.totalValue}><Text>{value}</Text></View>
     </View>
   );
 }
 
-function SignatureBox({ title }: { title: string }) {
+function PaymentColumn({ label }: { label: string }) {
   return (
-    <View style={styles.signatureBox}>
-      <Text style={styles.label}>{title}</Text>
-      <Text style={styles.signatureLine}>Nom, signature et cachet</Text>
+    <View style={styles.paymentColumn}>
+      <View style={styles.paymentLabel}><Text>{label}</Text></View>
+      <View style={styles.paymentValue} />
     </View>
   );
 }
 
-function Stamp({ commande }: { commande: CommandeDocumentData }) {
+function AgreementStamp({ commande }: { commande: CommandeDocumentData }) {
   return (
-    <View style={styles.stampWrap}>
-      {commande.societe.cachet ? (
+    <View style={styles.stampArea}>
+      {commande.societe.tamponAgrement ? (
         // eslint-disable-next-line jsx-a11y/alt-text
-        <Image src={commande.societe.cachet} style={styles.stampImage} />
+        <Image src={commande.societe.tamponAgrement} style={styles.agreementStamp} />
       ) : (
-        <View style={styles.stampFallback}>
-          <Text style={styles.stampText}>{commande.societe.raisonSociale}</Text>
-          <Text style={styles.stampText}>RC {commande.societe.rc || "-"}</Text>
-          <Text style={styles.stampText}>ICE {commande.societe.ice || "-"}</Text>
+        <View style={styles.agreementFallback}>
+          <Text style={styles.agreementFallbackText}>
+            AGRÉMENT SANITAIRE{"\n"}{commande.societe.numeroAgrement || "NON RENSEIGNÉ"}
+          </Text>
         </View>
       )}
-      {commande.societe.numeroAgrement ? (
-        <Text style={styles.agreementText}>
-          Agrement : {commande.societe.numeroAgrement}
-        </Text>
-      ) : null}
+    </View>
+  );
+}
+
+function CompanyStamp({ commande }: { commande: CommandeDocumentData }) {
+  return (
+    <View style={styles.stampArea}>
+      {commande.societe.cachet ? (
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <Image src={commande.societe.cachet} style={styles.companyStamp} />
+      ) : (
+        <View style={styles.companyFallback}>
+          <Text style={styles.companyFallbackText}>
+            {commande.societe.raisonSociale}{"\n"}
+            {commande.societe.telephone || "+212 660924488"}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 function identifiantsSociete({ societe }: CommandeDocumentData): string {
-  const valeurs = [
+  return [
     societe.rc ? `RC : ${societe.rc}` : undefined,
     societe.ice ? `ICE : ${societe.ice}` : undefined,
     societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
     societe.patente ? `TP : ${societe.patente}` : undefined,
-  ].filter(Boolean);
-
-  return valeurs.length > 0 ? valeurs.join(" - ") : "-";
+  ].filter(Boolean).join(" - ");
 }
 
-function footerSociete({ societe }: CommandeDocumentData): string {
+function footerPrimary({ societe }: CommandeDocumentData): string {
+  return `${societe.raisonSociale}, Siège social : ${societe.adresse || "-"}`;
+}
+
+function footerSecondary({ societe }: CommandeDocumentData): string {
   const telephone = societe.telephone || "+212 660924488";
-  return [
-    `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
-    identifiantsSociete({ societe } as CommandeDocumentData),
-    `Tel : ${telephone}`,
-  ]
-    .filter((valeur) => valeur && valeur !== "-")
+  return [identifiantsSociete({ societe } as CommandeDocumentData), `Tél : ${telephone}`]
+    .filter(Boolean)
     .join(" - ");
 }

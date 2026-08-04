@@ -373,14 +373,16 @@ export async function exporterDocumentsCommandes({
   }
 
   const date = new Date().toISOString().slice(0, 10);
+  const nombreCommandes = commandes.length;
+  const libelleNombreCommandes = `${nombreCommandes} commande${nombreCommandes > 1 ? "s" : ""}`;
   const titre =
     portee === "admin"
-      ? "Dossier documents commandes"
-      : "Dossier documents commercial";
+      ? `Dossier documents commandes - ${libelleNombreCommandes}`
+      : `Dossier documents commercial - ${libelleNombreCommandes}`;
   const corps = await fusionnerPdfs(pdfs, titre);
   const prefixe =
     portee === "admin" ? "dossier_commandes" : "mes_documents_commandes";
-  const filename = `${prefixe}_${date}.pdf`;
+  const filename = `${prefixe}_${nombreCommandes}_commande${nombreCommandes > 1 ? "s" : ""}_${date}.pdf`;
   const nombreFichiers = pdfs.length;
 
   const ip = await lireIpRequete();

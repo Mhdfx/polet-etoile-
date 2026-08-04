@@ -20,12 +20,14 @@ export function BoutonTelechargementCommercial({
   libelle,
   indisponible,
   motifIndisponible,
+  compact = false,
 }: {
   commandeId: string;
   typeDocument: TypeDocument;
   libelle: string;
   indisponible?: boolean;
   motifIndisponible?: string;
+  compact?: boolean;
 }) {
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState<string>();
@@ -80,7 +82,7 @@ export function BoutonTelechargementCommercial({
       <Button
         type="button"
         variant="outline"
-        size="sm"
+        size={compact ? "xs" : "sm"}
         disabled={indisponible || chargement}
         aria-disabled={indisponible || chargement}
         title={motifIndisponible}
@@ -89,7 +91,7 @@ export function BoutonTelechargementCommercial({
         <Download />
         {chargement ? "Preparation..." : libelle}
       </Button>
-      {indisponible && motifIndisponible ? (
+      {!compact && indisponible && motifIndisponible ? (
         <span className="max-w-64 text-xs text-muted-foreground">
           {motifIndisponible}
         </span>

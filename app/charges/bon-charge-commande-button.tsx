@@ -17,9 +17,11 @@ type BonChargeLie = {
 export function BonChargeCommandeButton({
   commandeId,
   bonCharge,
+  compact = false,
 }: {
   commandeId: string;
   bonCharge?: BonChargeLie | null;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState(false);
@@ -27,12 +29,12 @@ export function BonChargeCommandeButton({
 
   if (bonCharge && !bonCharge.supprime) {
     return (
-      <Button variant="outline" size="sm" asChild>
+      <Button variant="outline" size={compact ? "xs" : "sm"} asChild>
         <Link
           href={`/admin/charges/${bonCharge.id}`}
           aria-label={`Ouvrir le bon de charge ${bonCharge.numeroBc}`}
         >
-          <Truck className="h-4 w-4" /> {bonCharge.numeroBc}
+          <Truck className="h-4 w-4" /> {compact ? "BC" : bonCharge.numeroBc}
         </Link>
       </Button>
     );
@@ -40,8 +42,8 @@ export function BonChargeCommandeButton({
 
   if (bonCharge?.supprime) {
     return (
-      <Button variant="outline" size="sm" disabled title="Bon de charge deja genere puis supprime">
-        <Truck className="h-4 w-4" /> BC supprime
+      <Button variant="outline" size={compact ? "xs" : "sm"} disabled title="Bon de charge deja genere puis supprime">
+        <Truck className="h-4 w-4" /> {compact ? "BC" : "BC supprime"}
       </Button>
     );
   }
@@ -50,7 +52,7 @@ export function BonChargeCommandeButton({
     <div className="inline-grid justify-items-end gap-1">
       <Bouton
         type="button"
-        size="sm"
+        size={compact ? "xs" : "sm"}
         variant="outline"
         chargement={enCours}
         aria-label="Créer le bon de charge de cette commande"
@@ -71,7 +73,7 @@ export function BonChargeCommandeButton({
           router.refresh();
         }}
       >
-        <Truck className="h-4 w-4" /> Bon de charge
+        <Truck className="h-4 w-4" /> {compact ? "BC" : "Bon de charge"}
       </Bouton>
       {message ? <p className="max-w-48 text-right text-xs text-destructive">{message}</p> : null}
     </div>

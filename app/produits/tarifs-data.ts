@@ -1,5 +1,9 @@
 import Decimal from "decimal.js";
-import { chargerCachetDataUri, chargerLogoDataUri } from "@/app/commandes/document-data";
+import {
+  chargerCachetDataUri,
+  chargerLogoDataUri,
+  chargerTamponAgrementDataUri,
+} from "@/app/commandes/document-data";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import type { TarifsDocumentData } from "./tarifs-pdf";
@@ -41,6 +45,7 @@ export async function chargerTarifsDocument(): Promise<TarifsDocumentData> {
       identifiantFiscal: params.get("identifiant_fiscal"),
       logo: await chargerLogoDataUri(params.get("logo_url")),
       cachet: await chargerCachetDataUri(),
+      tamponAgrement: await chargerTamponAgrementDataUri(),
     },
     produits: produits.map((produit) => ({
       nom: produit.nom,

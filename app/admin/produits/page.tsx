@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { listerCategoriesProduits } from "@/lib/categories";
 import { formatDate, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 import { ProduitsTable } from "./produits-table";
 
 type ParametresRecherche = Promise<{ q?: string }>;
@@ -33,12 +34,12 @@ export default async function ProduitsPage({
   const [produits, categories] = await Promise.all([
     prisma.produit.findMany({
       where,
-      orderBy: [{ ordre_affichage: "asc" }, { nom: "asc" }],
+      orderBy: { nom: "asc" },
     }),
     listerCategoriesProduits(),
   ]);
 
-  const lignes = produits.map((produit) => ({
+  const lignes = trierAlphabetiquement(produits, (produit) => produit.nom).map((produit) => ({
     id: produit.id,
     nom: produit.nom,
     categorie: produit.categorie,

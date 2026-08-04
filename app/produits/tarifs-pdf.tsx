@@ -24,6 +24,7 @@ export type TarifsDocumentData = {
     identifiantFiscal?: string;
     logo?: string;
     cachet?: string;
+    tamponAgrement?: string;
   };
   produits: TarifProduit[];
 };
@@ -118,6 +119,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: 700,
     textAlign: "center",
+  },
+  agreementStampTop: {
+    position: "absolute",
+    top: 28,
+    left: 38,
+    width: 64,
+    height: 64,
+    objectFit: "contain",
   },
   datePill: {
     alignSelf: "center",
@@ -246,8 +255,19 @@ const styles = StyleSheet.create({
     fontSize: 7.8,
     fontWeight: 800,
   },
+  companyStampBand: {
+    height: 60,
+    marginTop: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  companyStamp: {
+    width: 60,
+    height: 60,
+    objectFit: "contain",
+  },
   noteRow: {
-    marginTop: 16,
+    marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -264,7 +284,7 @@ const styles = StyleSheet.create({
   footer: {
     width: 595,
     height: 60,
-    marginTop: 18,
+    marginTop: 14,
     marginLeft: -74,
     marginRight: -74,
     backgroundColor: ROUGE,
@@ -367,6 +387,10 @@ function TarifsPage({
     <Page size="A4" style={styles.page}>
       <BackgroundDecor />
       <WatermarkLayer />
+      {data.societe.tamponAgrement ? (
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <Image src={data.societe.tamponAgrement} style={styles.agreementStampTop} />
+      ) : null}
 
       <View style={styles.header}>
         <View style={styles.logoWrap}>
@@ -420,6 +444,13 @@ function TarifsPage({
             </View>
           </View>
         ))}
+      </View>
+
+      <View style={styles.companyStampBand} wrap={false}>
+        {data.societe.cachet ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image src={data.societe.cachet} style={styles.companyStamp} />
+        ) : null}
       </View>
 
       <View style={styles.noteRow}>
