@@ -80,6 +80,7 @@ export const VILLES_MAROC_DEFAUT = [
   "Midar",
   "Midelt",
   "Mirleft",
+  "Mohammedia",
   "Mrirt",
   "Nador",
   "Nkob",

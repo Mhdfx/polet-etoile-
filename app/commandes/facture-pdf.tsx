@@ -265,7 +265,6 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
             <Logo commande={commande} />
             <View>
               <Text style={styles.companyName}>{commande.societe.raisonSociale}</Text>
-              <Text style={styles.companyLine}>{commande.societe.adresse || "-"}</Text>
               <Text style={styles.companyLine}>{identifiantsSociete(commande)}</Text>
               <Text style={styles.companyLine}>
                 Tel : {commande.societe.telephone || "+212 660924488"}

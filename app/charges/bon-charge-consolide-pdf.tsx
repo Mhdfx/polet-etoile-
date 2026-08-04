@@ -44,24 +44,12 @@ const styles = StyleSheet.create({
   brand: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    width: 330,
+    width: 70,
   },
   logo: {
     width: 58,
     height: 58,
     objectFit: "contain",
-  },
-  companyName: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: ROUGE_FONCE,
-    marginBottom: 3,
-  },
-  companyLine: {
-    fontSize: 7,
-    color: GRIS,
-    lineHeight: 1.3,
   },
   titleBlock: {
     alignItems: "flex-end",
@@ -233,13 +221,6 @@ export function BonChargeConsolidePdf({
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={data.societe.logo} style={styles.logo} />
             ) : null}
-            <View>
-              <Text style={styles.companyName}>{data.societe.raisonSociale}</Text>
-              <Text style={styles.companyLine}>{data.societe.adresse || "-"}</Text>
-              <Text style={styles.companyLine}>
-                {identifiantsSociete(data.societe)}
-              </Text>
-            </View>
           </View>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>Bon de charge</Text>
