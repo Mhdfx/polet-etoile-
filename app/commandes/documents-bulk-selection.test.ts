@@ -24,11 +24,11 @@ const commandes: CommandeSelectionnee[] = [
 ];
 
 describe("preparerConsolide", () => {
-  it("exclut toujours les commandes sans bon de charge", () => {
+  it("ne limite jamais l'admin, meme si les BC ont deja ete telecharges", () => {
     const resultat = preparerConsolide({
       commandes,
       portee: "admin",
-      bonsDeChargeDejaTelecharges: new Set(),
+      bonsDeChargeDejaTelecharges: new Set(["bon-1", "bon-3"]),
     });
 
     expect(resultat.inclues.map((commande) => commande.id)).toEqual([

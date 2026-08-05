@@ -319,6 +319,7 @@ export async function exporterDocumentsCommandes({
           await assurerBonChargeDepuisCommande(tx, {
             commandeId,
             acteurId: utilisateur.id,
+            autoriserRegeneration: portee === "admin",
             ...(portee === "commercial"
               ? { commercialIdAttendu: utilisateur.id }
               : {}),
@@ -327,6 +328,8 @@ export async function exporterDocumentsCommandes({
               portee === "commercial"
                 ? "bon_charge.creation_automatique_commercial"
                 : "bon_charge.creation_automatique_export_admin",
+            actionAuditRegeneration:
+              "bon_charge.regeneration_automatique_export_admin",
           });
         }
       });

@@ -5,6 +5,7 @@ import { calculerLignesCharge } from "@/lib/charge";
 
 export type ResultatCreationBonChargeCommande =
   | { statut: "cree"; bonChargeId: string; numeroBc: string }
+  | { statut: "regenere"; bonChargeId: string; numeroBc: string }
   | { statut: "existant"; bonChargeId: string; numeroBc: string }
   | {
       statut: "introuvable" | "supprime" | "sans_produit_physique";
@@ -24,14 +25,18 @@ export async function assurerBonChargeDepuisCommande(
     commandeId,
     acteurId,
     commercialIdAttendu,
+    autoriserRegeneration = false,
     ip,
     actionAudit = "bon_charge.creation_depuis_commande",
+    actionAuditRegeneration = "bon_charge.regeneration_depuis_commande",
   }: {
     commandeId: string;
     acteurId: string;
     commercialIdAttendu?: string;
+    autoriserRegeneration?: boolean;
     ip: string | null;
     actionAudit?: string;
+    actionAuditRegeneration?: string;
   },
 ): Promise<ResultatCreationBonChargeCommande> {
   if (commercialIdAttendu) {
@@ -79,18 +84,18 @@ export async function assurerBonChargeDepuisCommande(
     return { statut: "introuvable", message: "Commande introuvable" };
   }
 
-  if (commande.bon_charge) {
-    if (commande.bon_charge.deleted_at) {
-      return {
-        statut: "supprime",
-        message: `Le bon de charge ${commande.bon_charge.numero_bc} a deja ete genere puis supprime pour cette commande.`,
-      };
-    }
-
+  if (commande.bon_charge && !commande.bon_charge.deleted_at) {
     return {
       statut: "existant",
       bonChargeId: commande.bon_charge.id,
       numeroBc: commande.bon_charge.numero_bc,
+    };
+  }
+
+  if (commande.bon_charge?.deleted_at && !autoriserRegeneration) {
+    return {
+      statut: "supprime",
+      message: `Le bon de charge ${commande.bon_charge.numero_bc} a deja ete genere puis supprime pour cette commande. Demandez sa regeneration a l'administrateur.`,
     };
   }
 
@@ -113,6 +118,67 @@ export async function assurerBonChargeDepuisCommande(
     .map((ligne) => ({ id: ligne.produit_id }));
   const lignesCalculees = calculerLignesCharge(lignesStock, produitsAutorises);
   const bc = await attribuerNumeroBC(tx);
+
+  if (commande.bon_charge?.deleted_at) {
+    const maintenant = new Date();
+    await tx.ligneBonCharge.updateMany({
+      where: {
+        bon_charge_id: commande.bon_charge.id,
+        deleted_at: null,
+      },
+      data: { deleted_at: maintenant },
+    });
+
+    const bonCharge = await tx.bonCharge.update({
+      where: { id: commande.bon_charge.id },
+      data: {
+        numero_bc: bc.numeroBc,
+        numero_bc_compteur: bc.compteur,
+        commercial_id: commande.utilisateur_id,
+        cree_par: acteurId,
+        date_charge: commande.date_commande,
+        commentaire: `Regenere depuis la commande ${commande.numero_bl}`,
+        deleted_at: null,
+        lignes: {
+          create: lignesCalculees.map((ligne) => ({
+            produit_id: ligne.produitId,
+            quantite_kg: ligne.quantite,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+
+    await ecrireAudit(
+      tx,
+      {
+        utilisateurId: acteurId,
+        action: actionAuditRegeneration,
+        entite: "bons_charge",
+        entiteId: bonCharge.id,
+        avant: {
+          numero_bc: commande.bon_charge.numero_bc,
+          deleted_at: commande.bon_charge.deleted_at.toISOString(),
+        },
+        apres: {
+          numero_bc: bc.numeroBc,
+          numero_bc_compteur: bc.compteur,
+          commande_id: commande.id,
+          numero_bl: commande.numero_bl,
+          commercial_id: commande.utilisateur_id,
+          lignes: lignesCalculees,
+          regenere: true,
+        },
+      },
+      ip,
+    );
+
+    return {
+      statut: "regenere",
+      bonChargeId: bonCharge.id,
+      numeroBc: bc.numeroBc,
+    };
+  }
 
   const bonCharge = await tx.bonCharge.create({
     data: {

@@ -167,10 +167,11 @@ export async function creerBonChargeDepuisCommande(commandeId: string): Promise<
       const creation = await assurerBonChargeDepuisCommande(tx, {
         commandeId,
         acteurId: admin.id,
+        autoriserRegeneration: true,
         ip,
       });
 
-      if (creation.statut === "cree") {
+      if (creation.statut === "cree" || creation.statut === "regenere") {
         return {
           ok: true as const,
           bonChargeId: creation.bonChargeId,

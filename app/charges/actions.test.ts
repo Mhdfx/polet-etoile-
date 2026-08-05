@@ -6,7 +6,8 @@ const { requireAdminMock, txMock, transactionMock } = vi.hoisted(() => {
     produit: { findMany: vi.fn() },
     compteurBl: { upsert: vi.fn(), update: vi.fn() },
     parametreSysteme: { findUnique: vi.fn() },
-    bonCharge: { create: vi.fn() },
+    bonCharge: { create: vi.fn(), update: vi.fn() },
+    ligneBonCharge: { updateMany: vi.fn() },
     commande: { findFirst: vi.fn() },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
@@ -41,6 +42,8 @@ beforeEach(() => {
   txMock.compteurBl.update.mockResolvedValue(undefined);
   txMock.parametreSysteme.findUnique.mockResolvedValue({ valeur: "BC" });
   txMock.bonCharge.create.mockResolvedValue({ id: "bc-1" });
+  txMock.bonCharge.update.mockResolvedValue({ id: "bc-1" });
+  txMock.ligneBonCharge.updateMany.mockResolvedValue({ count: 0 });
   txMock.commande.findFirst.mockResolvedValue({
     id: "commande-1",
     numero_bl: "CP-000123",
@@ -229,6 +232,83 @@ describe("creerBonChargeDepuisCommande", () => {
     if (!resultat.ok) {
       expect(resultat.message).toContain("existe deja");
     }
+    expect(txMock.bonCharge.create).not.toHaveBeenCalled();
+  });
+
+  it("permet a l'admin de regenerer un BC supprime avec un nouveau numero et les lignes actualisees", async () => {
+    txMock.commande.findFirst.mockResolvedValue({
+      id: "commande-1",
+      numero_bl: "CP-000123",
+      utilisateur_id: "com-1",
+      date_commande: new Date("2026-07-11T12:00:00.000Z"),
+      bon_charge: {
+        id: "bc-1",
+        numero_bc: "BC-000003",
+        deleted_at: new Date("2026-08-04T10:00:00.000Z"),
+      },
+      lignes: [
+        {
+          produit_id: "prod-1",
+          quantite: { toFixed: () => "25.000" },
+          produit: { id: "prod-1", suivi_stock: true },
+        },
+      ],
+    });
+
+    const resultat = await creerBonChargeDepuisCommande("commande-1");
+
+    expect(resultat).toEqual({
+      ok: true,
+      bonChargeId: "bc-1",
+      numeroBc: "BC-000005",
+    });
+    expect(txMock.bonCharge.create).not.toHaveBeenCalled();
+    expect(txMock.bonCharge.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "bc-1" },
+        data: expect.objectContaining({
+          numero_bc: "BC-000005",
+          numero_bc_compteur: 5,
+          deleted_at: null,
+          commentaire: "Regenere depuis la commande CP-000123",
+          lignes: {
+            create: [{ produit_id: "prod-1", quantite_kg: "25.000" }],
+          },
+        }),
+      }),
+    );
+    expect(txMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: "bon_charge.regeneration_depuis_commande",
+        }),
+      }),
+    );
+  });
+
+  it("interdit au commercial de regenerer un BC supprime", async () => {
+    txMock.commande.findFirst.mockResolvedValue({
+      id: "commande-1",
+      numero_bl: "CP-000123",
+      utilisateur_id: "com-1",
+      date_commande: new Date("2026-07-11T12:00:00.000Z"),
+      bon_charge: {
+        id: "bc-1",
+        numero_bc: "BC-000003",
+        deleted_at: new Date("2026-08-04T10:00:00.000Z"),
+      },
+      lignes: [],
+    });
+
+    const resultat = await assurerBonChargeDepuisCommande(txMock as never, {
+      commandeId: "commande-1",
+      acteurId: "com-1",
+      commercialIdAttendu: "com-1",
+      ip: null,
+    });
+
+    expect(resultat.statut).toBe("supprime");
+    expect(txMock.bonCharge.update).not.toHaveBeenCalled();
     expect(txMock.bonCharge.create).not.toHaveBeenCalled();
   });
 });

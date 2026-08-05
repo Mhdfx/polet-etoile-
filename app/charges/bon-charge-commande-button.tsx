@@ -40,14 +40,6 @@ export function BonChargeCommandeButton({
     );
   }
 
-  if (bonCharge?.supprime) {
-    return (
-      <Button variant="outline" size={compact ? "xs" : "sm"} disabled title="Bon de charge deja genere puis supprime">
-        <Truck className="h-4 w-4" /> {compact ? "BC" : "BC supprime"}
-      </Button>
-    );
-  }
-
   return (
     <div className="inline-grid justify-items-end gap-1">
       <Bouton
@@ -55,8 +47,12 @@ export function BonChargeCommandeButton({
         size={compact ? "xs" : "sm"}
         variant="outline"
         chargement={enCours}
-        aria-label="Créer le bon de charge de cette commande"
-        title="Générer le bon de charge depuis cette commande"
+        aria-label={bonCharge?.supprime
+          ? "Regenerer le bon de charge de cette commande"
+          : "Creer le bon de charge de cette commande"}
+        title={bonCharge?.supprime
+          ? "Reconstruire le bon de charge depuis la commande mise a jour"
+          : "Generer le bon de charge depuis cette commande"}
         onClick={async () => {
           if (enCours) return;
           setMessage(undefined);
@@ -74,7 +70,9 @@ export function BonChargeCommandeButton({
           router.refresh();
         }}
       >
-        <Truck className="h-4 w-4" /> {compact ? "Créer BC" : "Créer le bon de charge"}
+        <Truck className="h-4 w-4" /> {bonCharge?.supprime
+          ? compact ? "Regenerer BC" : "Regenerer le bon de charge"
+          : compact ? "Creer BC" : "Creer le bon de charge"}
       </Bouton>
       {message ? <p className="max-w-48 text-right text-xs text-destructive">{message}</p> : null}
     </div>
