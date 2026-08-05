@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  messageEchecsGenerationBonsCharge,
   noteExclusions,
   preparerConsolide,
   type CommandeSelectionnee,
@@ -24,6 +25,26 @@ const commandes: CommandeSelectionnee[] = [
 ];
 
 describe("preparerConsolide", () => {
+  it("inclut toutes les commandes quand plusieurs BC sont disponibles", () => {
+    const multiples = Array.from({ length: 6 }, (_, index) => ({
+      id: `commande-${index + 1}`,
+      numero_bl: `CP-${String(index + 1).padStart(6, "0")}`,
+      bon_charge: {
+        id: `bon-${index + 1}`,
+        numero_bc: `BC-${String(index + 1).padStart(6, "0")}`,
+      },
+    }));
+
+    const resultat = preparerConsolide({
+      commandes: multiples,
+      portee: "admin",
+      bonsDeChargeDejaTelecharges: new Set(),
+    });
+
+    expect(resultat.inclues).toHaveLength(6);
+    expect(resultat.exclues).toEqual([]);
+  });
+
   it("ne limite jamais l'admin, meme si les BC ont deja ete telecharges", () => {
     const resultat = preparerConsolide({
       commandes,
@@ -79,5 +100,15 @@ describe("preparerConsolide", () => {
     expect(note).toContain("sans bon de charge");
     expect(note).toContain("CP-000003 (BC-000003)");
     expect(note).toContain("deja ete telecharge");
+  });
+
+  it("nomme chaque commande quand une generation groupee est impossible", () => {
+    const message = messageEchecsGenerationBonsCharge([
+      { numeroBl: "CP-000040", message: "Aucun produit physique." },
+      { numeroBl: "CP-000041", message: "Bon de charge supprime." },
+    ]);
+
+    expect(message).toContain("CP-000040 : Aucun produit physique.");
+    expect(message).toContain("CP-000041 : Bon de charge supprime.");
   });
 });

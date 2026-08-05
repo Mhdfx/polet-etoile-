@@ -5,11 +5,25 @@ export type CommandeSelectionnee = {
 };
 
 export type BonChargeInclus = { commandeId: string; bonChargeId: string };
+export type EchecGenerationBonCharge = {
+  message: string;
+  numeroBl: string;
+};
 export type BonChargeIgnore = {
   numeroBc?: string;
   numeroBl: string;
   raison: "absent" | "deja_telecharge";
 };
+
+export function messageEchecsGenerationBonsCharge(
+  echecs: EchecGenerationBonCharge[],
+): string {
+  const details = echecs
+    .map((echec) => `${echec.numeroBl} : ${echec.message}`)
+    .join(" ; ");
+
+  return `Le PDF groupe n'a pas ete genere car certains bons de charge n'ont pas pu etre prepares. ${details}`;
+}
 
 export function preparerConsolide({
   commandes,

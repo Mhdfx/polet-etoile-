@@ -7,10 +7,12 @@ import { assurerBonChargeDepuisCommande } from "@/app/charges/bon-charge-depuis-
 import { BonLivraisonPdf } from "@/app/commandes/bon-livraison-pdf";
 import { chargerCommandeDocument } from "@/app/commandes/document-data";
 import {
+  messageEchecsGenerationBonsCharge,
   noteExclusions,
   preparerConsolide,
   type BonChargeInclus,
   type CommandeSelectionnee,
+  type EchecGenerationBonCharge,
 } from "@/app/commandes/documents-bulk-selection";
 import {
   validerCommandesDocuments,
@@ -26,6 +28,13 @@ import { entetesFichierPrive } from "@/lib/http";
 import type { UtilisateurSession } from "@/lib/session";
 
 const MAX_DOCUMENTS_PDF = 300;
+
+class ErreurGenerationBonsCharge extends Error {
+  constructor(readonly echecs: EchecGenerationBonCharge[]) {
+    super("Certains bons de charge n'ont pas pu etre prepares.");
+    this.name = "ErreurGenerationBonsCharge";
+  }
+}
 
 function reponseErreur(message: string, status = 400): Response {
   return new Response(message, {
@@ -314,25 +323,56 @@ export async function exporterDocumentsCommandes({
       .sort();
 
     if (commandesSansBon.length > 0) {
-      await prisma.$transaction(async (tx) => {
-        for (const commandeId of commandesSansBon) {
-          await assurerBonChargeDepuisCommande(tx, {
-            commandeId,
-            acteurId: utilisateur.id,
-            autoriserRegeneration: portee === "admin",
-            ...(portee === "commercial"
-              ? { commercialIdAttendu: utilisateur.id }
-              : {}),
-            ip,
-            actionAudit:
-              portee === "commercial"
-                ? "bon_charge.creation_automatique_commercial"
-                : "bon_charge.creation_automatique_export_admin",
-            actionAuditRegeneration:
-              "bon_charge.regeneration_automatique_export_admin",
-          });
+      const numerosParId = new Map(
+        commandes.map((commande) => [commande.id, commande.numero_bl]),
+      );
+
+      try {
+        await prisma.$transaction(async (tx) => {
+          const echecs: EchecGenerationBonCharge[] = [];
+
+          for (const commandeId of commandesSansBon) {
+            const resultat = await assurerBonChargeDepuisCommande(tx, {
+              commandeId,
+              acteurId: utilisateur.id,
+              autoriserRegeneration: portee === "admin",
+              ...(portee === "commercial"
+                ? { commercialIdAttendu: utilisateur.id }
+                : {}),
+              ip,
+              actionAudit:
+                portee === "commercial"
+                  ? "bon_charge.creation_automatique_commercial"
+                  : "bon_charge.creation_automatique_export_admin",
+              actionAuditRegeneration:
+                "bon_charge.regeneration_automatique_export_admin",
+            });
+
+            if (
+              resultat.statut === "introuvable" ||
+              resultat.statut === "supprime" ||
+              resultat.statut === "sans_produit_physique"
+            ) {
+              echecs.push({
+                numeroBl: numerosParId.get(commandeId) ?? commandeId,
+                message: resultat.message,
+              });
+            }
+          }
+
+          if (echecs.length > 0) {
+            throw new ErreurGenerationBonsCharge(echecs);
+          }
+        });
+      } catch (erreur) {
+        if (erreur instanceof ErreurGenerationBonsCharge) {
+          return reponseErreur(
+            messageEchecsGenerationBonsCharge(erreur.echecs),
+            409,
+          );
         }
-      });
+        throw erreur;
+      }
 
       commandes = await chargerCommandesSelectionnees({
         ids,
