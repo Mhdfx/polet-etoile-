@@ -1,5 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import { Prisma } from "@prisma/client";
+import { createElement } from "react";
 import { BonLivraisonPdf } from "@/app/commandes/bon-livraison-pdf";
 import { chargerCommandeDocument } from "@/app/commandes/document-data";
 import { entetesFichierPrive } from "@/lib/http";
@@ -13,40 +13,22 @@ export async function POST(_request: Request, { params }: RouteProps) {
   const commercial = await requireCommercial();
   const { id } = await params;
   const commande = await chargerCommandeDocument(id, commercial.id);
-  const buffer = await renderToBuffer(<BonLivraisonPdf commande={commande} />);
+  const buffer = await renderToBuffer(
+    createElement(BonLivraisonPdf, { commande }) as Parameters<
+      typeof renderToBuffer
+    >[0],
+  );
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.telechargementDocument.create({
-        data: {
-          utilisateur_id: commercial.id,
-          commande_id: id,
-          type_document: "BL",
-          ip_address: await adresseIpRequete(),
-        },
-      });
-      await tx.auditLog.create({
-        data: {
-          utilisateur_id: commercial.id,
-          action: "document.bl_telechargement_commercial",
-          entite: "commandes",
-          entite_id: id,
-          donnees_apres: { numero_bl: commande.numeroBl },
-        },
-      });
-    });
-  } catch (erreur) {
-    if (
-      erreur instanceof Prisma.PrismaClientKnownRequestError &&
-      erreur.code === "P2002"
-    ) {
-      return new Response(
-        "Ce BL a deja ete telecharge une fois. Demandez-le a l'administrateur.",
-        { status: 409, headers: { "content-type": "text/plain; charset=utf-8" } },
-      );
-    }
-    throw erreur;
-  }
+  await prisma.auditLog.create({
+    data: {
+      utilisateur_id: commercial.id,
+      action: "document.bl_telechargement_commercial",
+      entite: "commandes",
+      entite_id: id,
+      donnees_apres: { numero_bl: commande.numeroBl },
+      ip_address: await adresseIpRequete(),
+    },
+  });
 
   return new Response(buffer as unknown as BodyInit, {
     headers: entetesFichierPrive(
@@ -58,7 +40,7 @@ export async function POST(_request: Request, { params }: RouteProps) {
 
 export function GET() {
   return new Response(
-    "Utilisez le bouton de telechargement depuis la commande. Cette protection evite de consommer le telechargement unique par prechargement automatique.",
+    "Utilisez le bouton de telechargement depuis la commande.",
     {
       status: 405,
       headers: {

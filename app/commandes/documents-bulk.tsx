@@ -113,25 +113,6 @@ async function chargerBonsDeChargeDejaTelecharges(
   );
 }
 
-async function chargerBlDejaTelecharges(
-  commandes: CommandeSelectionnee[],
-): Promise<Map<string, Date>> {
-  const telechargements = await prisma.telechargementDocument.findMany({
-    where: {
-      type_document: "BL",
-      commande_id: { in: commandes.map((commande) => commande.id) },
-    },
-    select: { commande_id: true, created_at: true },
-  });
-
-  return new Map(
-    telechargements.map((telechargement) => [
-      telechargement.commande_id,
-      telechargement.created_at,
-    ]),
-  );
-}
-
 /**
  * Pages PDF par commande : BL puis facture pour chaque commande selectionnee.
  * Elles seront fusionnees avec le bon de charge consolide dans un seul fichier.
@@ -183,7 +164,6 @@ async function enregistrerAuditEtTelechargements({
   portee,
   documents,
   commandes,
-  commandesBl,
   bonsChargeInclus,
   fichiers,
   ip,
@@ -192,13 +172,10 @@ async function enregistrerAuditEtTelechargements({
   portee: PorteeExport;
   documents: DocumentCommande[];
   commandes: CommandeSelectionnee[];
-  commandesBl: CommandeSelectionnee[];
   bonsChargeInclus: BonChargeInclus[];
   fichiers: number;
   ip: string | null;
 }): Promise<Response | null> {
-  const telechargementsBl =
-    portee === "commercial" && documents.includes("bl") ? commandesBl : [];
   // Seuls les bons de charge reellement inclus dans le PDF sont marques comme
   // telecharges (les bons deja consommes ont ete sautes, pas re-livres).
   const telechargementsBonCharge =
@@ -214,22 +191,13 @@ async function enregistrerAuditEtTelechargements({
         bon_charge_id: string | null;
         type_document: TypeDocumentTelecharge;
         ip_address: string | null;
-      }> = [
-        ...telechargementsBl.map((commande) => ({
-          utilisateur_id: utilisateur.id,
-          commande_id: commande.id,
-          bon_charge_id: null,
-          type_document: "BL" as TypeDocumentTelecharge,
-          ip_address: ip,
-        })),
-        ...telechargementsBonCharge.map((telechargement) => ({
+      }> = telechargementsBonCharge.map((telechargement) => ({
           utilisateur_id: utilisateur.id,
           commande_id: telechargement.commandeId,
           bon_charge_id: telechargement.bonChargeId,
           type_document: "BON_CHARGE" as TypeDocumentTelecharge,
           ip_address: ip,
-        })),
-      ];
+        }));
       if (telechargements.length > 0) {
         await tx.telechargementDocument.createMany({
           data: telechargements,
@@ -261,7 +229,7 @@ async function enregistrerAuditEtTelechargements({
       erreur.code === "P2002"
     ) {
       return reponseErreur(
-        "Un BL ou bon de charge selectionne a deja ete telecharge. Rechargez la page et demandez-le a l'administrateur.",
+        "Un bon de charge selectionne a deja ete telecharge. Rechargez la page et demandez-le a l'administrateur.",
         409,
       );
     }
@@ -385,17 +353,9 @@ export async function exporterDocumentsCommandes({
     }
   }
 
-  let commandesBl = commandes;
-  if (portee === "commercial" && documents.includes("bl")) {
-    const blDejaTelecharges = await chargerBlDejaTelecharges(commandes);
-    commandesBl = commandes.filter((commande) => !blDejaTelecharges.has(commande.id));
-    if (documents.length === 1 && commandesBl.length === 0) {
-      return reponseErreur(
-        "Tous les BL selectionnes ont deja ete telecharges. Demandez-les a l'administrateur.",
-        409,
-      );
-    }
-  }
+  // Les BL sont toujours telechargeables, y compris plusieurs fois par un
+  // commercial. Seuls les BC sont soumis au verrou commercial unique.
+  const commandesBl = commandes;
 
   const bonsDeChargeDejaTelecharges =
     portee === "commercial" && veutBonCharge
@@ -474,7 +434,6 @@ export async function exporterDocumentsCommandes({
     portee,
     documents,
     commandes,
-    commandesBl,
     bonsChargeInclus,
     fichiers: nombreFichiers,
     ip,

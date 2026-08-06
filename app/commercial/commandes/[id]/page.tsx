@@ -49,11 +49,6 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
         },
       },
       paiements: { select: { montant: true } },
-      telechargements_documents: {
-        where: { type_document: "BL" },
-        select: { created_at: true },
-        take: 1,
-      },
       bon_charge: {
         where: { deleted_at: null },
         select: {
@@ -77,7 +72,6 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
   }
 
   const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
-  const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
   const bonChargeTelechargeAt =
     commande.bon_charge?.telechargements_documents[0]?.created_at;
   const peutObtenirBonCharge =
@@ -103,8 +97,6 @@ export default async function CommandeCommercialDetailPage({ params }: PageProps
               commandeId={commande.id}
               typeDocument="bl"
               libelle="Telecharger le BL"
-              indisponible={Boolean(blTelechargeAt)}
-              motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
             />
             <BoutonTelechargementCommercial
               commandeId={commande.id}

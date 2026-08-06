@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { remplirWorkbookCommandes } from "@/app/commandes/excel-commandes";
+import { ORDRE_COMMANDES_PLUS_RECENTES } from "@/lib/commandes-tri";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { creerExportJob } from "@/lib/export-jobs";
@@ -11,7 +12,7 @@ type CommandeExport = Awaited<ReturnType<typeof chargerCommandesExport>>[number]
 async function chargerCommandesExport(where: Prisma.CommandeWhereInput) {
   return prisma.commande.findMany({
     where,
-    orderBy: { date_commande: "desc" },
+    orderBy: ORDRE_COMMANDES_PLUS_RECENTES,
     select: {
       numero_bl: true,
       type_commande: true,

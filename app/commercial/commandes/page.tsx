@@ -10,6 +10,7 @@ import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-c
 import { Button } from "@/components/ui/button";
 import { BoutonTelechargementCommercial } from "@/app/commandes/bouton-telechargement-commercial";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { ORDRE_COMMANDES_PLUS_RECENTES } from "@/lib/commandes-tri";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
@@ -91,7 +92,7 @@ export default async function CommandesCommercialPage({
 
   const commandesBrutes = await prisma.commande.findMany({
     where,
-    orderBy: { date_commande: "desc" },
+    orderBy: ORDRE_COMMANDES_PLUS_RECENTES,
     select: {
       id: true,
       numero_bl: true,
@@ -105,11 +106,6 @@ export default async function CommandesCommercialPage({
         },
       },
       paiements: { select: { montant: true, date_paiement: true } },
-      telechargements_documents: {
-        where: { type_document: "BL" },
-        select: { created_at: true },
-        take: 1,
-      },
       bon_charge: {
         where: { deleted_at: null },
         select: {
@@ -140,9 +136,7 @@ export default async function CommandesCommercialPage({
     page * taillePage,
   );
 
-  const blDisponibleSurPage = commandes.some(
-    (commande) => !commande.telechargements_documents[0],
-  );
+  const blDisponibleSurPage = commandes.length > 0;
   const bonChargeDisponibleSurPage = commandes.some(
     (commande) =>
       !commande.bon_charge?.telechargements_documents[0] &&
@@ -274,7 +268,7 @@ export default async function CommandesCommercialPage({
                   Bons de charge
                 </label>
                 <span className="text-xs text-muted-foreground">
-                  BL et bon de charge : un seul telechargement commercial, date tracee.
+                  BL illimite. Bon de charge : un seul telechargement commercial, date tracee.
                   {!bonChargeDisponibleSurPage
                     ? " Aucun bon de charge disponible sur cette page."
                     : " Un BC manquant sera genere au premier telechargement."}
@@ -304,14 +298,11 @@ export default async function CommandesCommercialPage({
                 const dateReglement = totaux.statutPaiement === "paye"
                   ? commande.paiements.map((paiement) => paiement.date_paiement).sort((a, b) => b.getTime() - a.getTime())[0]
                   : undefined;
-                const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
                 const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
                 const peutObtenirBonCharge =
                   !bonChargeTelechargeAt &&
                   (Boolean(commande.bon_charge) ||
                     commande.lignes.some((ligne) => ligne.produit.suivi_stock));
-                const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
-                  !peutObtenirBonCharge;
                 return (
                   <article key={commande.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="flex min-h-14 items-center justify-between gap-3 bg-muted/20 px-4 py-1">
@@ -321,7 +312,6 @@ export default async function CommandesCommercialPage({
                           name="commandeIds"
                           value={commande.id}
                           data-selection-commande="true"
-                          disabled={aucunDocumentDisponible}
                           aria-label={`Selectionner ${commande.numero_bl}`}
                           className="size-4 accent-primary"
                         />
@@ -369,8 +359,6 @@ export default async function CommandesCommercialPage({
                           commandeId={commande.id}
                           typeDocument="bl"
                           libelle="Telecharger BL"
-                          indisponible={Boolean(blTelechargeAt)}
-                          motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
                         />
                         <BoutonTelechargementCommercial
                           commandeId={commande.id}
@@ -428,14 +416,11 @@ export default async function CommandesCommercialPage({
                             .map((paiement) => paiement.date_paiement)
                             .sort((a, b) => b.getTime() - a.getTime())[0]
                         : undefined;
-                      const blTelechargeAt = commande.telechargements_documents[0]?.created_at;
                       const bonChargeTelechargeAt = commande.bon_charge?.telechargements_documents[0]?.created_at;
                       const peutObtenirBonCharge =
                         !bonChargeTelechargeAt &&
                         (Boolean(commande.bon_charge) ||
                           commande.lignes.some((ligne) => ligne.produit.suivi_stock));
-                      const aucunDocumentDisponible = Boolean(blTelechargeAt) &&
-                        !peutObtenirBonCharge;
                       return (
                         <tr key={commande.id} className="border-b border-border/80 transition-colors last:border-b-0 hover:bg-muted/40">
                           <td className="px-2 py-3 text-center">
@@ -445,7 +430,6 @@ export default async function CommandesCommercialPage({
                                 name="commandeIds"
                                 value={commande.id}
                                 data-selection-commande="true"
-                                disabled={aucunDocumentDisponible}
                                 aria-label={`Selectionner ${commande.numero_bl}`}
                                 className="size-4 accent-primary"
                               />
@@ -474,8 +458,6 @@ export default async function CommandesCommercialPage({
                                 commandeId={commande.id}
                                 typeDocument="bl"
                                 libelle="BL"
-                                indisponible={Boolean(blTelechargeAt)}
-                                motifIndisponible={blTelechargeAt ? `BL telecharge le ${formatDateHeure(blTelechargeAt)}` : undefined}
                               />
                               <BoutonTelechargementCommercial
                                 compact

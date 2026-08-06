@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
+import { ORDRE_COMMANDES_PLUS_RECENTES } from "@/lib/commandes-tri";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatMontant } from "@/lib/format";
@@ -98,7 +99,7 @@ export default async function CommandesExternesCommercialPage({
   const [commandesBrutes, clientsExternes] = await Promise.all([
     prisma.commande.findMany({
       where,
-      orderBy: { date_commande: "desc" },
+      orderBy: ORDRE_COMMANDES_PLUS_RECENTES,
       select: {
         id: true,
         numero_bl: true,

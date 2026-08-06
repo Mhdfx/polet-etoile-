@@ -62,10 +62,11 @@ export function BoutonTelechargementCommercial({
       lien.click();
       lien.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
-      // A full reload makes the server-side one-time state immediately visible.
-      // It also prevents a second click while a stale React Server Component
-      // payload is still being refreshed.
-      window.setTimeout(() => window.location.reload(), 1_000);
+      // Seul le BC est limite a un telechargement commercial. Le BL reste
+      // telechargeable sans limite et ne doit donc pas recharger toute la page.
+      if (typeDocument === "bon_charge") {
+        window.setTimeout(() => window.location.reload(), 1_000);
+      }
     } catch (cause) {
       setErreur(
         cause instanceof Error

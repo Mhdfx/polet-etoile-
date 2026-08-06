@@ -10,6 +10,7 @@ import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes
 import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-commandes";
 import { Button } from "@/components/ui/button";
 import { calculerTotauxCommande, libelleTypeCommande } from "@/lib/commandes-vue";
+import { ORDRE_COMMANDES_PLUS_RECENTES } from "@/lib/commandes-tri";
 import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
@@ -107,7 +108,7 @@ export default async function CommandesAdminPage({
   const [commandesBrutes, commerciaux] = await Promise.all([
     prisma.commande.findMany({
       where,
-      orderBy: { date_commande: "desc" },
+      orderBy: ORDRE_COMMANDES_PLUS_RECENTES,
       select: {
         id: true,
         numero_bl: true,
