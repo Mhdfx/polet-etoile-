@@ -1,4 +1,5 @@
 import { z } from "zod";
+import Decimal from "decimal.js";
 import { normaliserSaisieMontant, normaliserSaisieQuantite } from "@/lib/saisie";
 
 const champId = z.string().min(1, "Identifiant introuvable");
@@ -20,6 +21,28 @@ const champQuantite = z.string().transform((valeur, contexte) => {
 const ligneCommande = z.object({
   produitId: champId,
   quantite: champQuantite,
+});
+
+const champPrixUnitaireCommande = z.string().transform((valeur, contexte) => {
+  const normalise = normaliserSaisieMontant(valeur);
+
+  if (
+    normalise === null ||
+    new Decimal(normalise).lte(0) ||
+    new Decimal(normalise).gt("99999999.99")
+  ) {
+    contexte.addIssue({
+      code: "custom",
+      message: "Le prix de la commande doit etre compris entre 0,01 et 99 999 999,99 DH",
+    });
+    return z.NEVER;
+  }
+
+  return normalise;
+});
+
+const ligneCommandeAdmin = ligneCommande.extend({
+  prixUnitaire: champPrixUnitaireCommande,
 });
 
 const baseCommande = z.object({
@@ -48,11 +71,18 @@ const baseCommande = z.object({
     }),
 });
 
+const baseCommandeAdmin = baseCommande.extend({
+  lignes: z
+    .array(ligneCommandeAdmin)
+    .min(1, "Ajouter au moins une ligne de commande")
+    .max(60, "Une commande ne peut pas depasser 60 lignes"),
+});
+
 export const schemaCreationCommandeCommercial = baseCommande.extend({
   clientId: z.string().min(1, "Choisir un client"),
 });
 
-export const schemaCreationCommandeAdmin = baseCommande
+export const schemaCreationCommandeAdmin = baseCommandeAdmin
   .extend({
     commercialId: champId,
     typeClient: z.enum(["STANDARD", "EXTERNE"], {

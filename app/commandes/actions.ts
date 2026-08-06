@@ -116,6 +116,7 @@ async function creerCommandeTransactionnelle({
   totalAnnonce,
   ip,
   verifierResponsableClient,
+  autoriserPrixPersonnalise = false,
 }: {
   tx: Prisma.TransactionClient;
   utilisateurAuditId: string;
@@ -123,10 +124,11 @@ async function creerCommandeTransactionnelle({
   clientId?: string;
   clientExterneId?: string;
   typeCommande: TypeCommande;
-  lignes: Array<{ produitId: string; quantite: string }>;
+  lignes: Array<{ produitId: string; quantite: string; prixUnitaire?: string }>;
   totalAnnonce?: string;
   ip: string | null;
   verifierResponsableClient?: boolean;
+  autoriserPrixPersonnalise?: boolean;
 }): Promise<ResultatCommande> {
   if (!(await verifierResponsableCommandeActif(tx, commercialId))) {
     return { ok: false, erreurs: { commercialId: "Responsable introuvable" } };
@@ -160,7 +162,9 @@ async function creerCommandeTransactionnelle({
 
   let commandeCalculee;
   try {
-    commandeCalculee = calculerCommande(lignes, produits);
+    commandeCalculee = calculerCommande(lignes, produits, {
+      autoriserPrixPersonnalise,
+    });
   } catch (erreur) {
     if (erreur instanceof ProduitCommandeIntrouvable) {
       return {
@@ -309,6 +313,7 @@ export async function creerCommandeAdmin(entree: unknown): Promise<ResultatComma
         lignes,
         totalAnnonce,
         ip,
+        autoriserPrixPersonnalise: true,
       }),
     );
 
@@ -533,7 +538,9 @@ export async function modifierCommandeAdmin(
 
       let commandeCalculee;
       try {
-        commandeCalculee = calculerCommande(lignes, produits);
+        commandeCalculee = calculerCommande(lignes, produits, {
+          autoriserPrixPersonnalise: true,
+        });
       } catch (erreur) {
         if (erreur instanceof ProduitCommandeIntrouvable) {
           return {

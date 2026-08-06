@@ -28,7 +28,7 @@ export default async function ModifierCommandeAdminPage({ params }: PageProps) {
           lignes: {
             where: { deleted_at: null },
             orderBy: { created_at: "asc" },
-            select: { produit_id: true, quantite: true },
+            select: { produit_id: true, quantite: true, prix_unitaire: true },
           },
         },
       }),
@@ -89,6 +89,7 @@ export default async function ModifierCommandeAdminPage({ params }: PageProps) {
           lignes: commande.lignes.map((ligne) => ({
             produitId: ligne.produit_id,
             quantite: ligne.quantite.toFixed(3).replace(".", ","),
+            prixUnitaire: ligne.prix_unitaire.toFixed(2).replace(".", ","),
           })),
         }}
         produits={produits.map((produit) => ({

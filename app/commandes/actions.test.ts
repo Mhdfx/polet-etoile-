@@ -20,7 +20,7 @@ const {
       update: vi.fn(),
     },
     paiement: { create: vi.fn() },
-    ligneCommande: { updateMany: vi.fn() },
+    ligneCommande: { updateMany: vi.fn(), createMany: vi.fn() },
     auditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
   };
@@ -55,6 +55,7 @@ import {
   ajouterPaiementCommande,
   creerCommandeAdmin,
   creerCommandeCommercial,
+  modifierCommandeAdmin,
   supprimerCommandeAdmin,
 } from "./actions";
 
@@ -106,7 +107,7 @@ describe("creerCommandeCommercial", () => {
     const resultat = await creerCommandeCommercial({
       clientId: "client-1",
       lignes: [
-        { produitId: "prod-1", quantite: "10,000" },
+        { produitId: "prod-1", quantite: "10,000", prixUnitaire: "1,00" },
         { produitId: "prod-2", quantite: "2,500" },
       ],
       totalAnnonce: "355,00",
@@ -253,7 +254,7 @@ describe("creerCommandeAdmin", () => {
       commercialId: "com-1",
       typeClient: "EXTERNE",
       clientExterneId: "ext-1",
-      lignes: [{ produitId: "prod-1", quantite: "1" }],
+      lignes: [{ produitId: "prod-1", quantite: "1", prixUnitaire: "23,50" }],
     });
 
     expect(resultat.ok).toBe(true);
@@ -289,7 +290,7 @@ describe("creerCommandeAdmin", () => {
       commercialId: "admin-1",
       typeClient: "EXTERNE",
       clientExterneId: "ext-1",
-      lignes: [{ produitId: "prod-1", quantite: "1" }],
+      lignes: [{ produitId: "prod-1", quantite: "1", prixUnitaire: "23,50" }],
     });
 
     expect(resultat.ok).toBe(true);
@@ -307,6 +308,118 @@ describe("creerCommandeAdmin", () => {
         data: expect.objectContaining({
           utilisateur_id: "admin-1",
           type_commande: "EXTERNE",
+        }),
+      }),
+    );
+  });
+
+  it("fige le prix personnalise admin sans modifier le catalogue", async () => {
+    const resultat = await creerCommandeAdmin({
+      commercialId: "com-1",
+      typeClient: "EXTERNE",
+      clientExterneId: "ext-1",
+      lignes: [{ produitId: "prod-1", quantite: "2", prixUnitaire: "19,90" }],
+      totalAnnonce: "39,80",
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.commande.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lignes: {
+            create: [
+              {
+                produit_id: "prod-1",
+                quantite: "2.000",
+                prix_unitaire: "19.90",
+                prix_net: "39.80",
+              },
+            ],
+          },
+        }),
+      }),
+    );
+    expect(txMock.produit.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { id: true, prix_reference: true },
+      }),
+    );
+    expect(txMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          donnees_apres: expect.objectContaining({
+            lignes: [
+              expect.objectContaining({
+                prixReference: "23.50",
+                prixUnitaire: "19.90",
+                prixPersonnalise: true,
+              }),
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+});
+
+describe("modifierCommandeAdmin", () => {
+  it("conserve le prix fige transmis par l'admin et recalcule le net", async () => {
+    txMock.commande.findUnique.mockResolvedValue({
+      id: "commande-1",
+      numero_bl: "CP-000009",
+      utilisateur_id: "com-1",
+      client_id: "client-1",
+      client_externe_id: null,
+      type_commande: "STANDARD",
+      date_commande: new Date("2026-08-06T12:00:00.000Z"),
+      bon_charge: null,
+      lignes: [
+        {
+          id: "ligne-1",
+          produit_id: "prod-1",
+          quantite: "2.000",
+          prix_unitaire: "19.90",
+          prix_net: "39.80",
+        },
+      ],
+      paiements: [{ montant: "10.00" }],
+    });
+
+    const resultat = await modifierCommandeAdmin({
+      commandeId: "commande-1",
+      dateCommande: "2026-08-06",
+      commercialId: "com-1",
+      typeClient: "STANDARD",
+      clientId: "client-1",
+      lignes: [{ produitId: "prod-1", quantite: "2", prixUnitaire: "19,90" }],
+      totalAnnonce: "39,80",
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.ligneCommande.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          commande_id: "commande-1",
+          produit_id: "prod-1",
+          quantite: "2.000",
+          prix_unitaire: "19.90",
+          prix_net: "39.80",
+        },
+      ],
+    });
+    expect(txMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: "commande.modification",
+          donnees_apres: expect.objectContaining({
+            lignes: [
+              expect.objectContaining({
+                prixReference: "23.50",
+                prixUnitaire: "19.90",
+                prixPersonnalise: true,
+              }),
+            ],
+          }),
         }),
       }),
     );

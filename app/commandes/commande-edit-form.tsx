@@ -4,12 +4,13 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
+import { ChampMontant } from "@/components/champ-montant";
 import { ChampQuantite } from "@/components/champ-quantite";
 import { Button } from "@/components/ui/button";
 import { SelectNatif } from "@/components/ui/select-natif";
 import { calculerPrixNet, sommerMontants } from "@/lib/decimal";
 import { formatMontant } from "@/lib/format";
-import { normaliserSaisieQuantite } from "@/lib/saisie";
+import { normaliserSaisieMontant, normaliserSaisieQuantite } from "@/lib/saisie";
 import { modifierCommandeAdmin } from "./actions";
 
 type OptionProduit = {
@@ -34,6 +35,7 @@ type OptionResponsable = {
 type LigneFormulaire = {
   produitId: string;
   quantite: string;
+  prixUnitaire: string;
 };
 
 type CommandeInitiale = {
@@ -48,7 +50,7 @@ type CommandeInitiale = {
 };
 
 function nouvelleLigne(): LigneFormulaire {
-  return { produitId: "", quantite: "" };
+  return { produitId: "", quantite: "", prixUnitaire: "" };
 }
 
 export function CommandeEditForm({
@@ -93,11 +95,12 @@ export function CommandeEditForm({
       .map((ligne) => {
         const produit = produitsParId.get(ligne.produitId);
         const quantite = normaliserSaisieQuantite(ligne.quantite);
-        if (!produit || !quantite) {
+        const prixUnitaire = normaliserSaisieMontant(ligne.prixUnitaire);
+        if (!produit || !quantite || !prixUnitaire) {
           return null;
         }
 
-        return calculerPrixNet(quantite, produit.prixReference);
+        return calculerPrixNet(quantite, prixUnitaire);
       })
       .filter((montant): montant is NonNullable<typeof montant> => montant !== null);
 
@@ -137,7 +140,9 @@ export function CommandeEditForm({
       typeClient,
       clientId: typeClient === "STANDARD" ? clientId : undefined,
       clientExterneId: typeClient === "EXTERNE" ? clientExterneId : undefined,
-      lignes: lignes.filter((ligne) => ligne.produitId || ligne.quantite),
+      lignes: lignes.filter(
+        (ligne) => ligne.produitId || ligne.quantite || ligne.prixUnitaire,
+      ),
     });
 
     setEnCours(false);
@@ -248,7 +253,7 @@ export function CommandeEditForm({
           <div>
             <h2 className="text-sm font-semibold">Lignes du BL</h2>
             <p className="text-xs text-muted-foreground">
-              Les prix sont recalcules depuis le catalogue actif au moment de la modification.
+              Le prix fige de chaque ligne est conserve. Modifiez-le uniquement si necessaire pour cette commande.
             </p>
           </div>
           <Button
@@ -265,23 +270,29 @@ export function CommandeEditForm({
         {lignes.map((ligne, index) => {
           const produit = produitsParId.get(ligne.produitId);
           const quantite = normaliserSaisieQuantite(ligne.quantite);
+          const prixUnitaire = normaliserSaisieMontant(ligne.prixUnitaire);
           const prixNet =
-            produit && quantite
-              ? formatMontant(calculerPrixNet(quantite, produit.prixReference))
+            produit && quantite && prixUnitaire
+              ? formatMontant(calculerPrixNet(quantite, prixUnitaire))
               : "-";
 
           return (
             <div
               key={`${index}-${ligne.produitId}`}
-              className="grid gap-3 rounded-lg border border-border bg-background/50 p-3 md:grid-cols-[1fr_150px_130px_44px]"
+              className="grid gap-3 rounded-lg border border-border bg-background/50 p-3 md:grid-cols-[1fr_140px_150px_130px_44px]"
             >
               <Champ id={`ligne-produit-${index}`} label="Produit" obligatoire>
                 <SelectNatif
                   id={`ligne-produit-${index}`}
                   value={ligne.produitId}
-                  onChange={(event) =>
-                    modifierLigne(index, { produitId: event.target.value })
-                  }
+                  onChange={(event) => {
+                    const produitId = event.target.value;
+                    modifierLigne(index, {
+                      produitId,
+                      prixUnitaire:
+                        produitsParId.get(produitId)?.prixReference ?? "",
+                    });
+                  }}
                 >
                   <option value="">Choisir un produit</option>
                   {produits.map((option) => (
@@ -297,6 +308,25 @@ export function CommandeEditForm({
                   id={`ligne-quantite-${index}`}
                   value={ligne.quantite}
                   onChange={(event) => modifierLigne(index, { quantite: event.target.value })}
+                />
+              </Champ>
+
+              <Champ
+                id={`ligne-prix-${index}`}
+                label="Prix commande / kg"
+                obligatoire
+                description={
+                  produit
+                    ? `Catalogue : ${produit.prixReferenceLabel}`
+                    : "Selectionnez un produit"
+                }
+              >
+                <ChampMontant
+                  id={`ligne-prix-${index}`}
+                  value={ligne.prixUnitaire}
+                  onChange={(event) =>
+                    modifierLigne(index, { prixUnitaire: event.target.value })
+                  }
                 />
               </Champ>
 

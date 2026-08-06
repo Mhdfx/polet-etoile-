@@ -9,7 +9,9 @@ export type ProduitCommande = {
 export type LigneCommandeCalculee = {
   produitId: string;
   quantite: string;
+  prixReference: string;
   prixUnitaire: string;
+  prixPersonnalise: boolean;
   prixNet: string;
 };
 
@@ -31,8 +33,9 @@ export class ProduitCommandeDuplique extends Error {
 }
 
 export function calculerCommande(
-  lignes: Array<{ produitId: string; quantite: string }>,
+  lignes: Array<{ produitId: string; quantite: string; prixUnitaire?: string }>,
   produits: ProduitCommande[],
+  options: { autoriserPrixPersonnalise?: boolean } = {},
 ): CommandeCalculee {
   const produitsParId = new Map(produits.map((produit) => [produit.id, produit]));
   const produitsVus = new Set<string>();
@@ -48,12 +51,19 @@ export function calculerCommande(
       throw new ProduitCommandeIntrouvable(ligne.produitId);
     }
 
-    const prixNet = calculerPrixNet(ligne.quantite, produit.prix_reference);
+    const prixReference = new Decimal(produit.prix_reference);
+    const prixUnitaire =
+      options.autoriserPrixPersonnalise && ligne.prixUnitaire
+        ? new Decimal(ligne.prixUnitaire)
+        : prixReference;
+    const prixNet = calculerPrixNet(ligne.quantite, prixUnitaire);
 
     return {
       produitId: ligne.produitId,
       quantite: new Decimal(ligne.quantite).toFixed(3),
-      prixUnitaire: new Decimal(produit.prix_reference).toFixed(2),
+      prixReference: prixReference.toFixed(2),
+      prixUnitaire: prixUnitaire.toFixed(2),
+      prixPersonnalise: !prixUnitaire.eq(prixReference),
       prixNet: prixNet.toFixed(2),
     };
   });

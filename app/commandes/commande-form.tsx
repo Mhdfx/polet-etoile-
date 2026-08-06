@@ -7,6 +7,7 @@ import { creerClientAdmin } from "@/app/admin/clients/actions";
 import { creerClientCommercial } from "@/app/commercial/clients/actions";
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
+import { ChampMontant } from "@/components/champ-montant";
 import { ChampQuantite } from "@/components/champ-quantite";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { calculerPrixNet, sommerMontants } from "@/lib/decimal";
 import { formatMontant } from "@/lib/format";
-import { normaliserSaisieQuantite } from "@/lib/saisie";
+import { normaliserSaisieMontant, normaliserSaisieQuantite } from "@/lib/saisie";
 import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 import { creerCommandeAdmin, creerCommandeCommercial } from "./actions";
 
@@ -62,6 +63,7 @@ type OptionCommercial = {
 type LigneFormulaire = {
   produitId: string;
   quantite: string;
+  prixUnitaire: string;
 };
 
 type BrouillonCommande = {
@@ -92,7 +94,7 @@ type CommandeFormProps =
     };
 
 function nouvelleLigne(): LigneFormulaire {
-  return { produitId: "", quantite: "" };
+  return { produitId: "", quantite: "", prixUnitaire: "" };
 }
 
 export function CommandeForm(props: CommandeFormProps) {
@@ -175,6 +177,11 @@ export function CommandeForm(props: CommandeFormProps) {
             brouillon.lignes.map((ligne) => ({
               produitId: ligne.produitId ?? "",
               quantite: ligne.quantite ?? "",
+              prixUnitaire:
+                ligne.prixUnitaire ??
+                (props.mode === "admin"
+                  ? produitsParId.get(ligne.produitId ?? "")?.prixReference ?? ""
+                  : ""),
             })),
           );
         }
@@ -183,7 +190,13 @@ export function CommandeForm(props: CommandeFormProps) {
       }
     }
     setBrouillonCharge(true);
-  }, [cleBrouillon, clientsAvecCommercial, props.mode, responsableInitialId]);
+  }, [
+    cleBrouillon,
+    clientsAvecCommercial,
+    produitsParId,
+    props.mode,
+    responsableInitialId,
+  ]);
 
   useEffect(() => {
     if (!brouillonCharge) {
@@ -316,16 +329,20 @@ export function CommandeForm(props: CommandeFormProps) {
       .map((ligne) => {
         const produit = produitsParId.get(ligne.produitId);
         const quantite = normaliserSaisieQuantite(ligne.quantite);
-        if (!produit || !quantite) {
+        const prixUnitaire =
+          props.mode === "admin"
+            ? normaliserSaisieMontant(ligne.prixUnitaire)
+            : produit?.prixReference;
+        if (!produit || !quantite || !prixUnitaire) {
           return null;
         }
 
-        return calculerPrixNet(quantite, produit.prixReference);
+        return calculerPrixNet(quantite, prixUnitaire);
       })
       .filter((montant): montant is NonNullable<typeof montant> => montant !== null);
 
     return montants.length > 0 ? formatMontant(sommerMontants(montants)) : "0,00 DH";
-  }, [lignes, produitsParId]);
+  }, [lignes, produitsParId, props.mode]);
 
   function modifierLigne(index: number, patch: Partial<LigneFormulaire>) {
     setLignes((actuelles) =>
@@ -379,7 +396,9 @@ export function CommandeForm(props: CommandeFormProps) {
       return;
     }
 
-    const lignesValides = lignes.filter((ligne) => ligne.produitId || ligne.quantite);
+    const lignesRemplies = lignes.filter(
+      (ligne) => ligne.produitId || ligne.quantite || ligne.prixUnitaire,
+    );
 
     setEnCours(true);
     const resultat =
@@ -389,11 +408,14 @@ export function CommandeForm(props: CommandeFormProps) {
             typeClient,
             clientId: typeClient === "STANDARD" ? clientId : undefined,
             clientExterneId: typeClient === "EXTERNE" ? clientExterneId : undefined,
-            lignes: lignesValides,
+            lignes: lignesRemplies,
           })
         : await creerCommandeCommercial({
             clientId,
-            lignes: lignesValides,
+            lignes: lignesRemplies.map((ligne) => ({
+              produitId: ligne.produitId,
+              quantite: ligne.quantite,
+            })),
           });
     setEnCours(false);
 
@@ -617,7 +639,9 @@ export function CommandeForm(props: CommandeFormProps) {
         <CardHeader>
           <CardTitle>Lignes de commande</CardTitle>
           <CardDescription>
-            Le prix est repris depuis le catalogue actif et fige a la creation.
+            {props.mode === "admin"
+              ? "Le prix catalogue est pre-rempli. Vous pouvez le changer uniquement pour cette commande."
+              : "Le prix est repris depuis le catalogue actif et fige a la creation."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
@@ -628,20 +652,39 @@ export function CommandeForm(props: CommandeFormProps) {
           {lignes.map((ligne, index) => {
             const produit = produitsParId.get(ligne.produitId);
             const quantite = normaliserSaisieQuantite(ligne.quantite);
+            const prixUnitaire =
+              props.mode === "admin"
+                ? normaliserSaisieMontant(ligne.prixUnitaire)
+                : produit?.prixReference;
             const prixNet =
-              produit && quantite
-                ? formatMontant(calculerPrixNet(quantite, produit.prixReference))
+              produit && quantite && prixUnitaire
+                ? formatMontant(calculerPrixNet(quantite, prixUnitaire))
                 : "-";
 
             return (
               <div
                 key={index}
-                className="grid gap-3 rounded-lg border border-border bg-background/50 p-3 md:grid-cols-[1fr_150px_130px_44px]"
+                className={`grid gap-3 rounded-lg border border-border bg-background/50 p-3 ${
+                  props.mode === "admin"
+                    ? "md:grid-cols-[1fr_140px_150px_130px_44px]"
+                    : "md:grid-cols-[1fr_150px_130px_44px]"
+                }`}
               >
                 <Champ id={`ligne-produit-${index}`} label="Produit" obligatoire>
                   <Select
                     value={ligne.produitId}
-                    onValueChange={(produitId) => modifierLigne(index, { produitId })}
+                    onValueChange={(produitId) =>
+                      modifierLigne(
+                        index,
+                        props.mode === "admin"
+                          ? {
+                              produitId,
+                              prixUnitaire:
+                                produitsParId.get(produitId)?.prixReference ?? "",
+                            }
+                          : { produitId },
+                      )
+                    }
                   >
                     <SelectTrigger id={`ligne-produit-${index}`} className="w-full">
                       <SelectValue placeholder="Choisir un produit" />
@@ -665,6 +708,27 @@ export function CommandeForm(props: CommandeFormProps) {
                     }
                   />
                 </Champ>
+
+                {props.mode === "admin" ? (
+                  <Champ
+                    id={`ligne-prix-${index}`}
+                    label="Prix commande / kg"
+                    obligatoire
+                    description={
+                      produit
+                        ? `Catalogue : ${produit.prixReferenceLabel}`
+                        : "Selectionnez un produit"
+                    }
+                  >
+                    <ChampMontant
+                      id={`ligne-prix-${index}`}
+                      value={ligne.prixUnitaire}
+                      onChange={(evenement) =>
+                        modifierLigne(index, { prixUnitaire: evenement.target.value })
+                      }
+                    />
+                  </Champ>
+                ) : null}
 
                 <div className="grid content-end gap-1">
                   <p className="text-xs font-medium text-muted-foreground">Net</p>
