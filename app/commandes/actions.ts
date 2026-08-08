@@ -46,7 +46,7 @@ function erreurServeur(erreur: unknown, action: string): ResultatCommande {
 function erreurServeurMutation(
   erreur: unknown,
   action: string,
-): ResultatMutationCommande {
+): Extract<ResultatMutationCommande, { ok: false }> {
   const idErreur = randomUUID().slice(0, 8);
   console.error(`[commandes:${action}] erreur ${idErreur}`, erreur);
 
@@ -193,13 +193,10 @@ async function creerCommandeTransactionnelle({
   }
 
   const bl = await attribuerNumeroBL(tx);
-  const facture = await attribuerNumeroFacture(tx);
   const commande = await tx.commande.create({
     data: {
       numero_bl: bl.numeroBl,
       numero_bl_compteur: bl.compteur,
-      numero_facture: facture.numeroFacture,
-      numero_facture_compteur: facture.compteur,
       utilisateur_id: commercialId,
       type_commande: typeCommande,
       client_id: typeCommande === "STANDARD" ? clientId : null,
@@ -226,8 +223,6 @@ async function creerCommandeTransactionnelle({
       apres: {
         numero_bl: bl.numeroBl,
         numero_bl_compteur: bl.compteur,
-        numero_facture: facture.numeroFacture,
-        numero_facture_compteur: facture.compteur,
         utilisateur_id: commercialId,
         client_id: clientId,
         client_externe_id: clientExterneId,
@@ -326,6 +321,78 @@ export async function creerCommandeAdmin(entree: unknown): Promise<ResultatComma
     return resultat;
   } catch (erreur) {
     return erreurServeur(erreur, "creation_admin");
+  }
+}
+
+export type ResultatGenerationFacture =
+  | { ok: true; numeroFacture: string }
+  | { ok: false; message: string };
+
+export async function genererNumeroFactureCommande(
+  commandeId: string,
+): Promise<ResultatGenerationFacture> {
+  const admin = await requireAdmin();
+  if (!commandeId) {
+    return { ok: false, message: "Commande introuvable" };
+  }
+
+  try {
+    const ip = await adresseIpRequete();
+    const resultat = await prisma.$transaction(async (tx): Promise<ResultatGenerationFacture> => {
+      const verrou = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM commandes
+        WHERE id = ${commandeId} AND deleted_at IS NULL
+        FOR UPDATE
+      `;
+      if (!verrou.at(0)) {
+        return { ok: false, message: "Commande introuvable" };
+      }
+
+      const commande = await tx.commande.findUnique({
+        where: { id: commandeId },
+        select: { numero_bl: true, numero_facture: true },
+      });
+      if (!commande) {
+        return { ok: false, message: "Commande introuvable" };
+      }
+      if (commande.numero_facture) {
+        return { ok: true, numeroFacture: commande.numero_facture };
+      }
+
+      const facture = await attribuerNumeroFacture(tx);
+      await tx.commande.update({
+        where: { id: commandeId },
+        data: {
+          numero_facture: facture.numeroFacture,
+          numero_facture_compteur: facture.compteur,
+        },
+      });
+      await ecrireAudit(
+        tx,
+        {
+          utilisateurId: admin.id,
+          action: "facture.generation",
+          entite: "commandes",
+          entiteId: commandeId,
+          apres: {
+            numero_bl: commande.numero_bl,
+            numero_facture: facture.numeroFacture,
+            numero_facture_compteur: facture.compteur,
+          },
+        },
+        ip,
+      );
+      return { ok: true, numeroFacture: facture.numeroFacture };
+    });
+
+    if (resultat.ok) {
+      revalidatePath("/admin/commandes");
+      revalidatePath(`/admin/commandes/${commandeId}`);
+    }
+    return resultat;
+  } catch (erreur) {
+    const resultat = erreurServeurMutation(erreur, "generation_facture");
+    return { ok: false, message: resultat.message ?? MESSAGE_ERREUR_SERVEUR };
   }
 }
 

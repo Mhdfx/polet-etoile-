@@ -61,6 +61,7 @@ async function chargerCommandesSelectionnees({
     select: {
       id: true,
       numero_bl: true,
+      numero_facture: true,
       bon_charge: {
         where: { deleted_at: null },
         select: { id: true, numero_bc: true },
@@ -275,6 +276,18 @@ export async function exporterDocumentsCommandes({
   });
   if (commandes instanceof Response) {
     return commandes;
+  }
+
+  if (documents.includes("facture")) {
+    const sansFacture = commandes
+      .filter((commande) => !commande.numero_facture)
+      .map((commande) => commande.numero_bl);
+    if (sansFacture.length > 0) {
+      return reponseErreur(
+        `Generez d'abord les factures des commandes suivantes : ${sansFacture.join(", ")}.`,
+        409,
+      );
+    }
   }
 
   const veutBonCharge = documents.includes("bon_charge");

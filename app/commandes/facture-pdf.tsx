@@ -265,7 +265,7 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
             <Logo commande={commande} />
             <View>
               <Text style={styles.companyName}>{commande.societe.raisonSociale}</Text>
-              <Text style={styles.companyLine}>{identifiantsSociete(commande)}</Text>
+              <Text style={styles.companyLine}>{identifiantsEnteteFacture(commande)}</Text>
               <Text style={styles.companyLine}>
                 Tel : {commande.societe.telephone || "+212 660924488"}
               </Text>
@@ -402,6 +402,16 @@ function identifiantsSociete({ societe }: CommandeDocumentData): string {
   const valeurs = [
     societe.rc ? `RC : ${societe.rc}` : undefined,
     societe.ice ? `ICE : ${societe.ice}` : undefined,
+    societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
+    societe.patente ? `TP : ${societe.patente}` : undefined,
+  ].filter(Boolean);
+
+  return valeurs.length > 0 ? valeurs.join(" - ") : "-";
+}
+
+function identifiantsEnteteFacture({ societe }: CommandeDocumentData): string {
+  const valeurs = [
+    societe.rc ? `RC : ${societe.rc}` : undefined,
     societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
     societe.patente ? `TP : ${societe.patente}` : undefined,
   ].filter(Boolean);

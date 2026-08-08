@@ -55,7 +55,20 @@ describe("calculerKpiPilotage", () => {
     expect(kpi.panierMoyen.toFixed(2)).toBe("200.00");
     expect(kpi.tauxEncaissement.toFixed(1)).toBe("66.7");
     expect(kpi.tauxCommandesReglees.toFixed(1)).toBe("66.7");
+    expect(kpi.commandesReglees).toBe(2);
+    expect(kpi.commandesTotal).toBe(3);
     expect(kpi.clientsServis).toBe(2);
+  });
+
+  it("calcule le taux d'encaissement par commandes reglees et non par montant", () => {
+    const kpi = calculerKpiPilotage([
+      { lignes: [{ prix_net: "1000" }], paiements: [{ montant: "1000" }] },
+      { lignes: [{ prix_net: "10" }], paiements: [] },
+    ]);
+
+    expect(kpi.tauxEncaissement.toFixed(1)).toBe("50.0");
+    expect(kpi.commandesReglees).toBe(1);
+    expect(kpi.commandesTotal).toBe(2);
   });
 });
 

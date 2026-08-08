@@ -212,8 +212,8 @@ model Commande {
   id                 String       @id @default(cuid())
   numero_bl          String       @unique @db.VarChar(40)
   numero_bl_compteur Int          @unique
-  numero_facture          String  @unique @db.VarChar(40)
-  numero_facture_compteur Int     @unique
+  numero_facture          String? @unique @db.VarChar(40)
+  numero_facture_compteur Int?    @unique
   client_id          String?
   client_externe_id  String?
   utilisateur_id     String

@@ -167,15 +167,12 @@ export type CommandePilotage = CommandeImpaye & {
 
 export function calculerKpiPilotage(commandes: CommandePilotage[]) {
   let chiffreAffaires = new Decimal(0);
-  let montantEncaisse = new Decimal(0);
   let commandesReglees = 0;
   const clients = new Set<string>();
 
   for (const commande of commandes) {
     const total = sommerMontants(commande.lignes.map((ligne) => ligne.prix_net));
-    const paye = sommerMontants(commande.paiements.map((paiement) => paiement.montant));
     chiffreAffaires = chiffreAffaires.plus(total);
-    montantEncaisse = montantEncaisse.plus(Decimal.min(paye, total));
     if (calculerResteDu(total, commande.paiements.map((p) => p.montant)).eq(0)) {
       commandesReglees += 1;
     }
@@ -187,8 +184,10 @@ export function calculerKpiPilotage(commandes: CommandePilotage[]) {
     panierMoyen: commandes.length > 0
       ? chiffreAffaires.div(commandes.length).toDecimalPlaces(2)
       : new Decimal(0),
-    tauxEncaissement: chiffreAffaires.gt(0)
-      ? montantEncaisse.div(chiffreAffaires).mul(100).toDecimalPlaces(1)
+    commandesReglees,
+    commandesTotal: commandes.length,
+    tauxEncaissement: commandes.length > 0
+      ? new Decimal(commandesReglees).div(commandes.length).mul(100).toDecimalPlaces(1)
       : new Decimal(0),
     tauxCommandesReglees: commandes.length > 0
       ? new Decimal(commandesReglees).div(commandes.length).mul(100).toDecimalPlaces(1)

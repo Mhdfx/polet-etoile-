@@ -4,6 +4,8 @@ import { Download } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { Button } from "@/components/ui/button";
+import { construireLienPage } from "@/app/commandes/pagination";
+import { BoutonPagination } from "@/app/commandes/bouton-pagination";
 import {
   Table,
   TableBody,
@@ -31,21 +33,7 @@ type ParametresRecherche = Promise<{
 }>;
 
 function lienPage(params: Record<string, string | undefined>, page: number) {
-  const query = new URLSearchParams();
-  for (const [cle, valeur] of Object.entries(params)) {
-    if (valeur) {
-      query.set(cle, valeur);
-    }
-  }
-  if (page > 1) {
-    query.set("page", String(page));
-  } else {
-    query.delete("page");
-  }
-  const chaine = query.toString();
-  return chaine
-    ? `/commercial/commandes/externes?${chaine}`
-    : "/commercial/commandes/externes";
+  return construireLienPage("/commercial/commandes/externes", params, page);
 }
 
 export default async function CommandesExternesCommercialPage({
@@ -256,25 +244,8 @@ export default async function CommandesExternesCommercialPage({
             {pagesTotal}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
-              {page > 1 ? (
-                <Link href={lienPage(params, page - 1)}>Precedent</Link>
-              ) : (
-                "Precedent"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagesTotal}
-              asChild={page < pagesTotal}
-            >
-              {page < pagesTotal ? (
-                <Link href={lienPage(params, page + 1)}>Suivant</Link>
-              ) : (
-                "Suivant"
-              )}
-            </Button>
+            <BoutonPagination disabled={page <= 1} href={lienPage(params, page - 1)}>Precedent</BoutonPagination>
+            <BoutonPagination disabled={page >= pagesTotal} href={lienPage(params, page + 1)}>Suivant</BoutonPagination>
           </div>
         </div>
       </div>

@@ -131,7 +131,7 @@ export async function chargerCommandeDocument(
     },
     id: commande.id,
     numeroBl: commande.numero_bl,
-    numeroFacture: commande.numero_facture,
+    numeroFacture: commande.numero_facture ?? "",
     date: formatDate(commande.date_commande),
     client: client?.nom ?? "-",
     codeClient: client ? codeClientDocument(client.id, Boolean(commande.client_externe)) : "",

@@ -55,6 +55,7 @@ import {
   ajouterPaiementCommande,
   creerCommandeAdmin,
   creerCommandeCommercial,
+  genererNumeroFactureCommande,
   modifierCommandeAdmin,
   supprimerCommandeAdmin,
 } from "./actions";
@@ -115,13 +116,11 @@ describe("creerCommandeCommercial", () => {
 
     expect(resultat.ok).toBe(true);
     expect(attribuerNumeroBLMock).toHaveBeenCalledWith(txMock);
-    expect(attribuerNumeroFactureMock).toHaveBeenCalledWith(txMock);
+    expect(attribuerNumeroFactureMock).not.toHaveBeenCalled();
     expect(txMock.commande.create).toHaveBeenCalledWith({
       data: {
         numero_bl: "CP-000009",
         numero_bl_compteur: 9,
-        numero_facture: "FACT-000004",
-        numero_facture_compteur: 4,
         utilisateur_id: "com-1",
         type_commande: "STANDARD",
         client_id: "client-1",
@@ -238,6 +237,41 @@ describe("creerCommandeCommercial", () => {
       expect(resultat.message).toContain("inactif ou introuvable");
     }
     expect(txMock.commande.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("genererNumeroFactureCommande", () => {
+  it("attribue manuellement un numero facture sous verrou admin", async () => {
+    txMock.commande.findUnique.mockResolvedValueOnce({
+      numero_bl: "CP-000009",
+      numero_facture: null,
+    });
+
+    const resultat = await genererNumeroFactureCommande("commande-1");
+
+    expect(resultat).toEqual({ ok: true, numeroFacture: "FACT-000004" });
+    expect(txMock.$queryRaw).toHaveBeenCalled();
+    expect(attribuerNumeroFactureMock).toHaveBeenCalledWith(txMock);
+    expect(txMock.commande.update).toHaveBeenCalledWith({
+      where: { id: "commande-1" },
+      data: {
+        numero_facture: "FACT-000004",
+        numero_facture_compteur: 4,
+      },
+    });
+  });
+
+  it("reutilise la facture existante sans consommer le compteur", async () => {
+    txMock.commande.findUnique.mockResolvedValueOnce({
+      numero_bl: "CP-000009",
+      numero_facture: "FACT-000003",
+    });
+
+    const resultat = await genererNumeroFactureCommande("commande-1");
+
+    expect(resultat).toEqual({ ok: true, numeroFacture: "FACT-000003" });
+    expect(attribuerNumeroFactureMock).not.toHaveBeenCalled();
+    expect(txMock.commande.update).not.toHaveBeenCalled();
   });
 });
 

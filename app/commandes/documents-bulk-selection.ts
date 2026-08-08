@@ -1,6 +1,7 @@
 export type CommandeSelectionnee = {
   id: string;
   numero_bl: string;
+  numero_facture?: string | null;
   bon_charge: { id: string; numero_bc: string } | null;
 };
 

@@ -5,6 +5,8 @@ import type { Prisma } from "@prisma/client";
 import { AppShell, Panel } from "@/components/app-shell";
 import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
+import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
+import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-commandes";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { calculerTotauxCommande, libelleModePaiement } from "@/lib/commandes-vue";
+import { bornesJourneeInclusive } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -22,6 +25,9 @@ import { requireAdmin } from "@/lib/session";
 type ParametresRecherche = Promise<{
   q?: string;
   statut?: string;
+  commercial?: string;
+  debut?: string;
+  fin?: string;
 }>;
 
 export default async function PaiementsAdminPage({
@@ -32,13 +38,27 @@ export default async function PaiementsAdminPage({
   const admin = await requireAdmin();
   const params = await searchParams;
   const recherche = (params.q ?? "").trim();
+  const commercial = params.commercial || undefined;
   const statut =
     params.statut === "paye" || params.statut === "en_attente"
       ? params.statut
       : "en_attente";
 
+  let bornes: { debutUtc: Date; finExclusiveUtc: Date } | undefined;
+  let erreurPeriode: string | undefined;
+  if (params.debut && params.fin) {
+    try {
+      bornes = bornesJourneeInclusive(params.debut, params.fin);
+    } catch {
+      erreurPeriode = "La date de fin doit etre egale ou posterieure a la date de debut.";
+    }
+  }
+
   const where: Prisma.CommandeWhereInput = {
     deleted_at: null,
+    ...(erreurPeriode ? { id: { in: [] } } : {}),
+    ...(commercial ? { utilisateur_id: commercial } : {}),
+    ...(bornes ? { date_commande: { gte: bornes.debutUtc, lt: bornes.finExclusiveUtc } } : {}),
     ...(recherche
       ? {
           OR: [
@@ -51,7 +71,7 @@ export default async function PaiementsAdminPage({
       : {}),
   };
 
-  const [commandesBrutes, paiementsRecents] = await Promise.all([
+  const [commandesBrutes, paiementsRecents, commerciaux] = await Promise.all([
     prisma.commande.findMany({
       where,
       orderBy: { date_commande: "desc" },
@@ -78,6 +98,11 @@ export default async function PaiementsAdminPage({
         commande: { select: { id: true, numero_bl: true } },
         utilisateur: { select: { nom_complet: true } },
       },
+    }),
+    prisma.user.findMany({
+      where: { role: "COMMERCIAL", actif: true, deleted_at: null },
+      orderBy: { nom_complet: "asc" },
+      select: { id: true, nom_complet: true },
     }),
   ]);
 
@@ -136,16 +161,53 @@ export default async function PaiementsAdminPage({
               <option value="en_attente">Non réglées</option>
               <option value="paye">Réglées</option>
             </select>
+            <select
+              name="commercial"
+              defaultValue={commercial ?? ""}
+              aria-label="Filtrer par commercial"
+              className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
+            >
+              <option value="">Tous les commerciaux</option>
+              {commerciaux.map((item) => (
+                <option key={item.id} value={item.id}>{item.nom_complet}</option>
+              ))}
+            </select>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Du
+              <input name="debut" type="date" defaultValue={params.debut ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+              Au
+              <input name="fin" type="date" defaultValue={params.fin ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
+            </label>
             <Button type="submit" variant="outline">
               <Search />
               Filtrer
             </Button>
+            {(recherche || commercial || params.debut || params.fin || params.statut) ? (
+              <Button type="button" variant="ghost" asChild>
+                <Link href="/admin/paiements">Reinitialiser</Link>
+              </Button>
+            ) : null}
           </form>
 
+          {erreurPeriode ? (
+            <p role="alert" className="mb-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/30">
+              {erreurPeriode}
+            </p>
+          ) : null}
+
+          <form className="grid gap-2">
+            <div className="flex min-h-11 flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 text-sm">
+              <CaseSelectionToutesCommandes libelle="Selectionner toutes les commandes de paiement" />
+              <span>Tout selectionner</span>
+              <CompteurSelectionCommandes />
+            </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12 text-center">Selection</TableHead>
                   <TableHead>BL</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Client</TableHead>
@@ -160,13 +222,23 @@ export default async function PaiementsAdminPage({
               <TableBody>
                 {commandes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                       Aucune commande pour ce filtre.
                     </TableCell>
                   </TableRow>
                 ) : (
                   commandes.map((commande) => (
                     <TableRow key={commande.id}>
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          name="commandeIds"
+                          value={commande.id}
+                          data-selection-commande="true"
+                          aria-label={`Selectionner ${commande.numero_bl}`}
+                          className="size-4 accent-primary"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{commande.numero_bl}</TableCell>
                       <TableCell>{formatDate(commande.date_commande)}</TableCell>
                       <TableCell>{commande.client?.nom ?? commande.client_externe?.nom ?? "-"}</TableCell>
@@ -197,6 +269,7 @@ export default async function PaiementsAdminPage({
               </TableBody>
             </Table>
           </div>
+          </form>
         </Panel>
 
         <Panel title="Paiements recents" eyebrow="Historique">

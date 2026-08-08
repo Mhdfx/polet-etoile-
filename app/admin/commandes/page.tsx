@@ -8,6 +8,8 @@ import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
 import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-commandes";
+import { GenererFactureButton } from "@/app/commandes/generer-facture-button";
+import { construireLienPage } from "@/app/commandes/pagination";
 import { Button } from "@/components/ui/button";
 import { calculerTotauxCommande, libelleTypeCommande } from "@/lib/commandes-vue";
 import { ORDRE_COMMANDES_PLUS_RECENTES } from "@/lib/commandes-tri";
@@ -17,33 +19,15 @@ import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { trierAlphabetiquement } from "@/lib/tri-alphabetique";
 
-const TAILLES_PAGE = [10, 25, 50, 100] as const;
-
 type ParametresRecherche = Promise<{
-  page?: string;
   q?: string;
   commercial?: string;
   type?: string;
   statut?: string;
   debut?: string;
   fin?: string;
-  taille?: string;
   erreurDocuments?: string;
 }>;
-
-function lienPage(params: Record<string, string | undefined>, page: number) {
-  const query = new URLSearchParams();
-  for (const [cle, valeur] of Object.entries(params)) {
-    if (valeur) {
-      query.set(cle, valeur);
-    }
-  }
-  if (page > 1) {
-    query.set("page", String(page));
-  }
-  const chaine = query.toString();
-  return chaine ? `/admin/commandes?${chaine}` : "/admin/commandes";
-}
 
 export default async function CommandesAdminPage({
   searchParams,
@@ -52,11 +36,6 @@ export default async function CommandesAdminPage({
 }) {
   const admin = await requireAdmin();
   const params = await searchParams;
-  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
-  const tailleDemandee = Number.parseInt(params.taille ?? "25", 10);
-  const taillePage = TAILLES_PAGE.includes(tailleDemandee as (typeof TAILLES_PAGE)[number])
-    ? tailleDemandee
-    : 25;
   const recherche = (params.q ?? "").trim();
   const commercial = params.commercial || undefined;
   const type = params.type === "STANDARD" || params.type === "EXTERNE" ? params.type : undefined;
@@ -144,11 +123,7 @@ export default async function CommandesAdminPage({
     );
   });
   const totalLignes = commandesFiltrees.length;
-  const commandes = commandesFiltrees.slice(
-    (page - 1) * taillePage,
-    page * taillePage,
-  );
-  const pagesTotal = Math.max(1, Math.ceil(totalLignes / taillePage));
+  const commandes = commandesFiltrees;
   const totauxListe = commandesFiltrees.reduce(
     (acc, commande) => {
       const totaux = calculerTotauxCommande(commande.lignes, commande.paiements);
@@ -174,7 +149,11 @@ export default async function CommandesAdminPage({
           <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
             <span>{params.erreurDocuments}</span>
             <a
-              href={lienPage({ ...params, erreurDocuments: undefined }, page)}
+              href={construireLienPage(
+                "/admin/commandes",
+                { ...params, erreurDocuments: undefined },
+                1,
+              )}
               className="shrink-0 rounded-md px-2 py-1 text-xs underline-offset-4 hover:bg-destructive/10 hover:underline"
             >
               Fermer
@@ -222,19 +201,10 @@ export default async function CommandesAdminPage({
             <label className="grid gap-1 text-xs font-medium text-muted-foreground">Au
               <input name="fin" type="date" defaultValue={params.fin ?? ""} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground" />
             </label>
-            <label className="grid gap-1 text-xs font-medium text-muted-foreground">Affichage
-            <select name="taille" defaultValue={String(taillePage)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground">
-              {TAILLES_PAGE.map((taille) => (
-                <option key={taille} value={taille}>
-                  {taille} / page
-                </option>
-              ))}
-            </select>
-            </label>
             <Button type="submit" variant="outline">
               Filtrer
             </Button>
-            {(recherche || commercial || type || statut || params.debut || params.fin || params.taille) ? (
+            {(recherche || commercial || type || statut || params.debut || params.fin) ? (
               <Button type="button" variant="ghost" asChild><Link href="/admin/commandes">Reinitialiser</Link></Button>
             ) : null}
           </form>
@@ -270,7 +240,6 @@ export default async function CommandesAdminPage({
                     type="checkbox"
                     name="documents"
                     value="bl"
-                    defaultChecked
                     className="h-4 w-4 accent-primary"
                   />
                   BL
@@ -280,7 +249,6 @@ export default async function CommandesAdminPage({
                     type="checkbox"
                     name="documents"
                     value="facture"
-                    defaultChecked
                     className="h-4 w-4 accent-primary"
                   />
                   Factures
@@ -290,7 +258,6 @@ export default async function CommandesAdminPage({
                     type="checkbox"
                     name="documents"
                     value="bon_charge"
-                    defaultChecked
                     className="h-4 w-4 accent-primary"
                   />
                   Bons de charge
@@ -367,9 +334,7 @@ export default async function CommandesAdminPage({
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/admin/commandes/${commande.id}/pdf`} target="_blank"><FileText /> BL</Link>
                       </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/commandes/${commande.id}/facture`} target="_blank"><FileText /> {commande.numero_facture}</Link>
-                      </Button>
+                      <GenererFactureButton commandeId={commande.id} numeroFacture={commande.numero_facture} />
                       <BonChargeCommandeButton
                         commandeId={commande.id}
                         bonCharge={commande.bon_charge ? {
@@ -442,7 +407,7 @@ export default async function CommandesAdminPage({
                                 className="size-4 accent-primary"
                               />
                               <span className="tabular-nums text-muted-foreground">
-                                {(page - 1) * taillePage + index + 1}
+                                {index + 1}
                               </span>
                             </span>
                           </td>
@@ -471,11 +436,7 @@ export default async function CommandesAdminPage({
                                   <FileText /> BL
                                 </Link>
                               </Button>
-                              <Button size="xs" variant="outline" className="border-alerte/30 bg-alerte/10 text-alerte hover:bg-alerte/20" asChild>
-                                <Link href={`/admin/commandes/${commande.id}/facture`} target="_blank" title={commande.numero_facture} aria-label={`Télécharger la facture ${commande.numero_facture}`}>
-                                  <FileText /> Facture
-                                </Link>
-                              </Button>
+                              <GenererFactureButton compact commandeId={commande.id} numeroFacture={commande.numero_facture} />
                               <BonChargeCommandeButton
                                 compact
                                 commandeId={commande.id}
@@ -498,52 +459,9 @@ export default async function CommandesAdminPage({
           </form>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-          <p>
-            {totalLignes} resultat{totalLignes > 1 ? "s" : ""} - page {page} sur{" "}
-            {pagesTotal}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
-              {page > 1 ? (
-                <Link href={lienPage(params, 1)}>Premiere</Link>
-              ) : (
-                "Premiere"
-              )}
-            </Button>
-            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
-              {page > 1 ? (
-                <Link href={lienPage(params, page - 1)}>Precedent</Link>
-              ) : (
-                "Precedent"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagesTotal}
-              asChild={page < pagesTotal}
-            >
-              {page < pagesTotal ? (
-                <Link href={lienPage(params, page + 1)}>Suivant</Link>
-              ) : (
-                "Suivant"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagesTotal}
-              asChild={page < pagesTotal}
-            >
-              {page < pagesTotal ? (
-                <Link href={lienPage(params, pagesTotal)}>Derniere</Link>
-              ) : (
-                "Derniere"
-              )}
-            </Button>
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {totalLignes} resultat{totalLignes > 1 ? "s" : ""} affiche{totalLignes > 1 ? "s" : ""} sur une seule page.
+        </p>
       </div>
     </AppShell>
   );

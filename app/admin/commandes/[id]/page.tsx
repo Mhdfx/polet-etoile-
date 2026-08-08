@@ -21,6 +21,7 @@ import {
 import { PaiementForm } from "@/app/commandes/paiement-form";
 import { SupprimerCommandeButton } from "@/app/commandes/supprimer-commande-button";
 import { BonChargeCommandeButton } from "@/app/charges/bon-charge-commande-button";
+import { GenererFactureButton } from "@/app/commandes/generer-facture-button";
 import {
   calculerTotauxCommande,
   libelleModePaiement,
@@ -103,11 +104,10 @@ export default async function CommandeAdminDetailPage({ params }: PageProps) {
                 PDF BL
               </Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/admin/commandes/${commande.id}/facture`} target="_blank">
-                Facture {commande.numero_facture}
-              </Link>
-            </Button>
+            <GenererFactureButton
+              commandeId={commande.id}
+              numeroFacture={commande.numero_facture}
+            />
             <BonChargeCommandeButton
               commandeId={commande.id}
               bonCharge={

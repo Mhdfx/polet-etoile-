@@ -10,6 +10,12 @@ export async function GET(_request: Request, { params }: RouteProps) {
   await requireAdmin();
   const { id } = await params;
   const commande = await chargerCommandeDocument(id);
+  if (!commande.numeroFacture) {
+    return new Response(
+      "La facture doit d'abord etre generee depuis la commande.",
+      { status: 409, headers: { "content-type": "text/plain; charset=utf-8" } },
+    );
+  }
   const buffer = await renderToBuffer(<FacturePdf commande={commande} />);
 
   return new Response(buffer as unknown as BodyInit, {

@@ -180,13 +180,14 @@ export default async function AdminPage({
   }
 
   const bornesMois = bornesJourneeInclusive(debutMoisIso, aujourdhuiIso);
+  const bornesAnnee = bornesJourneeInclusive(debutAnneeIso, aujourdhuiIso);
   const bornesJour = bornesJourneeInclusive(aujourdhuiIso, aujourdhuiIso);
 
   const filtreCommercial: Prisma.CommandeWhereInput = commercial
     ? { utilisateur_id: commercial }
     : {};
 
-  const [commandesMois, commandesPeriode, commandesImpaye, commerciaux] =
+  const [commandesMois, commandesAnnee, commandesPeriode, commandesImpaye, commerciaux] =
     await Promise.all([
       prisma.commande.findMany({
         where: {
@@ -195,6 +196,23 @@ export default async function AdminPage({
           date_commande: {
             gte: bornesMois.debutUtc,
             lt: bornesMois.finExclusiveUtc,
+          },
+        },
+        select: {
+          date_commande: true,
+          lignes: {
+            where: { deleted_at: null },
+            select: { prix_net: true, quantite: true },
+          },
+        },
+      }),
+      prisma.commande.findMany({
+        where: {
+          deleted_at: null,
+          ...filtreCommercial,
+          date_commande: {
+            gte: bornesAnnee.debutUtc,
+            lt: bornesAnnee.finExclusiveUtc,
           },
         },
         select: {
@@ -250,6 +268,7 @@ export default async function AdminPage({
   const cartesEpinglees = await calculerCartesEpinglees(await lireEpinglesKpi());
 
   const kpiMois = calculerKpiPeriode(commandesMois);
+  const kpiAnnee = calculerKpiPeriode(commandesAnnee);
   const kpiJour = calculerKpiPeriode(
     filtrerCommandesPeriode(
       commandesMois,
@@ -393,7 +412,14 @@ export default async function AdminPage({
           </p>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <CarteKPI
+            label={`Chiffre d'affaires ${maintenant.year}`}
+            valeur={formatMontant(kpiAnnee.chiffreAffaires)}
+            detail={`Du 01/01/${maintenant.year} au ${formatDate(maintenant.toJSDate())}`}
+            tonalite="bleu"
+            icon={BarChart3}
+          />
           <CarteKPI
             label="Chiffre d'affaires du mois"
             valeur={formatMontant(kpiMois.chiffreAffaires)}
@@ -433,7 +459,7 @@ export default async function AdminPage({
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Indicateurs de pilotage complementaires">
           <CarteKPI label="Panier moyen" valeur={formatMontant(kpiPilotage.panierMoyen)} detail="Sur la periode filtree" tonalite="bleu" />
-          <CarteKPI label="Taux d'encaissement" valeur={`${kpiPilotage.tauxEncaissement.toFixed(1).replace(".", ",")} %`} detail="Montant encaisse / chiffre d'affaires" tonalite="vert" />
+          <CarteKPI label="Taux d'encaissement" valeur={`${kpiPilotage.tauxEncaissement.toFixed(1).replace(".", ",")} %`} detail={`${kpiPilotage.commandesReglees} commande(s) reglee(s) / ${kpiPilotage.commandesTotal}`} tonalite="vert" />
           <CarteKPI label="Commandes reglees" valeur={`${kpiPilotage.tauxCommandesReglees.toFixed(1).replace(".", ",")} %`} detail="Part des commandes sans reste du" tonalite="neutre" />
           <CarteKPI label="Clients servis" valeur={String(kpiPilotage.clientsServis)} detail="Clients distincts sur la periode" tonalite="neutre" />
         </section>

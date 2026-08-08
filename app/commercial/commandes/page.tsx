@@ -7,6 +7,8 @@ import { BadgeStatut } from "@/components/badge-statut";
 import { CarteKPI } from "@/components/carte-kpi";
 import { CaseSelectionToutesCommandes } from "@/components/case-selection-toutes-commandes";
 import { CompteurSelectionCommandes } from "@/app/commandes/compteur-selection-commandes";
+import { BoutonPagination } from "@/app/commandes/bouton-pagination";
+import { construireLienPage } from "@/app/commandes/pagination";
 import { Button } from "@/components/ui/button";
 import { BoutonTelechargementCommercial } from "@/app/commandes/bouton-telechargement-commercial";
 import { calculerTotauxCommande } from "@/lib/commandes-vue";
@@ -29,17 +31,7 @@ type ParametresRecherche = Promise<{
 }>;
 
 function lienPage(params: Record<string, string | undefined>, page: number) {
-  const query = new URLSearchParams();
-  for (const [cle, valeur] of Object.entries(params)) {
-    if (valeur) {
-      query.set(cle, valeur);
-    }
-  }
-  if (page > 1) {
-    query.set("page", String(page));
-  }
-  const chaine = query.toString();
-  return chaine ? `/commercial/commandes?${chaine}` : "/commercial/commandes";
+  return construireLienPage("/commercial/commandes", params, page);
 }
 
 export default async function CommandesCommercialPage({
@@ -250,7 +242,6 @@ export default async function CommandesCommercialPage({
                     type="checkbox"
                     name="documents"
                     value="bl"
-                    defaultChecked={blDisponibleSurPage}
                     disabled={!blDisponibleSurPage}
                     className="h-4 w-4 accent-primary"
                   />
@@ -261,7 +252,6 @@ export default async function CommandesCommercialPage({
                     type="checkbox"
                     name="documents"
                     value="bon_charge"
-                    defaultChecked={bonChargeDisponibleSurPage}
                     disabled={!bonChargeDisponibleSurPage}
                     className="h-4 w-4 accent-primary"
                   />
@@ -485,44 +475,10 @@ export default async function CommandesCommercialPage({
             {pagesTotal}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
-              {page > 1 ? (
-                <Link href={lienPage(params, 1)}>Premiere</Link>
-              ) : (
-                "Premiere"
-              )}
-            </Button>
-            <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
-              {page > 1 ? (
-                <Link href={lienPage(params, page - 1)}>Precedent</Link>
-              ) : (
-                "Precedent"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagesTotal}
-              asChild={page < pagesTotal}
-            >
-              {page < pagesTotal ? (
-                <Link href={lienPage(params, page + 1)}>Suivant</Link>
-              ) : (
-                "Suivant"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagesTotal}
-              asChild={page < pagesTotal}
-            >
-              {page < pagesTotal ? (
-                <Link href={lienPage(params, pagesTotal)}>Derniere</Link>
-              ) : (
-                "Derniere"
-              )}
-            </Button>
+            <BoutonPagination disabled={page <= 1} href={lienPage(params, 1)}>Premiere</BoutonPagination>
+            <BoutonPagination disabled={page <= 1} href={lienPage(params, page - 1)}>Precedent</BoutonPagination>
+            <BoutonPagination disabled={page >= pagesTotal} href={lienPage(params, page + 1)}>Suivant</BoutonPagination>
+            <BoutonPagination disabled={page >= pagesTotal} href={lienPage(params, pagesTotal)}>Derniere</BoutonPagination>
           </div>
         </div>
       </div>
