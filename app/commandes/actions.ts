@@ -6,7 +6,6 @@ import { DateTime } from "luxon";
 import type { Prisma, TypeCommande } from "@prisma/client";
 import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { attribuerNumeroBL } from "@/lib/bl";
-import { attribuerNumeroFacture } from "@/lib/facture";
 import {
   calculerCommande,
   ProduitCommandeDuplique,
@@ -22,6 +21,7 @@ import {
   schemaAjoutPaiement,
   schemaCreationCommandeAdmin,
   schemaCreationCommandeCommercial,
+  schemaGenerationFacture,
   schemaModificationCommandeAdmin,
 } from "@/lib/validations/commande";
 
@@ -326,15 +326,17 @@ export async function creerCommandeAdmin(entree: unknown): Promise<ResultatComma
 
 export type ResultatGenerationFacture =
   | { ok: true; numeroFacture: string }
-  | { ok: false; message: string };
+  | { ok: false; erreurs?: Record<string, string>; message?: string };
 
 export async function genererNumeroFactureCommande(
-  commandeId: string,
+  entree: unknown,
 ): Promise<ResultatGenerationFacture> {
   const admin = await requireAdmin();
-  if (!commandeId) {
-    return { ok: false, message: "Commande introuvable" };
+  const validation = schemaGenerationFacture.safeParse(entree);
+  if (!validation.success) {
+    return { ok: false, erreurs: erreursParChamp(validation.error) };
   }
+  const { commandeId, numeroFacture } = validation.data;
 
   try {
     const ip = await adresseIpRequete();
@@ -359,12 +361,19 @@ export async function genererNumeroFactureCommande(
         return { ok: true, numeroFacture: commande.numero_facture };
       }
 
-      const facture = await attribuerNumeroFacture(tx);
+      const numeroExistant = await tx.commande.findUnique({
+        where: { numero_facture: numeroFacture },
+        select: { id: true },
+      });
+      if (numeroExistant) {
+        return { ok: false, erreurs: { numeroFacture: "Ce numero de facture existe deja" } };
+      }
+
       await tx.commande.update({
         where: { id: commandeId },
         data: {
-          numero_facture: facture.numeroFacture,
-          numero_facture_compteur: facture.compteur,
+          numero_facture: numeroFacture,
+          numero_facture_compteur: null,
         },
       });
       await ecrireAudit(
@@ -376,13 +385,13 @@ export async function genererNumeroFactureCommande(
           entiteId: commandeId,
           apres: {
             numero_bl: commande.numero_bl,
-            numero_facture: facture.numeroFacture,
-            numero_facture_compteur: facture.compteur,
+            numero_facture: numeroFacture,
+            numero_facture_compteur: null,
           },
         },
         ip,
       );
-      return { ok: true, numeroFacture: facture.numeroFacture };
+      return { ok: true, numeroFacture };
     });
 
     if (resultat.ok) {
@@ -391,6 +400,17 @@ export async function genererNumeroFactureCommande(
     }
     return resultat;
   } catch (erreur) {
+    if (
+      typeof erreur === "object" &&
+      erreur !== null &&
+      "code" in erreur &&
+      erreur.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        erreurs: { numeroFacture: "Ce numero de facture existe deja" },
+      };
+    }
     const resultat = erreurServeurMutation(erreur, "generation_facture");
     return { ok: false, message: resultat.message ?? MESSAGE_ERREUR_SERVEUR };
   }

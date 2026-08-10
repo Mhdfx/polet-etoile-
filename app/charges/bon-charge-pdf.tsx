@@ -207,14 +207,9 @@ export function BonChargePdf({ bon }: { bon: BonChargeDocumentData }) {
               <Image src={bon.societe.logo} style={styles.logo} />
             ) : (
               <View style={styles.logoFallback}>
-                <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+                <Text style={styles.logoFallbackText}>LOGO</Text>
               </View>
             )}
-            <View>
-              <Text style={styles.companyName}>{bon.societe.raisonSociale}</Text>
-              <Text style={styles.companyMeta}>{bon.societe.adresse || "-"}</Text>
-              <Text style={styles.companyMeta}>{identifiantsSociete(bon)}</Text>
-            </View>
           </View>
 
           <View style={styles.titleBox}>
@@ -278,8 +273,6 @@ export function BonChargePdf({ bon }: { bon: BonChargeDocumentData }) {
             <Text style={styles.signatureTitle}>Signature commercial</Text>
           </View>
         </View>
-
-        <Text style={styles.footer}>{footerSociete(bon)}</Text>
       </Page>
     </Document>
   );
@@ -292,26 +285,4 @@ function MetaCard({ label, value }: { label: string; value: string }) {
       <Text style={styles.metaValue}>{value}</Text>
     </View>
   );
-}
-
-function identifiantsSociete({ societe }: BonChargeDocumentData): string {
-  const valeurs = [
-    societe.rc ? `RC : ${societe.rc}` : undefined,
-    societe.ice ? `ICE : ${societe.ice}` : undefined,
-    societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
-    societe.patente ? `TP : ${societe.patente}` : undefined,
-  ].filter(Boolean);
-
-  return valeurs.length > 0 ? valeurs.join(" - ") : "-";
-}
-
-function footerSociete({ societe }: BonChargeDocumentData): string {
-  const telephone = societe.telephone || "+212 660924488";
-  return [
-    `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
-    identifiantsSociete({ societe } as BonChargeDocumentData),
-    `Tel : ${telephone}`,
-  ]
-    .filter((valeur) => valeur && valeur !== "-")
-    .join(" - ");
 }

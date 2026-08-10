@@ -263,13 +263,6 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
         <View style={styles.header} fixed>
           <View style={styles.brand}>
             <Logo commande={commande} />
-            <View>
-              <Text style={styles.companyName}>{commande.societe.raisonSociale}</Text>
-              <Text style={styles.companyLine}>{identifiantsEnteteFacture(commande)}</Text>
-              <Text style={styles.companyLine}>
-                Tel : {commande.societe.telephone || "+212 660924488"}
-              </Text>
-            </View>
           </View>
 
           <View style={styles.invoiceHead}>
@@ -336,9 +329,6 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
         </View>
 
         <CompanyStamp commande={commande} />
-        <Text style={styles.footer} fixed>
-          {footerSociete(commande)}
-        </Text>
       </Page>
     </Document>
   );
@@ -352,7 +342,7 @@ function Logo({ commande }: { commande: CommandeDocumentData }) {
 
   return (
     <View style={styles.logoFallback}>
-      <Text style={styles.logoFallbackText}>COQ PLUS</Text>
+      <Text style={styles.logoFallbackText}>LOGO</Text>
     </View>
   );
 }
@@ -396,36 +386,4 @@ function SummaryLine({
       </View>
     </View>
   );
-}
-
-function identifiantsSociete({ societe }: CommandeDocumentData): string {
-  const valeurs = [
-    societe.rc ? `RC : ${societe.rc}` : undefined,
-    societe.ice ? `ICE : ${societe.ice}` : undefined,
-    societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
-    societe.patente ? `TP : ${societe.patente}` : undefined,
-  ].filter(Boolean);
-
-  return valeurs.length > 0 ? valeurs.join(" - ") : "-";
-}
-
-function identifiantsEnteteFacture({ societe }: CommandeDocumentData): string {
-  const valeurs = [
-    societe.rc ? `RC : ${societe.rc}` : undefined,
-    societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
-    societe.patente ? `TP : ${societe.patente}` : undefined,
-  ].filter(Boolean);
-
-  return valeurs.length > 0 ? valeurs.join(" - ") : "-";
-}
-
-function footerSociete({ societe }: CommandeDocumentData): string {
-  const telephone = societe.telephone || "+212 660924488";
-  return [
-    `${societe.raisonSociale}, Siege social : ${societe.adresse || "-"}`,
-    identifiantsSociete({ societe } as CommandeDocumentData),
-    `Tel : ${telephone}`,
-  ]
-    .filter((valeur) => valeur && valeur !== "-")
-    .join(" - ");
 }

@@ -409,7 +409,6 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
             <Text style={styles.customerLine}>{commande.adresseClient}</Text>
             <Text style={styles.customerLine}>{commande.ville}</Text>
             <Text style={styles.customerLine}>Commercial : {commande.commercial}</Text>
-            <Text style={styles.customerLine}>ICE : -</Text>
           </View>
         </View>
 
@@ -488,10 +487,6 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
           <CompanyStamp commande={commande} />
         </View>
 
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerPrimary}>{footerPrimary(commande)}</Text>
-          <Text style={styles.footerSecondary}>{footerSecondary(commande)}</Text>
-        </View>
       </Page>
     </Document>
   );
@@ -504,7 +499,7 @@ function Logo({ commande }: { commande: CommandeDocumentData }) {
   }
   return (
     <View style={styles.logoFallback}>
-      <Text style={styles.logoFallbackText}>{commande.societe.raisonSociale}</Text>
+      <Text style={styles.logoFallbackText}>LOGO</Text>
     </View>
   );
 }
@@ -537,56 +532,23 @@ function PaymentColumn({ label }: { label: string }) {
 }
 
 function AgreementStamp({ commande }: { commande: CommandeDocumentData }) {
+  if (!commande.societe.tamponAgrement) return null;
+
   return (
     <View style={styles.stampArea}>
-      {commande.societe.tamponAgrement ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
-        <Image src={commande.societe.tamponAgrement} style={styles.agreementStamp} />
-      ) : (
-        <View style={styles.agreementFallback}>
-          <Text style={styles.agreementFallbackText}>
-            AGRÉMENT SANITAIRE{"\n"}{commande.societe.numeroAgrement || "NON RENSEIGNÉ"}
-          </Text>
-        </View>
-      )}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <Image src={commande.societe.tamponAgrement} style={styles.agreementStamp} />
     </View>
   );
 }
 
 function CompanyStamp({ commande }: { commande: CommandeDocumentData }) {
+  if (!commande.societe.cachet) return null;
+
   return (
     <View style={styles.stampArea}>
-      {commande.societe.cachet ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
-        <Image src={commande.societe.cachet} style={styles.companyStamp} />
-      ) : (
-        <View style={styles.companyFallback}>
-          <Text style={styles.companyFallbackText}>
-            {commande.societe.raisonSociale}{"\n"}
-            {commande.societe.telephone || "+212 660924488"}
-          </Text>
-        </View>
-      )}
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <Image src={commande.societe.cachet} style={styles.companyStamp} />
     </View>
   );
-}
-
-function identifiantsSociete({ societe }: CommandeDocumentData): string {
-  return [
-    societe.rc ? `RC : ${societe.rc}` : undefined,
-    societe.ice ? `ICE : ${societe.ice}` : undefined,
-    societe.identifiantFiscal ? `IF : ${societe.identifiantFiscal}` : undefined,
-    societe.patente ? `TP : ${societe.patente}` : undefined,
-  ].filter(Boolean).join(" - ");
-}
-
-function footerPrimary({ societe }: CommandeDocumentData): string {
-  return `${societe.raisonSociale}, Siège social : ${societe.adresse || "-"}`;
-}
-
-function footerSecondary({ societe }: CommandeDocumentData): string {
-  const telephone = societe.telephone || "+212 660924488";
-  return [identifiantsSociete({ societe } as CommandeDocumentData), `Tél : ${telephone}`]
-    .filter(Boolean)
-    .join(" - ");
 }

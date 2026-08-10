@@ -6,7 +6,6 @@ const {
   txMock,
   transactionMock,
   attribuerNumeroBLMock,
-  attribuerNumeroFactureMock,
 } = vi.hoisted(() => {
   const txMock = {
     user: { findFirst: vi.fn() },
@@ -30,7 +29,6 @@ const {
     requireAdminMock: vi.fn(),
     requireCommercialMock: vi.fn(),
     attribuerNumeroBLMock: vi.fn(),
-    attribuerNumeroFactureMock: vi.fn(),
     transactionMock: vi.fn(
       async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock),
     ),
@@ -46,9 +44,6 @@ vi.mock("@/lib/session", () => ({
   requireCommercial: requireCommercialMock,
 }));
 vi.mock("@/lib/bl", () => ({ attribuerNumeroBL: attribuerNumeroBLMock }));
-vi.mock("@/lib/facture", () => ({
-  attribuerNumeroFacture: attribuerNumeroFactureMock,
-}));
 vi.mock("@/lib/db", () => ({ prisma: { $transaction: transactionMock } }));
 
 import {
@@ -68,10 +63,6 @@ beforeEach(() => {
   requireAdminMock.mockResolvedValue(admin);
   requireCommercialMock.mockResolvedValue(commercial);
   attribuerNumeroBLMock.mockResolvedValue({ compteur: 9, numeroBl: "CP-000009" });
-  attribuerNumeroFactureMock.mockResolvedValue({
-    compteur: 4,
-    numeroFacture: "FACT-000004",
-  });
   txMock.user.findFirst.mockResolvedValue({ id: "com-1" });
   txMock.client.findFirst.mockResolvedValue({ id: "client-1" });
   txMock.clientExterne.findFirst.mockResolvedValue({ id: "ext-1" });
@@ -116,7 +107,6 @@ describe("creerCommandeCommercial", () => {
 
     expect(resultat.ok).toBe(true);
     expect(attribuerNumeroBLMock).toHaveBeenCalledWith(txMock);
-    expect(attribuerNumeroFactureMock).not.toHaveBeenCalled();
     expect(txMock.commande.create).toHaveBeenCalledWith({
       data: {
         numero_bl: "CP-000009",
@@ -241,22 +231,35 @@ describe("creerCommandeCommercial", () => {
 });
 
 describe("genererNumeroFactureCommande", () => {
-  it("attribue manuellement un numero facture sous verrou admin", async () => {
-    txMock.commande.findUnique.mockResolvedValueOnce({
-      numero_bl: "CP-000009",
-      numero_facture: null,
+  it("exige le role admin", async () => {
+    requireAdminMock.mockRejectedValueOnce(new Error("NEXT_REDIRECT:/403"));
+
+    await expect(
+      genererNumeroFactureCommande({
+        commandeId: "commande-1",
+        numeroFacture: "FACT-INTERDIT",
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/403");
+    expect(transactionMock).not.toHaveBeenCalled();
+  });
+
+  it("enregistre le numero facture saisi par l'admin sous verrou", async () => {
+    txMock.commande.findUnique
+      .mockResolvedValueOnce({ numero_bl: "CP-000009", numero_facture: null })
+      .mockResolvedValueOnce(null);
+
+    const resultat = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "FAC/2026/0042",
     });
 
-    const resultat = await genererNumeroFactureCommande("commande-1");
-
-    expect(resultat).toEqual({ ok: true, numeroFacture: "FACT-000004" });
+    expect(resultat).toEqual({ ok: true, numeroFacture: "FAC/2026/0042" });
     expect(txMock.$queryRaw).toHaveBeenCalled();
-    expect(attribuerNumeroFactureMock).toHaveBeenCalledWith(txMock);
     expect(txMock.commande.update).toHaveBeenCalledWith({
       where: { id: "commande-1" },
       data: {
-        numero_facture: "FACT-000004",
-        numero_facture_compteur: 4,
+        numero_facture: "FAC/2026/0042",
+        numero_facture_compteur: null,
       },
     });
   });
@@ -267,11 +270,68 @@ describe("genererNumeroFactureCommande", () => {
       numero_facture: "FACT-000003",
     });
 
-    const resultat = await genererNumeroFactureCommande("commande-1");
+    const resultat = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "FACT-000099",
+    });
 
     expect(resultat).toEqual({ ok: true, numeroFacture: "FACT-000003" });
-    expect(attribuerNumeroFactureMock).not.toHaveBeenCalled();
     expect(txMock.commande.update).not.toHaveBeenCalled();
+  });
+
+  it("refuse un numero facture deja utilise", async () => {
+    txMock.commande.findUnique
+      .mockResolvedValueOnce({ numero_bl: "CP-000009", numero_facture: null })
+      .mockResolvedValueOnce({ id: "commande-autre" });
+
+    const resultat = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "FACT-DOUBLON",
+    });
+
+    expect(resultat).toEqual({
+      ok: false,
+      erreurs: { numeroFacture: "Ce numero de facture existe deja" },
+    });
+    expect(txMock.commande.update).not.toHaveBeenCalled();
+  });
+
+  it("transforme une collision concurrente en erreur de champ", async () => {
+    transactionMock.mockRejectedValueOnce({ code: "P2002" });
+
+    const resultat = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "FACT-COLLISION",
+    });
+
+    expect(resultat).toEqual({
+      ok: false,
+      erreurs: { numeroFacture: "Ce numero de facture existe deja" },
+    });
+  });
+
+  it("refuse un numero facture vide ou contenant des espaces", async () => {
+    const vide = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "   ",
+    });
+    const espaces = await genererNumeroFactureCommande({
+      commandeId: "commande-1",
+      numeroFacture: "FACT 0042",
+    });
+
+    expect(vide).toEqual({
+      ok: false,
+      erreurs: { numeroFacture: "Le numero de facture est obligatoire" },
+    });
+    expect(espaces).toEqual({
+      ok: false,
+      erreurs: {
+        numeroFacture:
+          "Le numero accepte uniquement lettres, chiffres, points, tirets, barres obliques et underscores",
+      },
+    });
+    expect(transactionMock).not.toHaveBeenCalled();
   });
 });
 

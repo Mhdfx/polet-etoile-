@@ -121,6 +121,19 @@ export const schemaCreationCommande = z.discriminatedUnion("source", [
   schemaCreationCommandeAdmin.extend({ source: z.literal("ADMIN") }),
 ]);
 
+export const schemaGenerationFacture = z.object({
+  commandeId: champId,
+  numeroFacture: z
+    .string()
+    .trim()
+    .min(1, "Le numero de facture est obligatoire")
+    .max(40, "Le numero de facture ne doit pas depasser 40 caracteres")
+    .regex(
+      /^[A-Za-z0-9][A-Za-z0-9._/-]*$/,
+      "Le numero accepte uniquement lettres, chiffres, points, tirets, barres obliques et underscores",
+    ),
+});
+
 export const schemaAjoutPaiement = z.object({
   commandeId: champId,
   montant: z.string().transform((valeur, contexte) => {
@@ -154,3 +167,4 @@ export type CreationCommandeCommercial = z.infer<
 export type CreationCommandeAdmin = z.infer<typeof schemaCreationCommandeAdmin>;
 export type ModificationCommandeAdmin = z.infer<typeof schemaModificationCommandeAdmin>;
 export type AjoutPaiement = z.infer<typeof schemaAjoutPaiement>;
+export type GenerationFacture = z.infer<typeof schemaGenerationFacture>;
