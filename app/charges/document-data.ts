@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+import Decimal from "decimal.js";
 import { chargerLogoDataUri } from "@/app/commandes/document-data";
 import { prisma } from "@/lib/db";
-import { sommerQuantites } from "@/lib/decimal";
-import { formatDate, formatDateHeure, formatQuantite } from "@/lib/format";
+import { arrondirQuantite, sommerQuantites } from "@/lib/decimal";
+import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
+import { calculerMontantsBonCharge } from "./montants-bon-charge";
 
 export type BonChargeDocumentData = {
   societe: {
@@ -30,11 +32,18 @@ export type BonChargeDocumentData = {
   };
   commentaire?: string;
   totalKg: string;
+  totalMontant?: string;
   lignes: Array<{
     produit: string;
     quantite: string;
+    montant?: string;
   }>;
 };
+
+function formatQuantiteSansUnite(valeur: Decimal.Value): string {
+  const [entier, decimales] = arrondirQuantite(valeur).toFixed(3).split(".");
+  return `${entier.replace(/\B(?=(\d{3})+(?!\d))/g, " ")},${decimales}`;
+}
 
 export async function chargerBonChargeDocument(id: string): Promise<BonChargeDocumentData> {
   const bon = await prisma.bonCharge.findFirst({
@@ -51,6 +60,10 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
           numero_bl: true,
           client: { select: { nom: true, region_ville: true, adresse: true } },
           client_externe: { select: { nom: true, region_ville: true, adresse: true } },
+          lignes: {
+            where: { deleted_at: null, produit: { suivi_stock: true } },
+            select: { produit_id: true, quantite: true, prix_net: true },
+          },
         },
       },
       commercial: { select: { nom_complet: true } },
@@ -60,7 +73,7 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
         orderBy: { produit: { ordre_affichage: "asc" } },
         select: {
           quantite_kg: true,
-          produit: { select: { nom: true } },
+          produit: { select: { id: true, nom: true } },
         },
       },
     },
@@ -89,6 +102,35 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
   });
   const params = new Map(parametres.map((parametre) => [parametre.cle, parametre.valeur]));
   const totalKg = sommerQuantites(bon.lignes.map((ligne) => ligne.quantite_kg));
+  const montants = calculerMontantsBonCharge(
+    (bon.commande?.lignes ?? []).map((ligne) => ({
+      produitId: ligne.produit_id,
+      quantite: ligne.quantite,
+      prixNet: ligne.prix_net,
+    })),
+    bon.lignes.map((ligne) => ({
+      produitId: ligne.produit.id,
+      quantite: ligne.quantite_kg,
+    })),
+  );
+
+  const lignes = bon.lignes.map((ligne, index) => {
+    const montant = montants[index];
+
+    return {
+      produit: ligne.produit.nom,
+      quantite: formatQuantiteSansUnite(ligne.quantite_kg),
+      montant: montant ? formatMontant(montant).replace(/ DH$/, "") : undefined,
+      montantDecimal: montant,
+    };
+  });
+  const montantsComplets = lignes.every((ligne) => ligne.montantDecimal);
+  const totalMontant = montantsComplets
+    ? lignes.reduce(
+        (total, ligne) => total.plus(ligne.montantDecimal ?? 0),
+        new Decimal(0),
+      )
+    : undefined;
 
   return {
     societe: {
@@ -118,10 +160,14 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
         }
       : undefined,
     commentaire: bon.commentaire ?? undefined,
-    totalKg: formatQuantite(totalKg),
-    lignes: bon.lignes.map((ligne) => ({
-      produit: ligne.produit.nom,
-      quantite: formatQuantite(ligne.quantite_kg),
+    totalKg: formatQuantiteSansUnite(totalKg),
+    totalMontant: totalMontant
+      ? formatMontant(totalMontant).replace(/ DH$/, "")
+      : undefined,
+    lignes: lignes.map((ligne) => ({
+      produit: ligne.produit,
+      quantite: ligne.quantite,
+      montant: ligne.montant,
     })),
   };
 }
