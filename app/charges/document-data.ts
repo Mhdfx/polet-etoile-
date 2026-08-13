@@ -62,6 +62,7 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
           client_externe: { select: { nom: true, region_ville: true, adresse: true } },
           lignes: {
             where: { deleted_at: null, produit: { suivi_stock: true } },
+            orderBy: [{ created_at: "asc" }, { id: "asc" }],
             select: { produit_id: true, quantite: true, prix_net: true },
           },
         },
@@ -70,7 +71,11 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
       createur: { select: { nom_complet: true } },
       lignes: {
         where: { deleted_at: null },
-        orderBy: { produit: { ordre_affichage: "asc" } },
+        orderBy: [
+          { produit: { ordre_affichage: "asc" } },
+          { created_at: "asc" },
+          { id: "asc" },
+        ],
         select: {
           quantite_kg: true,
           produit: { select: { id: true, nom: true } },

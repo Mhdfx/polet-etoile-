@@ -5,6 +5,7 @@ import {
 } from "@/app/commandes/document-data";
 import { prisma } from "@/lib/db";
 import { formatDateHeure } from "@/lib/format";
+import { construireLignesBonChargeConsolide } from "./lignes-bon-charge-consolide";
 
 /** Nombre style FR (virgule decimale, espace milliers) SANS unite. */
 function formatNombre(valeur: Decimal, decimales: number): string {
@@ -39,10 +40,11 @@ export type BonChargeConsolideData = {
 };
 
 /**
- * Bon de charge consolide : agrege par produit les lignes des commandes
- * selectionnees (quantite totale + montant total base sur les prix figes
- * `prix_net`). Les produits hors stock (`suivi_stock = false`, ex. RELIQUAT
- * PAYEMENT) sont exclus, comme sur le bon de charge par commande.
+ * Bon de charge consolide : conserve chaque ligne de chaque commande
+ * selectionnee (quantite + montant base sur le prix fige `prix_net`). Deux
+ * occurrences du meme produit restent donc deux lignes distinctes. Les
+ * produits hors stock (`suivi_stock = false`, ex. RELIQUAT PAYEMENT) sont
+ * exclus, comme sur le bon de charge par commande.
  */
 export async function chargerBonChargeConsolide(params: {
   commandeIds: string[];
@@ -57,43 +59,35 @@ export async function chargerBonChargeConsolide(params: {
   const commandes = await prisma.commande.findMany({
     where: { id: { in: commandeIds }, deleted_at: null },
     select: {
+      id: true,
       numero_bl: true,
       utilisateur: { select: { nom_complet: true } },
       lignes: {
         where: { deleted_at: null, produit: { suivi_stock: true } },
+        orderBy: [{ created_at: "asc" }, { id: "asc" }],
         select: {
           quantite: true,
           prix_net: true,
-          produit: { select: { id: true, nom: true, ordre_affichage: true } },
+          produit: { select: { nom: true } },
         },
       },
     },
   });
 
-  // Agregation par produit.
-  const parProduit = new Map<
-    string,
-    { produit: string; ordre: number; quantite: Decimal; montant: Decimal }
-  >();
-
-  for (const commande of commandes) {
-    for (const ligne of commande.lignes) {
-      const cle = ligne.produit.id;
-      const entree =
-        parProduit.get(cle) ?? {
-          produit: ligne.produit.nom,
-          ordre: ligne.produit.ordre_affichage,
-          quantite: new Decimal(0),
-          montant: new Decimal(0),
-        };
-      entree.quantite = entree.quantite.plus(ligne.quantite);
-      entree.montant = entree.montant.plus(ligne.prix_net);
-      parProduit.set(cle, entree);
-    }
-  }
-
-  const lignes = [...parProduit.values()].sort(
-    (a, b) => a.ordre - b.ordre || a.produit.localeCompare(b.produit),
+  const positionCommande = new Map(commandeIds.map((id, index) => [id, index]));
+  commandes.sort(
+    (a, b) =>
+      (positionCommande.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+      (positionCommande.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+  );
+  const lignes = construireLignesBonChargeConsolide(
+    commandes.map((commande) => ({
+      lignes: commande.lignes.map((ligne) => ({
+        produit: { nom: ligne.produit.nom },
+        quantite: ligne.quantite,
+        prixNet: ligne.prix_net,
+      })),
+    })),
   );
 
   if (lignes.length === 0) {
