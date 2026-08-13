@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   calculerCommande,
-  ProduitCommandeDuplique,
   ProduitCommandeIntrouvable,
   totalsIdentiques,
 } from "./commandes";
@@ -69,16 +68,31 @@ describe("calculerCommande", () => {
     ).toThrow(ProduitCommandeIntrouvable);
   });
 
-  it("refuse deux lignes pour le meme produit", () => {
-    expect(() =>
-      calculerCommande(
-        [
-          { produitId: "p1", quantite: "1.000" },
-          { produitId: "p1", quantite: "2.000" },
-        ],
-        [{ id: "p1", prix_reference: "10.00" }],
-      ),
-    ).toThrow(ProduitCommandeDuplique);
+  it("conserve plusieurs occurrences du meme produit comme lignes distinctes", () => {
+    const commande = calculerCommande(
+      [
+        { produitId: "p1", quantite: "1.000", prixUnitaire: "10.00" },
+        { produitId: "p1", quantite: "2.000", prixUnitaire: "12.50" },
+      ],
+      [{ id: "p1", prix_reference: "10.00" }],
+      { autoriserPrixPersonnalise: true },
+    );
+
+    expect(commande.lignes).toEqual([
+      expect.objectContaining({
+        produitId: "p1",
+        quantite: "1.000",
+        prixUnitaire: "10.00",
+        prixNet: "10.00",
+      }),
+      expect.objectContaining({
+        produitId: "p1",
+        quantite: "2.000",
+        prixUnitaire: "12.50",
+        prixNet: "25.00",
+      }),
+    ]);
+    expect(commande.total).toBe("35.00");
   });
 });
 

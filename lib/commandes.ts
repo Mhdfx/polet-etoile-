@@ -26,26 +26,14 @@ export class ProduitCommandeIntrouvable extends Error {
   }
 }
 
-export class ProduitCommandeDuplique extends Error {
-  constructor(public produitId: string) {
-    super(`Produit commande duplique : ${produitId}`);
-  }
-}
-
 export function calculerCommande(
   lignes: Array<{ produitId: string; quantite: string; prixUnitaire?: string }>,
   produits: ProduitCommande[],
   options: { autoriserPrixPersonnalise?: boolean } = {},
 ): CommandeCalculee {
   const produitsParId = new Map(produits.map((produit) => [produit.id, produit]));
-  const produitsVus = new Set<string>();
 
   const lignesCalculees = lignes.map((ligne) => {
-    if (produitsVus.has(ligne.produitId)) {
-      throw new ProduitCommandeDuplique(ligne.produitId);
-    }
-    produitsVus.add(ligne.produitId);
-
     const produit = produitsParId.get(ligne.produitId);
     if (!produit) {
       throw new ProduitCommandeIntrouvable(ligne.produitId);

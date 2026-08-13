@@ -8,7 +8,6 @@ import { adresseIpRequete, ecrireAudit } from "@/lib/audit";
 import { attribuerNumeroBL } from "@/lib/bl";
 import {
   calculerCommande,
-  ProduitCommandeDuplique,
   ProduitCommandeIntrouvable,
   totalsIdentiques,
 } from "@/lib/commandes";
@@ -171,13 +170,6 @@ async function creerCommandeTransactionnelle({
         ok: false,
         message:
           "Un produit est inactif ou introuvable. Rechargez la page avant de continuer.",
-      };
-    }
-
-    if (erreur instanceof ProduitCommandeDuplique) {
-      return {
-        ok: false,
-        message: "Chaque produit ne peut apparaitre qu'une seule fois par commande.",
       };
     }
 
@@ -634,13 +626,6 @@ export async function modifierCommandeAdmin(
             ok: false as const,
             message:
               "Un produit est inactif ou introuvable. Rechargez la page avant de continuer.",
-          };
-        }
-
-        if (erreur instanceof ProduitCommandeDuplique) {
-          return {
-            ok: false as const,
-            message: "Chaque produit ne peut apparaitre qu'une seule fois par commande.",
           };
         }
 

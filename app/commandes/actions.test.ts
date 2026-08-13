@@ -518,6 +518,54 @@ describe("modifierCommandeAdmin", () => {
       }),
     );
   });
+
+  it("conserve plusieurs occurrences du meme produit lors de la modification", async () => {
+    txMock.commande.findUnique.mockResolvedValue({
+      id: "commande-1",
+      numero_bl: "CP-000096",
+      utilisateur_id: "com-1",
+      client_id: "client-1",
+      client_externe_id: null,
+      type_commande: "STANDARD",
+      date_commande: new Date("2026-08-10T12:00:00.000Z"),
+      bon_charge: null,
+      lignes: [],
+      paiements: [],
+    });
+
+    const resultat = await modifierCommandeAdmin({
+      commandeId: "commande-1",
+      dateCommande: "2026-08-10",
+      commercialId: "com-1",
+      typeClient: "STANDARD",
+      clientId: "client-1",
+      lignes: [
+        { produitId: "prod-1", quantite: "80", prixUnitaire: "47,00" },
+        { produitId: "prod-1", quantite: "50", prixUnitaire: "47,00" },
+      ],
+      totalAnnonce: "6110,00",
+    });
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.ligneCommande.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          commande_id: "commande-1",
+          produit_id: "prod-1",
+          quantite: "80.000",
+          prix_unitaire: "47.00",
+          prix_net: "3760.00",
+        },
+        {
+          commande_id: "commande-1",
+          produit_id: "prod-1",
+          quantite: "50.000",
+          prix_unitaire: "47.00",
+          prix_net: "2350.00",
+        },
+      ],
+    });
+  });
 });
 
 describe("ajouterPaiementCommande", () => {
