@@ -8,6 +8,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import type { CommandeDocumentData } from "./document-data";
+import { construireLignesPiedSociete } from "./pied-societe";
 
 const ROUGE = "#b11226";
 const ROUGE_FONCE = "#7f0d1b";
@@ -487,8 +488,23 @@ export function BonLivraisonPdf({ commande }: { commande: CommandeDocumentData }
           <CompanyStamp commande={commande} />
         </View>
 
+        <PiedSociete commande={commande} />
+
       </Page>
     </Document>
+  );
+}
+
+function PiedSociete({ commande }: { commande: CommandeDocumentData }) {
+  const lignes = construireLignesPiedSociete(commande.societe);
+
+  return (
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerPrimary}>{lignes.principale}</Text>
+      {lignes.secondaire ? (
+        <Text style={styles.footerSecondary}>{lignes.secondaire}</Text>
+      ) : null}
+    </View>
   );
 }
 

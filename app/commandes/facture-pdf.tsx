@@ -8,6 +8,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import type { CommandeDocumentData } from "./document-data";
+import { construireLignesPiedSociete } from "./pied-societe";
 
 const ROUGE = "#c1121f";
 const ROUGE_FONCE = "#8f0d17";
@@ -20,7 +21,7 @@ const styles = StyleSheet.create({
   page: {
     paddingTop: 28,
     paddingHorizontal: 32,
-    paddingBottom: 32,
+    paddingBottom: 48,
     fontFamily: "Helvetica",
     fontSize: 8.7,
     color: TEXTE,
@@ -253,6 +254,10 @@ const styles = StyleSheet.create({
     fontSize: 6.4,
     fontWeight: 700,
   },
+  footerPrimary: {
+    marginBottom: 2,
+  },
+  footerSecondary: {},
 });
 
 export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
@@ -329,8 +334,22 @@ export function FacturePdf({ commande }: { commande: CommandeDocumentData }) {
         </View>
 
         <CompanyStamp commande={commande} />
+        <PiedSociete commande={commande} />
       </Page>
     </Document>
+  );
+}
+
+function PiedSociete({ commande }: { commande: CommandeDocumentData }) {
+  const lignes = construireLignesPiedSociete(commande.societe);
+
+  return (
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerPrimary}>{lignes.principale}</Text>
+      {lignes.secondaire ? (
+        <Text style={styles.footerSecondary}>{lignes.secondaire}</Text>
+      ) : null}
+    </View>
   );
 }
 
