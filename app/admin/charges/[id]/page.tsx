@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { sommerQuantites } from "@/lib/decimal";
 import { formatDate, formatDateHeure, formatQuantite } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { regrouperLignesBonCharge } from "@/app/charges/regrouper-lignes-bon-charge";
 import { SupprimerBonChargeBouton } from "./supprimer-bouton";
 
 export default async function DetailBonChargePage({
@@ -45,7 +46,11 @@ export default async function DetailBonChargePage({
       createur: { select: { nom_complet: true } },
       lignes: {
         where: { deleted_at: null },
-        select: { id: true, quantite_kg: true, produit: { select: { nom: true } } },
+        select: {
+          id: true,
+          quantite_kg: true,
+          produit: { select: { id: true, nom: true } },
+        },
       },
     },
   });
@@ -55,6 +60,13 @@ export default async function DetailBonChargePage({
   }
 
   const totalKg = sommerQuantites(bon.lignes.map((ligne) => ligne.quantite_kg));
+  const lignesGroupees = regrouperLignesBonCharge(
+    bon.lignes.map((ligne) => ({
+      produitId: ligne.produit.id,
+      produit: ligne.produit.nom,
+      quantite: ligne.quantite_kg,
+    })),
+  );
   const clientCommande = bon.commande
     ? (bon.commande.client ?? bon.commande.client_externe)
     : null;
@@ -170,11 +182,11 @@ export default async function DetailBonChargePage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bon.lignes.map((ligne) => (
-                <TableRow key={ligne.id}>
-                  <TableCell>{ligne.produit.nom}</TableCell>
+              {lignesGroupees.map((ligne) => (
+                <TableRow key={ligne.produitId}>
+                  <TableCell>{ligne.produit}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatQuantite(ligne.quantite_kg)}
+                    {formatQuantite(ligne.quantite)}
                   </TableCell>
                 </TableRow>
               ))}

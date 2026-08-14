@@ -40,9 +40,8 @@ export type BonChargeConsolideData = {
 };
 
 /**
- * Bon de charge consolide : conserve chaque ligne de chaque commande
- * selectionnee (quantite + montant base sur le prix fige `prix_net`). Deux
- * occurrences du meme produit restent donc deux lignes distinctes. Les
+ * Bon de charge consolide : regroupe chaque produit des commandes selectionnees
+ * et additionne quantite + montant base sur le prix fige `prix_net`. Les
  * produits hors stock (`suivi_stock = false`, ex. RELIQUAT PAYEMENT) sont
  * exclus, comme sur le bon de charge par commande.
  */
@@ -68,7 +67,7 @@ export async function chargerBonChargeConsolide(params: {
         select: {
           quantite: true,
           prix_net: true,
-          produit: { select: { nom: true } },
+          produit: { select: { id: true, nom: true } },
         },
       },
     },
@@ -83,7 +82,7 @@ export async function chargerBonChargeConsolide(params: {
   const lignes = construireLignesBonChargeConsolide(
     commandes.map((commande) => ({
       lignes: commande.lignes.map((ligne) => ({
-        produit: { nom: ligne.produit.nom },
+        produit: { id: ligne.produit.id, nom: ligne.produit.nom },
         quantite: ligne.quantite,
         prixNet: ligne.prix_net,
       })),

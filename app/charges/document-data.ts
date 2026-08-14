@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { arrondirQuantite, sommerQuantites } from "@/lib/decimal";
 import { formatDate, formatDateHeure, formatMontant } from "@/lib/format";
 import { calculerMontantsBonCharge } from "./montants-bon-charge";
+import { regrouperLignesBonCharge } from "./regrouper-lignes-bon-charge";
 
 export type BonChargeDocumentData = {
   societe: {
@@ -119,16 +120,21 @@ export async function chargerBonChargeDocument(id: string): Promise<BonChargeDoc
     })),
   );
 
-  const lignes = bon.lignes.map((ligne, index) => {
-    const montant = montants[index];
-
-    return {
+  const lignes = regrouperLignesBonCharge(
+    bon.lignes.map((ligne, index) => ({
+      produitId: ligne.produit.id,
       produit: ligne.produit.nom,
-      quantite: formatQuantiteSansUnite(ligne.quantite_kg),
-      montant: montant ? formatMontant(montant).replace(/ DH$/, "") : undefined,
-      montantDecimal: montant,
-    };
-  });
+      quantite: ligne.quantite_kg,
+      montant: montants[index],
+    })),
+  ).map((ligne) => ({
+    produit: ligne.produit,
+    quantite: formatQuantiteSansUnite(ligne.quantite),
+    montant: ligne.montant
+      ? formatMontant(ligne.montant).replace(/ DH$/, "")
+      : undefined,
+    montantDecimal: ligne.montant,
+  }));
   const montantsComplets = lignes.every((ligne) => ligne.montantDecimal);
   const totalMontant = montantsComplets
     ? lignes.reduce(
