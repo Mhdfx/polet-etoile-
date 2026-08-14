@@ -169,6 +169,44 @@ describe("creerBonChargeDepuisCommande", () => {
     );
   });
 
+  it("conserve chaque occurrence repetee de la commande dans le bon de charge", async () => {
+    txMock.commande.findFirst.mockResolvedValue({
+      id: "commande-1",
+      numero_bl: "CP-000188",
+      utilisateur_id: "com-1",
+      date_commande: new Date("2026-08-13T12:00:00.000Z"),
+      bon_charge: null,
+      lignes: [
+        {
+          produit_id: "prod-1",
+          quantite: { toFixed: () => "1.000" },
+          produit: { id: "prod-1", suivi_stock: true },
+        },
+        {
+          produit_id: "prod-1",
+          quantite: { toFixed: () => "2.000" },
+          produit: { id: "prod-1", suivi_stock: true },
+        },
+      ],
+    });
+
+    const resultat = await creerBonChargeDepuisCommande("commande-1");
+
+    expect(resultat.ok).toBe(true);
+    expect(txMock.bonCharge.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lignes: {
+            create: [
+              { produit_id: "prod-1", quantite_kg: "1.000" },
+              { produit_id: "prod-1", quantite_kg: "2.000" },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
   it("verifie le proprietaire lors de la generation commerciale a la demande", async () => {
     const resultat = await assurerBonChargeDepuisCommande(txMock as never, {
       commandeId: "commande-1",

@@ -8,7 +8,6 @@ import { attribuerNumeroBC } from "@/lib/bc";
 import { assurerBonChargeDepuisCommande } from "@/app/charges/bon-charge-depuis-commande";
 import {
   calculerLignesCharge,
-  ProduitChargeDuplique,
   ProduitChargeIntrouvable,
 } from "@/lib/charge";
 import { prisma } from "@/lib/db";
@@ -89,12 +88,6 @@ export async function creerBonCharge(entree: unknown): Promise<ResultatBonCharge
             ok: false as const,
             message:
               "Un produit est inactif, introuvable ou non suivi en stock. Rechargez la page.",
-          };
-        }
-        if (erreur instanceof ProduitChargeDuplique) {
-          return {
-            ok: false as const,
-            message: "Chaque produit ne peut apparaitre qu'une seule fois par bon de charge.",
           };
         }
         throw erreur;

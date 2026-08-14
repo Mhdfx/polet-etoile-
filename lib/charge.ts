@@ -14,31 +14,20 @@ export class ProduitChargeIntrouvable extends Error {
   }
 }
 
-export class ProduitChargeDuplique extends Error {
-  constructor(public produitId: string) {
-    super(`Produit de charge duplique : ${produitId}`);
-  }
-}
-
 /**
  * Valide et normalise les lignes d'un bon de charge : chaque produit doit
- * exister dans l'ensemble autorise (produits actifs suivis en stock) et
- * n'apparaitre qu'une fois. Quantites en KG, Decimal(10,3). Aucun prix : un
- * bon de charge est du stock, pas une vente.
+ * exister dans l'ensemble autorise (produits actifs suivis en stock).
+ * Plusieurs occurrences du meme produit restent des lignes distinctes afin
+ * de conserver le detail exact de la commande source. Quantites en KG,
+ * Decimal(10,3). Aucun prix : un bon de charge est du stock, pas une vente.
  */
 export function calculerLignesCharge(
   lignes: Array<{ produitId: string; quantite: string }>,
   produitsAutorises: Array<{ id: string }>,
 ): LigneChargeCalculee[] {
   const idsAutorises = new Set(produitsAutorises.map((produit) => produit.id));
-  const produitsVus = new Set<string>();
 
   return lignes.map((ligne) => {
-    if (produitsVus.has(ligne.produitId)) {
-      throw new ProduitChargeDuplique(ligne.produitId);
-    }
-    produitsVus.add(ligne.produitId);
-
     if (!idsAutorises.has(ligne.produitId)) {
       throw new ProduitChargeIntrouvable(ligne.produitId);
     }

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   calculerLignesCharge,
   calculerReconciliation,
-  ProduitChargeDuplique,
   ProduitChargeIntrouvable,
   type ProduitReference,
 } from "@/lib/charge";
@@ -33,8 +32,8 @@ describe("calculerLignesCharge", () => {
     ).toThrow(ProduitChargeIntrouvable);
   });
 
-  it("rejette un produit duplique", () => {
-    expect(() =>
+  it("conserve les occurrences repetees comme lignes distinctes", () => {
+    expect(
       calculerLignesCharge(
         [
           { produitId: "p1", quantite: "1" },
@@ -42,7 +41,10 @@ describe("calculerLignesCharge", () => {
         ],
         produits,
       ),
-    ).toThrow(ProduitChargeDuplique);
+    ).toEqual([
+      { produitId: "p1", quantite: "1.000" },
+      { produitId: "p1", quantite: "2.000" },
+    ]);
   });
 });
 
