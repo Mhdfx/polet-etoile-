@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
+  Activity,
   BarChart3,
   ClipboardList,
   CreditCard,
@@ -43,6 +44,12 @@ const navigationAdmin: NavigationItem[] = [
   { label: "Clients", icon: Users, href: "/admin/clients", groupe: "menu" },
   { label: "Retours", icon: RotateCcw, href: "/admin/retours", groupe: "menu" },
   { label: "KPI", icon: BarChart3, href: "/admin/kpi", groupe: "pilotage" },
+  {
+    label: "Mouvements produits",
+    icon: Activity,
+    href: "/admin/mouvements-produits",
+    groupe: "pilotage",
+  },
   { label: "Rapprochement", icon: Scale, href: "/admin/rapprochement", groupe: "pilotage" },
   {
     label: "Utilisateurs",
